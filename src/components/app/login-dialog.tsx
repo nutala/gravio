@@ -35,6 +35,15 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
   },
 ];
 
+function CaliLogo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" className={className} aria-hidden="true" focusable="false" fill="none">
+      <rect width="32" height="32" rx="8" className="fill-primary" />
+      <text x="50%" y="54%" dominantBaseline="central" textAnchor="middle" fill="white" fontSize="16" fontWeight="700" fontFamily="system-ui">CT</text>
+    </svg>
+  );
+}
+
 function GoogleLogo({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden="true" focusable="false">
@@ -142,6 +151,7 @@ export function LoginDialog({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erreur d'inscription");
       toast.success("Compte créé ! Connecte-toi.");
+      setPendingEmail(null);
       setMode("login");
       setLoginEmail(regEmail.trim());
       setLoginPassword("");
@@ -171,7 +181,7 @@ export function LoginDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="mb-2 flex justify-center">
-            <GoogleLogo className="h-10 w-10" />
+            <CaliLogo className="h-10 w-10" />
           </div>
           <DialogTitle className="text-center">
             {mode === "register" ? "Créer un compte" : "Se connecter"}

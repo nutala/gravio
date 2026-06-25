@@ -55,6 +55,7 @@ server.log
 
 # database
 db/custom.db
+prisma/db/
 
 # tool analysis results
 /tool-results/
