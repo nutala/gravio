@@ -3,6 +3,7 @@ import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { db } from "@/lib/db";
 import { DEFAULT_CATEGORIES } from "@/lib/default-categories";
+import { verifyPassword } from "@/lib/password";
 
 async function ensureDefaultCategories(userId: string) {
   const existing = await db.category.count({ where: { userId } });
@@ -50,6 +51,23 @@ export const authOptions: NextAuthOptions = {
         }
         await ensureDefaultCategories(user.id);
 
+        return { id: user.id, email: user.email, name: user.name, image: user.image };
+      },
+    }),
+    CredentialsProvider({
+      id: "email",
+      name: "Email & mot de passe",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Mot de passe", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) return null;
+        const email = credentials.email.toLowerCase().trim();
+        const user = await db.user.findUnique({ where: { email } });
+        if (!user || !user.password) return null;
+        if (!verifyPassword(credentials.password, user.password)) return null;
+        await ensureDefaultCategories(user.id);
         return { id: user.id, email: user.email, name: user.name, image: user.image };
       },
     }),

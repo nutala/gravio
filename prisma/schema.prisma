@@ -10,12 +10,13 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// A user account (created via Google OAuth or the demo Google sign-in).
+/// A user account (created via Google OAuth, email/password, or demo sign-in).
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String?
   image     String?
+  password  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
