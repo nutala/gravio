@@ -25,6 +25,9 @@ export const metadata: Metadata = {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
   },
+  other: {
+    "theme-color": "#18181b",
+  },
   keywords: [
     "calisthenics",
     "calisthénie",
