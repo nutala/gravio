@@ -68,14 +68,21 @@ export const authOptions: NextAuthOptions = {
         if (!dbUser) {
           dbUser = await db.user.create({ data: { email, name, image } });
         }
-        user.id = dbUser.id;
         await ensureDefaultCategories(dbUser.id);
       }
       return true;
     },
     async jwt({ token, user }) {
       if (user) {
-        token.uid = user.id;
+        const email = user.email?.toLowerCase().trim();
+        if (email) {
+          const dbUser = await db.user.findUnique({ where: { email } });
+          if (dbUser) {
+            token.uid = dbUser.id;
+          } else {
+            token.uid = user.id;
+          }
+        }
         if (user.image) token.image = user.image;
       }
       return token;
