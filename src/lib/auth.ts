@@ -23,12 +23,17 @@ export const authOptions: NextAuthOptions = {
           GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-            checks: ["state"],
+            checks: ["pkce", "state"],
             authorization: {
               params: {
+                scope: "openid email profile",
+                response_type: "code",
                 prompt: "consent",
                 access_type: "offline",
               },
+            },
+            httpOptions: {
+              timeout: 10000,
             },
           }),
         ]
@@ -76,6 +81,13 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
+  events: {
+    async error(message) {
+      console.error("[auth] NextAuth error event:", JSON.stringify(message, (key, val) =>
+        typeof val === "string" ? val.substring(0, 500) : val
+      ));
+    },
+  },
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider === "google") {

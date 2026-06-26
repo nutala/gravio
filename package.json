@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "node scripts/build.js",
-    "start": "prisma db push --skip-generate && next start -p $PORT",
+    "start": "node scripts/start.cjs",
     "lint": "eslint .",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
