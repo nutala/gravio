@@ -217,3 +217,51 @@
   --sidebar-primary: oklch(0.65 0.18 45);
   --sidebar-primary-foreground: oklch(0.985 0 0);
 }
+
+/* Fuchsia */
+.light.accent-fuchsia, :root:not(.dark).accent-fuchsia {
+  --primary: oklch(0.55 0.24 330);
+  --primary-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.55 0.24 330 / 40%);
+  --sidebar-primary: oklch(0.55 0.24 330);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+}
+.dark.accent-fuchsia {
+  --primary: oklch(0.75 0.22 330);
+  --primary-foreground: oklch(0.145 0 0);
+  --ring: oklch(0.75 0.22 330 / 40%);
+  --sidebar-primary: oklch(0.65 0.24 330);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+}
+
+/* Cyan */
+.light.accent-cyan, :root:not(.dark).accent-cyan {
+  --primary: oklch(0.55 0.18 195);
+  --primary-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.55 0.18 195 / 40%);
+  --sidebar-primary: oklch(0.55 0.18 195);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+}
+.dark.accent-cyan {
+  --primary: oklch(0.75 0.16 195);
+  --primary-foreground: oklch(0.145 0 0);
+  --ring: oklch(0.75 0.16 195 / 40%);
+  --sidebar-primary: oklch(0.65 0.18 195);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+}
+
+/* Lime */
+.light.accent-lime, :root:not(.dark).accent-lime {
+  --primary: oklch(0.6 0.2 130);
+  --primary-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.6 0.2 130 / 40%);
+  --sidebar-primary: oklch(0.6 0.2 130);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+}
+.dark.accent-lime {
+  --primary: oklch(0.78 0.18 130);
+  --primary-foreground: oklch(0.145 0 0);
+  --ring: oklch(0.78 0.18 130 / 40%);
+  --sidebar-primary: oklch(0.68 0.2 130);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+}

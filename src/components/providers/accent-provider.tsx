@@ -10,6 +10,9 @@ export const ACCENT_THEMES = [
   { id: "rose", label: "Rose", color: "#f43f5e" },
   { id: "sky", label: "Ciel", color: "#0ea5e9" },
   { id: "orange", label: "Orange", color: "#f97316" },
+  { id: "fuchsia", label: "Fuchsia", color: "#d946ef" },
+  { id: "cyan", label: "Cyan", color: "#06b6d4" },
+  { id: "lime", label: "Lime", color: "#84cc16" },
 ] as const;
 
 type AccentId = (typeof ACCENT_THEMES)[number]["id"];
