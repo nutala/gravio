@@ -28,9 +28,27 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Le nom est requis" }, { status: 400 });
   }
   try {
+    const nameTrimmed = body.name.trim();
+
+    const existing = await db.exercise.findFirst({
+      where: {
+        name: nameTrimmed,
+        OR: [
+          { userId: null },
+          ...(userId ? [{ userId }] : []),
+        ],
+      },
+    });
+    if (existing) {
+      return NextResponse.json(
+        { error: `Un exercice nommé « ${nameTrimmed} » existe déjà.` },
+        { status: 409 },
+      );
+    }
+
     const created = await db.exercise.create({
       data: {
-        name: body.name.trim(),
+        name: nameTrimmed,
         category: body.category ?? "Push",
         muscleGroup: body.muscleGroup ?? "Full body",
         isStatic: Boolean(body.isStatic),
@@ -42,13 +60,6 @@ export async function POST(req: Request) {
     });
     return NextResponse.json(created, { status: 201 });
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Échec";
-    if (message.includes("Unique constraint") && message.includes("name")) {
-      return NextResponse.json(
-        { error: `Un exercice nommé « ${body.name.trim()} » existe déjà.` },
-        { status: 409 },
-      );
-    }
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: e instanceof Error ? e.message : "Échec" }, { status: 400 });
   }
 }

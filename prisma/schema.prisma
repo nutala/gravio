@@ -46,7 +46,7 @@ model Category {
 /// A tracked calisthenics exercise (e.g. Planche, Pull-up, Pistol Squat)
 model Exercise {
   id          String   @id @default(cuid())
-  name        String   @unique
+  name        String
   category    String   @default("Push")
   muscleGroup String   @default("Full body")
   isStatic    Boolean  @default(false)
@@ -60,6 +60,7 @@ model Exercise {
   variants      ExerciseVariant[]
   workoutEntries WorkoutEntry[]
 
+  @@unique([name, userId])
   @@index([category])
   @@index([userId])
 }
