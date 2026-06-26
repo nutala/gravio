@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
-    "build": "prisma generate && next build --webpack --debug 2>&1",
+    "build": "node scripts/build.js",
     "start": "prisma db push --skip-generate && next start -p $PORT",
     "lint": "eslint .",
     "db:push": "prisma db push",
