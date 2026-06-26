@@ -60,5 +60,6 @@ prisma/db/
 # tool analysis results
 /tool-results/
 
-# npm lock
+# lock files
 # package-lock.json
+bun.lock
