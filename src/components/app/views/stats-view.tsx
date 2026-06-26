@@ -262,54 +262,52 @@ export function StatsView() {
                 description="Enregistre des séances dans les 30 derniers jours pour remplir ce graphique."
               />
             ) : (
-              <div className="overflow-x-auto">
-                <ChartContainer
-                  config={volumeChartConfig}
-                  className="h-[260px] w-full min-w-[360px]"
+              <ChartContainer
+                config={volumeChartConfig}
+                className="h-[260px] w-full block"
+              >
+                <BarChart
+                  data={volumeByCat}
+                  margin={{ left: 4, right: 8, top: 8, bottom: 0 }}
                 >
-                  <BarChart
-                    data={volumeByCat}
-                    margin={{ left: 4, right: 8, top: 8, bottom: 0 }}
-                  >
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="label"
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={8}
-                    />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      width={36}
-                      tickFormatter={(v) => fmtCompact(Number(v))}
-                    />
-                    <ChartTooltip
-                      cursor={{ fill: "var(--muted)", opacity: 0.3 }}
-                      content={
-                        <ChartTooltipContent
-                          hideLabel
-                          formatter={(value, name) => (
-                            <div className="flex w-full items-center justify-between gap-3">
-                              <span className="text-muted-foreground">
-                                {String(name)}
-                              </span>
-                              <span className="font-mono font-medium tabular-nums">
-                                {fmtCompact(safeNum(value))}
-                              </span>
-                            </div>
-                          )}
-                        />
-                      }
-                    />
-                    <Bar dataKey="volume" radius={[6, 6, 0, 0]}>
-                      {volumeByCat.map((entry) => (
-                        <Cell key={entry.category} fill={entry.color} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ChartContainer>
-              </div>
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="label"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    width={36}
+                    tickFormatter={(v) => fmtCompact(Number(v))}
+                  />
+                  <ChartTooltip
+                    cursor={{ fill: "var(--muted)", opacity: 0.3 }}
+                    content={
+                      <ChartTooltipContent
+                        hideLabel
+                        formatter={(value, name) => (
+                          <div className="flex w-full items-center justify-between gap-3">
+                            <span className="text-muted-foreground">
+                              {String(name)}
+                            </span>
+                            <span className="font-mono font-medium tabular-nums">
+                              {fmtCompact(safeNum(value))}
+                            </span>
+                          </div>
+                        )}
+                      />
+                    }
+                  />
+                  <Bar dataKey="volume" radius={[6, 6, 0, 0]}>
+                    {volumeByCat.map((entry) => (
+                      <Cell key={entry.category} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ChartContainer>
             )}
           </CardContent>
         </Card>
@@ -334,56 +332,54 @@ export function StatsView() {
                 description="Aucune séance récente à ventiler."
               />
             ) : (
-              <div className="overflow-x-auto">
-                <div className="relative h-[260px] min-w-[300px]">
-                  <ChartContainer
-                    config={donutChartConfig}
-                    className="h-full w-full"
+              <div className="relative h-[260px]">
+                <ChartContainer
+                  config={donutChartConfig}
+                  className="h-full w-full block"
+                >
+                <PieChart>
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        hideLabel
+                        formatter={(value, name) => {
+                          const n = safeNum(value);
+                          return (
+                            <div className="flex w-full items-center justify-between gap-3">
+                              <span className="text-muted-foreground">
+                                {String(name)}
+                              </span>
+                              <span className="font-mono font-medium tabular-nums">
+                                {n} séance{n === 1 ? "" : "s"}
+                              </span>
+                            </div>
+                          );
+                        }}
+                      />
+                    }
+                  />
+                  <Pie
+                    data={volumeByCat}
+                    dataKey="sessions"
+                    nameKey="label"
+                    innerRadius="62%"
+                    outerRadius="88%"
+                    paddingAngle={2}
+                    strokeWidth={0}
                   >
-                  <PieChart>
-                    <ChartTooltip
-                      content={
-                        <ChartTooltipContent
-                          hideLabel
-                          formatter={(value, name) => {
-                            const n = safeNum(value);
-                            return (
-                              <div className="flex w-full items-center justify-between gap-3">
-                                <span className="text-muted-foreground">
-                                  {String(name)}
-                                </span>
-                                <span className="font-mono font-medium tabular-nums">
-                                  {n} séance{n === 1 ? "" : "s"}
-                                </span>
-                              </div>
-                            );
-                          }}
-                        />
-                      }
-                    />
-                    <Pie
-                      data={volumeByCat}
-                      dataKey="sessions"
-                      nameKey="label"
-                      innerRadius="62%"
-                      outerRadius="88%"
-                      paddingAngle={2}
-                      strokeWidth={0}
-                    >
-                      {volumeByCat.map((entry) => (
-                        <Cell key={entry.category} fill={entry.color} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ChartContainer>
-                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-3xl font-bold tabular-nums text-foreground">
-                    {totalSessions}
-                  </span>
-                  <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                    séances
-                  </span>
-                </div>
+                    {volumeByCat.map((entry) => (
+                      <Cell key={entry.category} fill={entry.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ChartContainer>
+              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-3xl font-bold tabular-nums text-foreground">
+                  {totalSessions}
+                </span>
+                <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  séances
+                </span>
               </div>
             </div>
             )}
@@ -407,62 +403,60 @@ export function StatsView() {
             ) : frequencyData.length === 0 ? (
               <EmptyState title="Pas de données" />
             ) : (
-              <div className="overflow-x-auto">
-                <ChartContainer
-                  config={frequencyChartConfig}
-                  className="h-[260px] w-full min-w-[360px]"
+              <ChartContainer
+                config={frequencyChartConfig}
+                className="h-[260px] w-full block"
+              >
+                <BarChart
+                  data={frequencyData}
+                  margin={{ left: 4, right: 8, top: 8, bottom: 0 }}
                 >
-                  <BarChart
-                    data={frequencyData}
-                    margin={{ left: 4, right: 8, top: 8, bottom: 0 }}
-                  >
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="label"
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={8}
-                      interval="preserveStartEnd"
-                      minTickGap={16}
-                    />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      width={28}
-                      allowDecimals={false}
-                    />
-                    <ChartTooltip
-                      cursor={{ fill: "var(--muted)", opacity: 0.3 }}
-                      content={
-                        <ChartTooltipContent
-                          hideLabel
-                          formatter={(value, _name, item) => {
-                            const n = safeNum(value);
-                            return (
-                              <div className="flex w-full items-center justify-between gap-3">
-                                <span className="text-muted-foreground">
-                                  {String(
-                                    (item?.payload as { label?: string } | undefined)
-                                      ?.label ?? "",
-                                  )}
-                                </span>
-                                <span className="font-mono font-medium tabular-nums">
-                                  {n} séance{n === 1 ? "" : "s"}
-                                </span>
-                              </div>
-                            );
-                          }}
-                        />
-                      }
-                    />
-                    <Bar
-                      dataKey="count"
-                      fill="var(--color-count)"
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ChartContainer>
-              </div>
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="label"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    interval="preserveStartEnd"
+                    minTickGap={16}
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    width={28}
+                    allowDecimals={false}
+                  />
+                  <ChartTooltip
+                    cursor={{ fill: "var(--muted)", opacity: 0.3 }}
+                    content={
+                      <ChartTooltipContent
+                        hideLabel
+                        formatter={(value, _name, item) => {
+                          const n = safeNum(value);
+                          return (
+                            <div className="flex w-full items-center justify-between gap-3">
+                              <span className="text-muted-foreground">
+                                {String(
+                                  (item?.payload as { label?: string } | undefined)
+                                    ?.label ?? "",
+                                )}
+                              </span>
+                              <span className="font-mono font-medium tabular-nums">
+                                {n} séance{n === 1 ? "" : "s"}
+                              </span>
+                            </div>
+                          );
+                        }}
+                      />
+                    }
+                  />
+                  <Bar
+                    dataKey="count"
+                    fill="var(--color-count)"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ChartContainer>
             )}
           </CardContent>
         </Card>
@@ -625,62 +619,60 @@ export function StatsView() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <ChartContainer
-                  config={trendChartConfig}
-                  className="h-[240px] w-full min-w-[360px]"
+              <ChartContainer
+                config={trendChartConfig}
+                className="h-[240px] w-full block"
+              >
+                <LineChart
+                  data={trendData}
+                  margin={{ left: 4, right: 8, top: 8, bottom: 0 }}
                 >
-                  <LineChart
-                    data={trendData}
-                    margin={{ left: 4, right: 8, top: 8, bottom: 0 }}
-                  >
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="date"
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={8}
-                      interval="preserveStartEnd"
-                      minTickGap={24}
-                    />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      width={36}
-                      tickFormatter={(v) => fmtCompact(Number(v))}
-                    />
-                    <ChartTooltip
-                      cursor={{ stroke: "var(--muted)", strokeWidth: 1 }}
-                      content={
-                        <ChartTooltipContent
-                          hideLabel
-                          formatter={(value, _name, item) => (
-                            <div className="flex w-full items-center justify-between gap-3">
-                              <span className="text-muted-foreground">
-                                {String(
-                                  (item?.payload as { date?: string } | undefined)
-                                    ?.date ?? "",
-                                )}
-                              </span>
-                              <span className="font-mono font-medium tabular-nums">
-                                {fmtCompact(safeNum(value))}
-                              </span>
-                            </div>
-                          )}
-                        />
-                      }
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="volume"
-                      stroke="var(--color-volume)"
-                      strokeWidth={2}
-                      dot={false}
-                      activeDot={{ r: 4 }}
-                    />
-                  </LineChart>
-                </ChartContainer>
-              </div>
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="date"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    interval="preserveStartEnd"
+                    minTickGap={24}
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    width={36}
+                    tickFormatter={(v) => fmtCompact(Number(v))}
+                  />
+                  <ChartTooltip
+                    cursor={{ stroke: "var(--muted)", strokeWidth: 1 }}
+                    content={
+                      <ChartTooltipContent
+                        hideLabel
+                        formatter={(value, _name, item) => (
+                          <div className="flex w-full items-center justify-between gap-3">
+                            <span className="text-muted-foreground">
+                              {String(
+                                (item?.payload as { date?: string } | undefined)
+                                  ?.date ?? "",
+                              )}
+                            </span>
+                            <span className="font-mono font-medium tabular-nums">
+                              {fmtCompact(safeNum(value))}
+                            </span>
+                          </div>
+                        )}
+                      />
+                    }
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="volume"
+                    stroke="var(--color-volume)"
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4 }}
+                  />
+                </LineChart>
+              </ChartContainer>
             </CardContent>
           </Card>
         </div>
