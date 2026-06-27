@@ -52,6 +52,13 @@ export function RestTimerWidget() {
   const timer = useTimerStore();
   const [now, setNow] = React.useState(Date.now());
 
+  // Request notification permission on first mount.
+  React.useEffect(() => {
+    if (typeof Notification !== "undefined" && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, []);
+
   // Tick every 250ms while running so the countdown stays smooth.
   React.useEffect(() => {
     if (timer.state !== "running") return;
@@ -66,6 +73,15 @@ export function RestTimerWidget() {
       const left = timer.endsAt - Date.now();
       if (left <= 0) {
         playBeep();
+        if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+          try {
+            new Notification("Repos terminé ! 💪", {
+              body: "C'est reparti pour une série !",
+              icon: "/favicon.ico",
+              silent: true,
+            });
+          } catch { /* fallback silent */ }
+        }
         toast.success("Rest complete — go! 💪", { duration: 4000 });
         timer.complete();
       }
