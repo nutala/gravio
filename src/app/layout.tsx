@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
+import { SwRegister } from "@/components/sw-register";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { SessionProvider } from "@/components/providers/session-provider";
@@ -69,6 +70,7 @@ export default function RootLayout({
               <QueryProvider>
                 {children}
                 <SonnerToaster position="top-center" richColors closeButton />
+                <SwRegister />
               </QueryProvider>
             </AccentProvider>
           </SessionProvider>

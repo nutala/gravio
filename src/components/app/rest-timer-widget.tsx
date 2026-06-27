@@ -74,12 +74,14 @@ export function RestTimerWidget() {
       if (left <= 0) {
         playBeep();
         try { navigator.vibrate?.([200, 100, 200]); } catch { /* no vibrate */ }
-        if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+        // Show system notification via service worker (works when tab is in background).
+        if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({ type: "SHOW_NOTIFICATION" });
+        } else if (typeof Notification !== "undefined" && Notification.permission === "granted") {
           try {
             const n = new Notification("Repos terminé ! 💪", {
               body: "C'est reparti pour une série !",
               tag: "rest-timer",
-              silent: false,
             });
             setTimeout(() => n.close(), 5000);
           } catch { /* fallback */ }

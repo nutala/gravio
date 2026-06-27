@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/app/app-shell";
 import { useAppStore } from "@/lib/store";
 import { DashboardView } from "@/components/app/views/dashboard-view";
@@ -11,7 +13,23 @@ import { StatsView } from "@/components/app/views/stats-view";
 import { ProfileView } from "@/components/app/views/profile-view";
 
 export default function Home() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const view = useAppStore((s) => s.view);
+
+  React.useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace("/login");
+    }
+  }, [status, router]);
+
+  if (status !== "authenticated") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <AppShell>

@@ -1,0 +1,279 @@
+"use client";
+
+import * as React from "react";
+import { signIn, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { Loader2, Mail } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+type DemoAccount = {
+  name: string;
+  email: string;
+  image: string;
+};
+
+const DEMO_ACCOUNTS: DemoAccount[] = [
+  {
+    name: "Alex Athlète",
+    email: "alex.athlete@gmail.com",
+    image: "https://i.pravatar.cc/150?img=68",
+  },
+  {
+    name: "Sophie Street Workout",
+    email: "sophie.sw@gmail.com",
+    image: "https://i.pravatar.cc/150?img=45",
+  },
+];
+
+function CaliLogo() {
+  return (
+    <svg viewBox="0 0 32 32" className="h-10 w-10" aria-hidden="true" fill="none">
+      <rect width="32" height="32" rx="8" className="fill-primary" />
+      <text x="50%" y="54%" dominantBaseline="central" textAnchor="middle" fill="white" fontSize="16" fontWeight="700" fontFamily="system-ui">CT</text>
+    </svg>
+  );
+}
+
+function GoogleLogo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+    </svg>
+  );
+}
+
+type AuthMode = "choose" | "login" | "register";
+
+export default function LoginPage() {
+  const router = useRouter();
+  const { data: session } = useSession();
+  const [googleConfigured, setGoogleConfigured] = React.useState<boolean | null>(null);
+  const [mode, setMode] = React.useState<AuthMode>("choose");
+  const [pendingEmail, setPendingEmail] = React.useState<string | null>(null);
+  const [loginEmail, setLoginEmail] = React.useState("");
+  const [loginPassword, setLoginPassword] = React.useState("");
+  const [regName, setRegName] = React.useState("");
+  const [regEmail, setRegEmail] = React.useState("");
+  const [regPassword, setRegPassword] = React.useState("");
+
+  React.useEffect(() => {
+    if (session?.user) router.replace("/");
+  }, [session, router]);
+
+  React.useEffect(() => {
+    fetch("/api/auth/status")
+      .then((r) => r.json())
+      .then((data: { google?: boolean }) => setGoogleConfigured(!!data.google))
+      .catch(() => setGoogleConfigured(false));
+  }, []);
+
+  async function handleDemo(account: DemoAccount) {
+    setPendingEmail(account.email);
+    try {
+      const res = await signIn("google-demo", {
+        email: account.email, name: account.name, image: account.image, redirect: false,
+      });
+      if (!res || res.error) throw new Error(res?.error || "Échec de la connexion");
+      toast.success(`Bienvenue, ${account.name} !`);
+      router.replace("/");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Échec de la connexion");
+      setPendingEmail(null);
+    }
+  }
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    if (!loginEmail.trim() || !loginPassword) {
+      toast.error("Email et mot de passe requis");
+      return;
+    }
+    setPendingEmail(loginEmail);
+    try {
+      const res = await signIn("email", {
+        email: loginEmail.trim(), password: loginPassword, redirect: false,
+      });
+      if (!res || res.error) throw new Error(res?.error || "Email ou mot de passe incorrect");
+      toast.success("Connecté !");
+      router.replace("/");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Échec de la connexion");
+      setPendingEmail(null);
+    }
+  }
+
+  async function handleRegister(e: React.FormEvent) {
+    e.preventDefault();
+    if (!regEmail.trim() || !regPassword || regPassword.length < 6) {
+      toast.error("Email valide et mot de passe (min 6 caractères) requis");
+      return;
+    }
+    setPendingEmail(regEmail);
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: regEmail.trim(), password: regPassword, name: regName.trim() || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erreur d'inscription");
+      toast.success("Compte créé ! Connecte-toi.");
+      setPendingEmail(null);
+      setMode("login");
+      setLoginEmail(regEmail.trim());
+      setLoginPassword("");
+      setRegName("");
+      setRegEmail("");
+      setRegPassword("");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur d'inscription");
+      setPendingEmail(null);
+    }
+  }
+
+  async function handleGoogle() {
+    await signIn("google", { callbackUrl: "/" });
+  }
+
+  const redirectUri = typeof window !== "undefined"
+    ? `${window.location.origin}/api/auth/callback/google`
+    : "/api/auth/callback/google";
+
+  if (session?.user) return null;
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="w-full max-w-sm">
+        <div className="mb-6 flex flex-col items-center gap-3">
+          <CaliLogo />
+          <h1 className="text-xl font-bold tracking-tight">CaliTrack</h1>
+          <p className="text-sm text-muted-foreground">Suivi de performance calisthénie</p>
+        </div>
+
+        {mode === "choose" ? (
+          <div className="flex flex-col gap-3">
+            {googleConfigured && (
+              <>
+                <Button onClick={handleGoogle} variant="outline" className="h-11 w-full gap-3">
+                  <GoogleLogo className="h-4 w-4" />
+                  Se connecter avec Google
+                </Button>
+                <div className="flex items-center gap-3 py-1">
+                  <div className="h-px flex-1 bg-border" />
+                  <span className="text-xs text-muted-foreground">ou</span>
+                  <div className="h-px flex-1 bg-border" />
+                </div>
+              </>
+            )}
+
+            <Button onClick={() => setMode("login")} variant="outline" className="h-11 w-full gap-3">
+              <Mail className="h-4 w-4" />
+              Email & mot de passe
+            </Button>
+
+            <div className="flex items-center justify-between px-1 pt-2">
+              <p className="text-xs font-medium text-muted-foreground">Comptes démo</p>
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-500">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                Mode démo
+              </span>
+            </div>
+
+            {DEMO_ACCOUNTS.map((acc) => (
+              <button
+                key={acc.email}
+                type="button"
+                onClick={() => handleDemo(acc)}
+                disabled={pendingEmail !== null}
+                className="flex items-center gap-3 rounded-lg border border-border bg-card p-3 text-left transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <img src={acc.image} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-foreground">{acc.name}</p>
+                  <p className="truncate text-xs text-muted-foreground">{acc.email}</p>
+                </div>
+                {pendingEmail === acc.email && <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />}
+              </button>
+            ))}
+
+            <Button type="button" variant="ghost" className="w-full justify-start text-muted-foreground" onClick={() => setMode("register")} disabled={pendingEmail !== null}>
+              Créer un compte
+            </Button>
+
+            {googleConfigured === false && (
+              <div className="rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                <p className="font-medium text-foreground">Google OAuth non configuré</p>
+                <p className="mt-1 leading-relaxed">
+                  Ajoutez <code className="rounded bg-muted px-1 py-0.5 text-[11px]">GOOGLE_CLIENT_ID</code> et{" "}
+                  <code className="rounded bg-muted px-1 py-0.5 text-[11px]">GOOGLE_CLIENT_SECRET</code> dans .env
+                </p>
+                <p className="mt-2 leading-relaxed">URI de redirection :</p>
+                <code className="mt-1 block break-all rounded bg-muted px-2 py-1 text-[11px] text-foreground">{redirectUri}</code>
+              </div>
+            )}
+          </div>
+        ) : mode === "login" ? (
+          <form onSubmit={handleLogin} className="flex flex-col gap-3">
+            <div className="grid gap-1.5">
+              <Label htmlFor="login-email">Email</Label>
+              <Input id="login-email" type="email" placeholder="vous@exemple.com" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} autoComplete="email" required />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="login-password">Mot de passe</Label>
+              <Input id="login-password" type="password" placeholder="••••••" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} autoComplete="current-password" required />
+            </div>
+            <div className="mt-2 flex flex-col gap-2">
+              <Button type="submit" disabled={pendingEmail !== null} className="h-10 w-full gap-2">
+                {pendingEmail && <Loader2 className="h-4 w-4 animate-spin" />}
+                Se connecter
+              </Button>
+              <div className="flex justify-between">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setMode("register")} disabled={pendingEmail !== null}>
+                  Créer un compte
+                </Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setMode("choose")} disabled={pendingEmail !== null}>
+                  Retour
+                </Button>
+              </div>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleRegister} className="flex flex-col gap-3">
+            <div className="grid gap-1.5">
+              <Label htmlFor="reg-name">Nom (optionnel)</Label>
+              <Input id="reg-name" placeholder="Votre nom" value={regName} onChange={(e) => setRegName(e.target.value)} autoComplete="name" />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="reg-email">Email</Label>
+              <Input id="reg-email" type="email" placeholder="vous@exemple.com" value={regEmail} onChange={(e) => setRegEmail(e.target.value)} autoComplete="email" required />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="reg-password">Mot de passe</Label>
+              <Input id="reg-password" type="password" placeholder="Minimum 6 caractères" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} autoComplete="new-password" required minLength={6} />
+            </div>
+            <div className="mt-2 flex flex-col gap-2">
+              <Button type="submit" disabled={pendingEmail !== null} className="h-10 w-full gap-2">
+                {pendingEmail && <Loader2 className="h-4 w-4 animate-spin" />}
+                Créer mon compte
+              </Button>
+              <div className="flex justify-between">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setMode("login")} disabled={pendingEmail !== null}>
+                  Déjà un compte
+                </Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setMode("choose")} disabled={pendingEmail !== null}>
+                  Retour
+                </Button>
+              </div>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
