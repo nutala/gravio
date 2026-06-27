@@ -174,7 +174,7 @@ export function NewWorkoutView() {
     toast.success(`Séance « ${workout.title || "session"} » chargée — ajuste puis enregistre.`);
   }, [repeatId, workoutsQ.data]);
 
-  const { title, date, durationMin, exertion, bodyweight, notes, defaultRestSec, entries, sessionStartedAt } = draft;
+  const { title, date, exertion, bodyweight, notes, defaultRestSec, entries, sessionStartedAt } = draft;
   const existingGroups = React.useMemo(() => usedSupersetGroups(entries), [entries]);
 
   function addEntry(exercise: ExerciseWithVariants) {
