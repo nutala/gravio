@@ -22,6 +22,7 @@ export async function GET() {
     (acc, w) => acc + w.entries.reduce((a, e) => a + e.sets.reduce((s, set) => s + (set.reps ?? set.holdSeconds ?? 0), 0), 0),
     0,
   );
+  const totalMinutes = workouts.reduce((acc, w) => acc + (w.durationMin ?? 0), 0);
 
   const exertionValues = workouts.map((w) => w.perceivedExertion).filter((v): v is number => v != null);
   const avgExertion = exertionValues.length
@@ -66,7 +67,7 @@ export async function GET() {
   const activityCalendar = Array.from(activityMap.entries()).map(([date, v]) => ({ date, count: v.count, volume: v.volume }));
 
   const stats: OverviewStats = {
-    totalWorkouts, totalSets, totalVolume, currentStreakDays, longestStreakDays,
+    totalWorkouts, totalSets, totalVolume, totalMinutes, currentStreakDays, longestStreakDays,
     avgExertion, distinctExercises, thisWeekCount, lastWorkoutDate,
     volumeByCategory, activityCalendar,
   };

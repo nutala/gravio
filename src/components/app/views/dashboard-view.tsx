@@ -21,6 +21,7 @@ import {
   ChevronRight,
   Dumbbell,
   Flame,
+  Timer,
   TrendingUp,
   Trophy,
 } from "lucide-react";
@@ -230,6 +231,13 @@ function KpiGrid() {
         }
       />
       <StatCard
+        label="Temps d'entraînement"
+        value={fmtCompact(data.totalMinutes)}
+        unit="min"
+        icon={Timer}
+        hint={`${data.totalSets} séries au total`}
+      />
+      <StatCard
         label="Série actuelle"
         value={data.currentStreakDays}
         unit="jours"
@@ -242,13 +250,7 @@ function KpiGrid() {
         value={data.thisWeekCount}
         unit="séances"
         icon={CalendarDays}
-        hint={`${data.totalSets} séries au total`}
-      />
-      <StatCard
-        label="Volume total"
-        value={fmtCompact(data.totalVolume)}
-        icon={TrendingUp}
-        hint="reps + maintiens"
+        hint={`Volume : ${fmtCompact(data.totalVolume)}`}
       />
     </div>
   );

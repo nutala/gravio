@@ -243,8 +243,8 @@ export function NewWorkoutView() {
       date: isoDate,
       title: title.trim() || undefined,
       durationMin:
-        typeof durationMin === "number" && !Number.isNaN(durationMin)
-          ? durationMin
+        sessionStartedAt != null
+          ? Math.max(1, Math.round((Date.now() - sessionStartedAt) / 60000))
           : undefined,
       perceivedExertion: exertion,
       bodyweightKg: bodyweight === "" ? undefined : bodyweight,
@@ -319,25 +319,6 @@ export function NewWorkoutView() {
                 type="date"
                 value={date}
                 onChange={(e) => draft.setMeta("date", e.target.value)}
-                className="tabular-nums"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="nw-duration">Durée (min)</Label>
-              <Input
-                id="nw-duration"
-                type="number"
-                inputMode="numeric"
-                min={0}
-                placeholder="45"
-                value={durationMin}
-                onChange={(e) =>
-                  draft.setMeta(
-                    "durationMin",
-                    e.target.value === "" ? "" : Number(e.target.value),
-                  )
-                }
                 className="tabular-nums"
               />
             </div>

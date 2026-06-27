@@ -570,9 +570,6 @@ function EntryDetail({ entry }: { entry: WorkoutEntryFull }) {
         >
           {meta.label}
         </Badge>
-        <span className="text-xs text-muted-foreground">
-          {variantLabel(entry.variant)}
-        </span>
         {inSuperset && ssColor && ssLabel && (
           <Badge
             variant="outline"
