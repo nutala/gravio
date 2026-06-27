@@ -54,13 +54,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -706,7 +699,7 @@ function EntryCard({
   function handleAddSet() {
     const lastSet = sets[sets.length - 1];
     const defaults: Partial<DraftSet> = {};
-    if (entry.variantId) defaults.variantId = entry.variantId;
+    if (lastSet?.variantId) defaults.variantId = lastSet.variantId;
     if (lastSet?.mode) defaults.mode = lastSet.mode;
     onAddSet(defaults);
   }
@@ -759,28 +752,6 @@ function EntryCard({
               </Badge>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <Select
-              value={variantId ?? "__none__"}
-              onValueChange={(v) =>
-                onChange({ variantId: v === "__none__" ? null : v })
-              }
-            >
-              <SelectTrigger size="sm" className="h-8 w-40">
-                <SelectValue placeholder="Standard / Aucune" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">Standard / Aucune</SelectItem>
-                {sortedVariants.map((v) => (
-                  <SelectItem key={v.id} value={v.id}>
-                    {v.name}
-                    <span className="ml-1 text-xs text-muted-foreground">
-                      {difficultyStars(v.difficultyLevel)}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -848,7 +819,6 @@ function EntryCard({
             >
               <Trash2 className="h-4 w-4" />
             </Button>
-          </div>
         </div>
 
         {/* Superset hint when first of a group */}
