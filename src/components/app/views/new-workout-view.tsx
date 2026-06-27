@@ -215,6 +215,15 @@ export function NewWorkoutView() {
         return;
       }
       for (const set of entry.sets) {
+        if (!set.validated) {
+          toast.error(`« ${ex.name} » — valide d'abord toutes les séries avant d'enregistrer.`);
+          return;
+        }
+        const rpe = set.rpe;
+        if (rpe != null && (rpe < 1 || rpe > 10)) {
+          toast.error(`« ${ex.name} » — le RPE doit être entre 1 et 10.`);
+          return;
+        }
         const mode = set.mode ?? (ex.isStatic ? "hold" : "reps");
         const metric = mode === "reps" ? set.reps : set.holdSeconds;
         if (metric == null || Number.isNaN(metric)) {
@@ -1344,7 +1353,7 @@ function SetRowMobile({
                   e.target.value === "__entry__" ? undefined : e.target.value,
               })
             }
-            className="h-7 flex-1 rounded-md border border-border/60 bg-background px-1.5 text-xs tabular-nums text-foreground outline-none focus:ring-2 focus:ring-ring"
+            className="h-7 min-w-0 flex-1 rounded-md border border-border/60 bg-background px-1.5 text-xs tabular-nums text-foreground outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="__entry__">Défaut</option>
             {variants.map((v) => (

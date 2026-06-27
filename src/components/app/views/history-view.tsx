@@ -611,7 +611,7 @@ function EntryDetail({ entry }: { entry: WorkoutEntryFull }) {
                     {s.setNumber}
                   </td>
                   <td className="py-1.5 pr-3 font-medium text-foreground">
-                    {s.variant ? variantLabel(s.variant) : variantLabel(entry.variant)}
+                    {s.variant ? variantLabel(s.variant) : "—"}
                   </td>
                   <td className="py-1.5 pr-3 font-medium text-foreground">
                     {s.holdSeconds != null ? (
