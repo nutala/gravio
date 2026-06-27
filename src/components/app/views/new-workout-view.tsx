@@ -1158,7 +1158,7 @@ function SetRowDesktop({
             onClick={() => onUpdate({ mode: otherMode })}
             aria-label={`Passer en ${otherMode === "reps" ? "répétitions" : "maintien"}`}
           >
-            {mode === "reps" ? "Maintien" : "Reps"}
+            {mode === "reps" ? "Reps" : "Maintien"}
           </Button>
         </div>
       </td>
@@ -1294,18 +1294,17 @@ function SetRowMobile({
       </div>
       <div className="grid grid-cols-3 gap-2">
         <div className="space-y-1">
-          <div className="flex items-center gap-0.5">
-            <span className="block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-              {metricLabel}
-            </span>
-            <button
+          <div className="flex items-center gap-1">
+            <Button
               type="button"
+              size="sm"
+              variant="ghost"
+              className="-ml-1.5 h-6 px-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground"
               onClick={() => onUpdate({ mode: otherMode })}
-              className="flex h-4 w-4 items-center justify-center rounded text-[9px] text-muted-foreground hover:text-foreground"
-              title={mode === "reps" ? "Maintien" : "Reps"}
+              aria-label={`Passer en ${otherMode === "reps" ? "répétitions" : "maintien"}`}
             >
-              {mode === "reps" ? "⌛" : "↺"}
-            </button>
+              {mode === "reps" ? "Reps" : "Maintien"}
+            </Button>
           </div>
           <Input
             type="number"
