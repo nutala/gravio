@@ -78,6 +78,7 @@ model ExerciseVariant {
 
   exercise       Exercise     @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
   workoutEntries WorkoutEntry[]
+  workoutSets    WorkoutSet[]
 
   @@unique([exerciseId, name])
   @@index([exerciseId])
@@ -128,13 +129,15 @@ model WorkoutSet {
   id              String   @id @default(cuid())
   workoutEntryId  String
   setNumber       Int
+  variantId       String?
   reps            Int?
   holdSeconds     Int?
   weightKg        Float?
   rpe             Int?
   createdAt       DateTime @default(now())
 
-  workoutEntry WorkoutEntry @relation(fields: [workoutEntryId], references: [id], onDelete: Cascade)
+  workoutEntry WorkoutEntry     @relation(fields: [workoutEntryId], references: [id], onDelete: Cascade)
+  variant      ExerciseVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
 
   @@index([workoutEntryId])
 }

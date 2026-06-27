@@ -59,7 +59,6 @@ import {
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChartContainer,
@@ -606,8 +605,7 @@ function TopExercises() {
           </CardContent>
         </Card>
       ) : (
-        <ScrollArea className="w-full pb-2">
-          <div className="flex gap-3 overflow-x-auto pb-1">
+        <div className="grid grid-cols-1 gap-3 sm:flex sm:gap-3 sm:overflow-x-auto sm:pb-1">
             {data.map((te) => {
               const cat = getCatMeta(te.category);
               const ex = exercisesMap.get(te.exerciseId);
@@ -618,7 +616,7 @@ function TopExercises() {
               return (
                 <Card
                   key={te.exerciseId}
-                  className="min-w-[240px] flex-1 gap-0 p-4"
+                  className="min-w-0 sm:min-w-[240px] flex-1 gap-0 p-4"
                 >
                   <CardContent className="space-y-3 p-0">
                     <div className="flex items-start justify-between gap-2">
@@ -681,8 +679,7 @@ function TopExercises() {
               );
             })}
           </div>
-        </ScrollArea>
-      )}
+          )}
     </div>
   );
 }

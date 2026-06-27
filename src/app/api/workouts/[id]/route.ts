@@ -10,7 +10,7 @@ export async function GET(_req: Request, { params }: Params) {
     where: { id },
     include: {
       entries: {
-        include: { exercise: true, variant: true, sets: true },
+        include: { exercise: true, variant: true, sets: { include: { variant: true } } },
         orderBy: { createdAt: "asc" },
       },
     },

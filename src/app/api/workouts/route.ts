@@ -71,9 +71,10 @@ export async function POST(req: Request) {
         });
         await tx.workoutSet.createMany({
           data: e.sets.map(
-            (s: { reps?: number; holdSeconds?: number; weightKg?: number; rpe?: number }, j: number) => ({
+            (s: { variantId?: string | null; reps?: number; holdSeconds?: number; weightKg?: number; rpe?: number }, j: number) => ({
               workoutEntryId: entry.id,
               setNumber: j + 1,
+              variantId: s.variantId || null,
               reps: s.reps ?? null,
               holdSeconds: s.holdSeconds ?? null,
               weightKg: s.weightKg ?? null,
@@ -87,7 +88,7 @@ export async function POST(req: Request) {
         where: { id: workout.id },
         include: {
           entries: {
-            include: { exercise: true, variant: true, sets: true },
+            include: { exercise: true, variant: true, sets: { include: { variant: true } } },
             orderBy: { position: "asc" },
           },
         },

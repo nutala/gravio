@@ -258,6 +258,7 @@ export function NewWorkoutView() {
               exerciseMap.get(e.exerciseId)?.isStatic ? "hold" : "reps"
             );
             return {
+              variantId: s.variantId ?? null,
               reps: mode === "reps" ? s.reps : undefined,
               holdSeconds: mode === "hold" ? s.holdSeconds : undefined,
               weightKg: s.weightKg,

@@ -602,6 +602,7 @@ function EntryDetail({ entry }: { entry: WorkoutEntryFull }) {
             <thead>
               <tr className="text-left text-muted-foreground">
                 <th className="py-1 pr-3 font-medium">Série</th>
+                <th className="py-1 pr-3 font-medium">Variante</th>
                 <th className="py-1 pr-3 font-medium">Valeur</th>
                 <th className="py-1 pr-3 font-medium">kg</th>
                 <th className="py-1 font-medium">RPE</th>
@@ -612,6 +613,9 @@ function EntryDetail({ entry }: { entry: WorkoutEntryFull }) {
                 <tr key={s.id} className="border-t border-border/40">
                   <td className="py-1.5 pr-3 text-muted-foreground">
                     {s.setNumber}
+                  </td>
+                  <td className="py-1.5 pr-3 font-medium text-foreground">
+                    {s.variant ? variantLabel(s.variant) : variantLabel(entry.variant)}
                   </td>
                   <td className="py-1.5 pr-3 font-medium text-foreground">
                     {s.holdSeconds != null ? (

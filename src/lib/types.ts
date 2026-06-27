@@ -41,7 +41,7 @@ export type ExerciseWithVariants = Exercise & {
 export type WorkoutEntryFull = WorkoutEntry & {
   exercise: Exercise;
   variant: ExerciseVariant | null;
-  sets: WorkoutSet[];
+  sets: (WorkoutSet & { variant: ExerciseVariant | null })[];
 };
 
 export type WorkoutFull = Workout & {
