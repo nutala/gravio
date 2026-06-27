@@ -253,7 +253,7 @@ export function StatsView() {
               Volume total d'entraînement · 30 derniers jours
             </CardDescription>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
+          <CardContent style={{ overflowX: 'auto' }}>
             {overviewLoading || !overview ? (
               <Skeleton className="h-[260px] w-full" />
             ) : volumeByCat.length === 0 ? (
@@ -264,7 +264,7 @@ export function StatsView() {
             ) : (
               <ChartContainer
                 config={volumeChartConfig}
-                className="block h-[260px] w-full"
+                className="block aspect-auto h-[260px] w-full"
               >
                 <BarChart
                   data={volumeByCat}
@@ -323,7 +323,7 @@ export function StatsView() {
               Séances par catégorie · 30 derniers jours
             </CardDescription>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
+          <CardContent style={{ overflowX: 'auto' }}>
             {overviewLoading || !overview ? (
               <Skeleton className="h-[260px] w-full" />
             ) : volumeByCat.length === 0 ? (
@@ -335,7 +335,7 @@ export function StatsView() {
               <div className="relative h-[260px]">
                 <ChartContainer
                   config={donutChartConfig}
-                  className="block h-full w-full"
+                  className="block aspect-auto h-full w-full"
                 >
                   <PieChart>
                     <ChartTooltip
@@ -397,7 +397,7 @@ export function StatsView() {
               Nombre de séances par jour · 30 derniers jours
             </CardDescription>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
+          <CardContent style={{ overflowX: 'auto' }}>
             {overviewLoading || !overview ? (
               <Skeleton className="h-[260px] w-full" />
             ) : frequencyData.length === 0 ? (
@@ -405,7 +405,7 @@ export function StatsView() {
             ) : (
               <ChartContainer
                 config={frequencyChartConfig}
-                className="block h-[260px] w-full"
+                className="block aspect-auto h-[260px] w-full"
               >
                 <BarChart
                   data={frequencyData}
@@ -472,7 +472,7 @@ export function StatsView() {
               Intensité du volume d'entraînement · 30 derniers jours
             </CardDescription>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
+          <CardContent style={{ overflowX: 'auto' }}>
             {overviewLoading || !overview ? (
               <Skeleton className="h-[200px] w-full" />
             ) : overview.activityCalendar.length === 0 ? (
@@ -618,10 +618,10 @@ export function StatsView() {
                 Somme des reps / secondes de maintien sur toutes les séries de chaque séance
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent style={{ overflowX: 'auto' }}>
               <ChartContainer
                 config={trendChartConfig}
-                className="h-[240px] w-full"
+                className="block aspect-auto h-[240px] w-full"
               >
                 <LineChart
                   data={trendData}
