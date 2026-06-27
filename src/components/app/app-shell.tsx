@@ -118,7 +118,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main content */}
-      <main className="flex-1 overflow-x-hidden">
+      {/* overflow-x: clip clips content without creating a scroll container,
+          so child elements with overflow-x: auto can still scroll. */}
+      <main className="flex-1" style={{ overflowX: 'clip' }}>
         <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
           {children}
         </div>
