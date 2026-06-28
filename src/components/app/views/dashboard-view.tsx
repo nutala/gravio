@@ -231,7 +231,7 @@ function KpiGrid() {
         }
       />
       <StatCard
-        label="Temps d'entraînement"
+        label="Temps total d'entraînement"
         value={fmtCompact(data.totalMinutes)}
         unit="min"
         icon={Timer}
