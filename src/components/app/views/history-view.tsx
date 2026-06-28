@@ -255,13 +255,9 @@ export function HistoryView() {
                 hasWorkout: (date) =>
                   workoutDays.has(format(date, "yyyy-MM-dd")),
               }}
-              modifiersStyles={{
-                hasWorkout: {
-                  fontWeight: 700,
-                  backgroundColor: "hsl(var(--primary) / 0.15)",
-                  color: "hsl(var(--primary))",
-                  borderRadius: "9999px",
-                },
+              modifiersClassNames={{
+                hasWorkout:
+                  "!bg-primary/15 !text-primary !font-bold rounded-full",
               }}
               className="rounded-lg border border-border/60"
             />
