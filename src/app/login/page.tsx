@@ -30,7 +30,7 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
 ];
 
 function CaliLogo() {
-  return <GravioLogo className="h-24 w-24 rounded-xl" />;
+  return <GravioLogo className="h-24 w-24 rounded-xl" showTagline />;
 }
 
 function GoogleLogo({ className }: { className?: string }) {
@@ -148,8 +148,6 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-3">
           <CaliLogo />
-          <h1 className="text-xl font-bold tracking-tight">Gravio</h1>
-          <p className="text-sm text-muted-foreground">Suivi de performance calisthénie</p>
         </div>
 
         {mode === "choose" ? (
