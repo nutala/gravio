@@ -255,25 +255,29 @@ export function HistoryView() {
                   hasWorkout: (date) =>
                     workoutDays.has(format(date, "yyyy-MM-dd")),
                 }}
-                className="rounded-lg border border-border/60"
+                modifiersClassNames={{
+                  hasWorkout: "has-workout-day",
+                }}
+                className="has-workout-calendar rounded-lg border border-border/60"
               />
               <style>{`
-                .rdp-day_hasWorkout button {
-                  font-weight: 600 !important;
+                .has-workout-day button {
+                  position: relative;
+                  font-weight: 600;
                 }
-                .rdp-day_hasWorkout button::after {
+                .has-workout-day button::after {
                   content: '';
                   position: absolute;
-                  bottom: 1px;
+                  bottom: 0px;
                   left: 50%;
                   transform: translateX(-50%);
-                  width: 5px;
-                  height: 5px;
+                  width: 4px;
+                  height: 4px;
                   border-radius: 9999px;
-                  background: hsl(var(--primary) / 0.7);
+                  background: hsl(var(--primary));
                 }
-                .rdp-day_hasWorkout[data-selected=true] button::after,
-                .rdp td[data-selected=true] .rdp-day_hasWorkout button::after {
+                .has-workout-day[data-selected-single=true] button::after,
+                [data-selected=true] .has-workout-day button::after {
                   background: hsl(var(--primary-foreground));
                 }
               `}</style>
