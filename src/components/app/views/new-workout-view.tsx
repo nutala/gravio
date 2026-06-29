@@ -863,6 +863,22 @@ function EntryCard({
             >
               {meta.label}
             </Badge>
+            {(exercise as unknown as { tags: string[] }).tags?.map((tag) => {
+              const tagMeta = getCatMeta(tag);
+              return (
+                <Badge
+                  key={tag}
+                  variant="outline"
+                  className="gap-1 text-[9px] font-medium leading-tight"
+                  style={{
+                    borderColor: `${tagMeta.color}44`,
+                    color: tagMeta.color,
+                  }}
+                >
+                  {tagMeta.emoji} {tagMeta.label}
+                </Badge>
+              );
+            })}
             {isStatic && (
               <Badge variant="secondary" className="text-[10px]">
                 Maintien (s)
