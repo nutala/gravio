@@ -86,9 +86,27 @@ import {
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Calendar } from "@/components/ui/calendar";
+import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
+import type { DayButton } from "react-day-picker";
 
 /* ------------------------------------------------------------------ */
+/** Dot indicator on days that have workouts. */
+function WorkoutDayButton({
+  day,
+  modifiers,
+  ...props
+}: React.ComponentProps<typeof DayButton>) {
+  const hasWorkout = modifiers?.hasWorkout;
+  return (
+    <CalendarDayButton day={day} modifiers={modifiers} {...props}>
+      {props.children}
+      {hasWorkout && (
+        <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 size-1 rounded-full bg-current" />
+      )}
+    </CalendarDayButton>
+  );
+}
+
 /* Helpers                                                             */
 /* ------------------------------------------------------------------ */
 
@@ -255,32 +273,9 @@ export function HistoryView() {
                   hasWorkout: (date) =>
                     workoutDays.has(format(date, "yyyy-MM-dd")),
                 }}
-                modifiersClassNames={{
-                  hasWorkout: "has-workout-day",
-                }}
-                className="has-workout-calendar rounded-lg border border-border/60"
+                components={{ DayButton: WorkoutDayButton }}
+                className="rounded-lg border border-border/60"
               />
-              <style>{`
-                .has-workout-day button {
-                  position: relative;
-                  font-weight: 600;
-                }
-                .has-workout-day button::after {
-                  content: '';
-                  position: absolute;
-                  bottom: 0px;
-                  left: 50%;
-                  transform: translateX(-50%);
-                  width: 4px;
-                  height: 4px;
-                  border-radius: 9999px;
-                  background: hsl(var(--primary));
-                }
-                .has-workout-day[data-selected-single=true] button::after,
-                [data-selected=true] .has-workout-day button::after {
-                  background: hsl(var(--primary-foreground));
-                }
-              `}</style>
           </div>
 
           {selectedDay && dayWorkouts.length > 0 ? (
