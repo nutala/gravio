@@ -243,7 +243,7 @@ export function NewWorkoutView() {
         toast.error("Un de tes exercices est introuvable. Retire-le puis ré-ajoute-le.");
         return;
       }
-      const isCombo = entry.comboSteps.length > 0;
+      const isCombo = ex.name === "Combos" || entry.comboSteps.length > 0;
       if (isCombo) continue;
       if (entry.sets.length === 0) {
         toast.error(`« ${ex.name} » n'a aucune série. Ajoute-en une ou retire l'entrée.`);
@@ -287,7 +287,7 @@ export function NewWorkoutView() {
       entries: entries.map((e) => {
         const ex = exerciseMap.get(e.exerciseId);
         const firstVariant = ex?.variants[0]?.id;
-        const isCombo = e.comboSteps.length > 0;
+        const isCombo = ex?.name === "Combos" || e.comboSteps.length > 0;
         return {
           exerciseId: e.exerciseId,
           variantId: e.variantId ?? firstVariant ?? null,
@@ -789,7 +789,7 @@ function EntryCard({
   onComboRpeChange?: (value: number | undefined) => void;
 }) {
   const { variantId, notes, sets, supersetGroup, comboSteps, comboWeightKg, comboRpe, comboValidated, comboFailedSteps } = entry;
-  const isCombo = comboSteps.length > 0;
+  const isCombo = exercise.name === "Combos" || comboSteps.length > 0;
   const getCatMeta = useCategoryMeta();
   const cat = exercise.category as ExerciseCategory;
   const meta = getCatMeta(cat);

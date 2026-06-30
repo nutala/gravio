@@ -649,7 +649,7 @@ function EntryDetail({ entry }: { entry: WorkoutEntryFull }) {
   const inSuperset = entry.supersetGroup != null;
   const rawComboSteps = (entry as unknown as { comboSteps: unknown }).comboSteps;
   const comboSteps: ComboStep[] = Array.isArray(rawComboSteps) ? rawComboSteps : [];
-  const isCombo = comboSteps.length > 0;
+  const isCombo = entry.exercise.name === "Combos" || comboSteps.length > 0;
   const rawComboWeightKg = (entry as unknown as { comboWeightKg: number | null }).comboWeightKg;
   const rawComboRpe = (entry as unknown as { comboRpe: number | null }).comboRpe;
 

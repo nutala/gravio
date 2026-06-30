@@ -248,12 +248,15 @@ export function TemplateEditorView() {
         id: templateEditorId ?? undefined,
         name: trimmedName,
         notes: notes || undefined,
-        entries: entries.map((e) => ({
+        entries: entries.map((e) => {
+          const ex = exerciseMap.get(e.exerciseId);
+          const isCombo = ex?.name === "Combos" || e.comboSteps.length > 0;
+          return {
           exerciseId: e.exerciseId,
           variantId: null,
           supersetGroup: e.supersetGroup,
           notes: e.notes || undefined,
-          comboSteps: e.comboSteps.length > 0 ? e.comboSteps : undefined,
+          comboSteps: isCombo ? e.comboSteps : undefined,
           sets: e.sets.map((s) => ({
             isHold: s.isHold ?? false,
             variantId: s.variantId || null,
@@ -262,7 +265,8 @@ export function TemplateEditorView() {
             targetWeightKg: s.targetWeightKg,
             targetRpe: s.targetRpe,
           })),
-        })),
+          };
+        }),
       });
       closeTemplateEditor();
     } finally {
@@ -391,7 +395,7 @@ export function TemplateEditorView() {
                 </CardHeader>
 
                 <CardContent className="space-y-3">
-                  {e.comboSteps.length > 0 ? (
+                  {(ex?.name === "Combos" || e.comboSteps.length > 0) ? (
                     <ComboEditor
                       steps={e.comboSteps}
                       validated={false}

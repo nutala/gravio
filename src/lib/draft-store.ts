@@ -347,7 +347,7 @@ export const useDraftStore = create<WorkoutDraftStore>()(
       if (!ex) continue;
       const rawComboSteps = (e as unknown as { comboSteps: unknown }).comboSteps;
       const comboSteps = Array.isArray(rawComboSteps) ? rawComboSteps as ComboStep[] : [];
-      const isCombo = comboSteps.length > 0;
+      const isCombo = ex.name === "Combos" || comboSteps.length > 0;
       entries.push({
         id: uid(),
         exerciseId: e.exerciseId,
@@ -398,7 +398,7 @@ export const useDraftStore = create<WorkoutDraftStore>()(
       }>) ?? [];
       const rawComboSteps = (e as unknown as { comboSteps: unknown }).comboSteps;
       const templateComboSteps = Array.isArray(rawComboSteps) ? rawComboSteps as ComboStep[] : [];
-      const isCombo = templateComboSteps.length > 0;
+      const isCombo = ex.name === "Combos" || templateComboSteps.length > 0;
       const sets: DraftSet[] = isCombo ? [] : (targetSets.length > 0
         ? targetSets.map((ts) => ({
             id: uid(),
