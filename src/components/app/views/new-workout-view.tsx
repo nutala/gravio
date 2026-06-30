@@ -244,7 +244,21 @@ export function NewWorkoutView() {
         return;
       }
       const isCombo = ex.name === "Combos" || entry.comboSteps.length > 0;
-      if (isCombo) continue;
+      if (isCombo) {
+        if (!entry.comboValidated && entry.comboSteps.some((st) => !st.done && !st.failed)) {
+          toast.error(`« ${ex.name} » — chaque étape doit être validée (✓) ou échouée (✗), ou valider tout le combo.`);
+          return;
+        }
+        for (const st of entry.comboSteps) {
+          const stepMode = st.mode ?? (st.isStatic ? "hold" : "reps");
+          const stepValue = stepMode === "reps" ? st.reps : st.holdSeconds;
+          if (stepValue == null || Number.isNaN(stepValue)) {
+            toast.error(`« ${ex.name} » — l'étape « ${st.exerciseName} » doit avoir une valeur.`);
+            return;
+          }
+        }
+        continue;
+      }
       if (entry.sets.length === 0) {
         toast.error(`« ${ex.name} » n'a aucune série. Ajoute-en une ou retire l'entrée.`);
         return;
@@ -297,7 +311,6 @@ export function NewWorkoutView() {
           weightKg: isCombo ? e.comboWeightKg : undefined,
           rpe: isCombo ? e.comboRpe : undefined,
           comboValidated: isCombo ? e.comboValidated : undefined,
-          comboFailedSteps: isCombo ? e.comboFailedSteps : undefined,
           sets: isCombo ? [] : e.sets.map((s) => {
             const mode = s.mode ?? (
               ex?.isStatic ? "hold" : "reps"
@@ -469,7 +482,6 @@ export function NewWorkoutView() {
                 onUpdateComboStep={(stepId, patch) => draft.updateComboStep(entry.id, stepId, patch)}
                 onReorderComboStep={(stepId, dir) => draft.reorderComboStep(entry.id, stepId, dir)}
                 onToggleComboValidated={() => draft.toggleComboValidated(entry.id)}
-                onToggleComboStepFailed={(stepId) => draft.toggleComboStepFailed(entry.id, stepId)}
                 onComboWeightKgChange={(v) => draft.updateEntry(entry.id, { comboWeightKg: v })}
                 onComboRpeChange={(v) => draft.updateEntry(entry.id, { comboRpe: v })}
               />
@@ -760,7 +772,6 @@ function EntryCard({
   onUpdateComboStep,
   onReorderComboStep,
   onToggleComboValidated,
-  onToggleComboStepFailed,
   onComboWeightKgChange,
   onComboRpeChange,
 }: {
@@ -784,11 +795,10 @@ function EntryCard({
   onUpdateComboStep?: (stepId: string, patch: Partial<ComboStep>) => void;
   onReorderComboStep?: (stepId: string, direction: "up" | "down") => void;
   onToggleComboValidated?: () => void;
-  onToggleComboStepFailed?: (stepId: string) => void;
   onComboWeightKgChange?: (value: number | undefined) => void;
   onComboRpeChange?: (value: number | undefined) => void;
 }) {
-  const { variantId, notes, sets, supersetGroup, comboSteps, comboWeightKg, comboRpe, comboValidated, comboFailedSteps } = entry;
+  const { variantId, notes, sets, supersetGroup, comboSteps, comboWeightKg, comboRpe, comboValidated } = entry;
   const isCombo = exercise.name === "Combos" || comboSteps.length > 0;
   const getCatMeta = useCategoryMeta();
   const cat = exercise.category as ExerciseCategory;
@@ -1005,13 +1015,11 @@ function EntryCard({
             weightKg={comboWeightKg}
             rpe={comboRpe}
             validated={comboValidated}
-            failedSteps={comboFailedSteps}
             onAddStep={onAddComboStep!}
             onRemoveStep={onRemoveComboStep!}
             onUpdateStep={onUpdateComboStep!}
             onReorderStep={onReorderComboStep!}
             onToggleValidated={onToggleComboValidated}
-            onToggleStepFailed={onToggleComboStepFailed}
             onWeightKgChange={onComboWeightKgChange}
             onRpeChange={onComboRpeChange}
           />

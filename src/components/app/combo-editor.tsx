@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Trash2, ChevronUp, ChevronDown, Check, X, Weight, Gauge } from "lucide-react";
+import { Plus, Trash2, ChevronUp, ChevronDown, Check, Weight, Gauge } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,13 +24,11 @@ interface ComboEditorProps {
   weightKg?: number;
   rpe?: number;
   validated: boolean;
-  failedSteps: string[];
   onAddStep: (step: ComboStep) => void;
   onRemoveStep: (stepId: string) => void;
   onUpdateStep: (stepId: string, patch: Partial<ComboStep>) => void;
   onReorderStep: (stepId: string, direction: "up" | "down") => void;
   onToggleValidated?: () => void;
-  onToggleStepFailed?: (stepId: string) => void;
   onWeightKgChange?: (value: number | undefined) => void;
   onRpeChange?: (value: number | undefined) => void;
   readOnly?: boolean;
@@ -45,13 +43,11 @@ export function ComboEditor({
   weightKg,
   rpe,
   validated,
-  failedSteps,
   onAddStep,
   onRemoveStep,
   onUpdateStep,
   onReorderStep,
   onToggleValidated,
-  onToggleStepFailed,
   onWeightKgChange,
   onRpeChange,
   readOnly,
@@ -135,7 +131,7 @@ export function ComboEditor({
               {validated ? (
                 <><Check className="h-3.5 w-3.5" /> Validé</>
               ) : (
-                <><X className="h-3.5 w-3.5" /> Marquer validé</>
+                <><Check className="h-3.5 w-3.5" /> Valider tout le combo</>
               )}
             </Button>
           )}
@@ -152,7 +148,9 @@ export function ComboEditor({
             const ex = exerciseMap.get(step.exerciseId);
             const variants = ex?.variants ? sortVariants(ex.variants) : [];
             const catMeta = getCatMeta(step.category);
-            const isFailed = failedSteps.includes(step.id);
+            const isDone = step.done === true;
+            const isFailed = step.failed === true;
+            const hasStatus = isDone || isFailed;
             const mode = step.mode ?? (step.isStatic ? "hold" : "reps");
             const otherMode = mode === "reps" ? "hold" : "reps";
             const isLast = idx === steps.length - 1;
@@ -163,17 +161,17 @@ export function ComboEditor({
                 key={step.id}
                 className={cn(
                   "flex flex-wrap items-center gap-2 rounded-lg border p-2.5 text-sm transition-colors",
+                  isDone && "border-emerald-500/40 bg-emerald-500/8",
                   isFailed && "border-red-400/50 bg-red-500/10",
-                  validated && !isFailed && "border-emerald-500/30 bg-emerald-500/8",
                 )}
               >
                 <span className="w-5 text-right text-xs font-medium text-muted-foreground tabular-nums">
                   {idx + 1}
                 </span>
 
-                {idx > 0 && (
-                  <span className="text-lg leading-none text-muted-foreground/40">➔</span>
-                )}
+                <span className="inline-block w-4 text-center text-lg leading-none text-muted-foreground/40">
+                  {idx > 0 ? "➔" : ""}
+                </span>
 
                 <span className="max-w-[120px] truncate font-medium">
                   {step.exerciseName}
@@ -200,7 +198,7 @@ export function ComboEditor({
                         }
                         className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground"
                       >
-                        {mode === "reps" ? "Reps" : "Maintien"}
+                        {mode === "reps" ? "Reps" : "Maintien (s)"}
                       </button>
                       <Input
                         type="number"
@@ -253,20 +251,47 @@ export function ComboEditor({
 
                 {!readOnly && (
                   <div className="flex items-center gap-0.5">
-                    {onToggleStepFailed && (
-                      <button
-                        type="button"
-                        onClick={() => onToggleStepFailed(step.id)}
-                        className={cn(
-                          "flex h-7 w-7 items-center justify-center rounded text-xs font-bold transition-colors",
-                          isFailed
-                            ? "bg-red-500 text-white"
-                            : "text-muted-foreground hover:bg-muted",
-                        )}
-                        title={isFailed ? "Marquer réussie" : "Marquer échouée"}
-                      >
-                        ✗
-                      </button>
+                    {onToggleValidated && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isDone) {
+                              onUpdateStep(step.id, { done: false });
+                            } else {
+                              onUpdateStep(step.id, { done: true, failed: false });
+                            }
+                          }}
+                          className={cn(
+                            "flex h-7 w-7 items-center justify-center rounded transition-colors",
+                            isDone
+                              ? "bg-emerald-500 text-white"
+                              : "text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-500",
+                          )}
+                          title={isDone ? "Annuler" : "Valider l'étape"}
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isFailed) {
+                              onUpdateStep(step.id, { failed: false });
+                            } else {
+                              onUpdateStep(step.id, { failed: true, done: false });
+                            }
+                          }}
+                          className={cn(
+                            "flex h-7 w-7 items-center justify-center rounded text-xs font-bold transition-colors",
+                            isFailed
+                              ? "bg-red-500 text-white"
+                              : "text-muted-foreground hover:bg-red-500/10 hover:text-red-500",
+                          )}
+                          title={isFailed ? "Annuler" : "Marquer échouée"}
+                        >
+                          ✗
+                        </button>
+                      </>
                     )}
                     {!isFirst && (
                       <button
@@ -318,16 +343,29 @@ export function ComboEditor({
           <span className="tabular-nums font-medium text-foreground">{steps.length}</span>{" "}
           étape{steps.length > 1 ? "s" : ""}
         </span>
-        {validated && (
-          <span className="text-emerald-500">
-            <span className="tabular-nums font-medium">Validé</span>
-          </span>
-        )}
-        {failedSteps.length > 0 && (
-          <span className="text-red-500">
-            <span className="tabular-nums font-medium">{failedSteps.length}</span> échouée{failedSteps.length > 1 ? "s" : ""}
-          </span>
-        )}
+        {(() => {
+          const doneCount = steps.filter((s) => s.done).length;
+          const failedCount = steps.filter((s) => s.failed).length;
+          return (
+            <>
+              {validated && (
+                <span className="text-emerald-500">
+                  <span className="tabular-nums font-medium">Combo validé</span>
+                </span>
+              )}
+              {doneCount > 0 && (
+                <span className="text-emerald-500">
+                  <span className="tabular-nums font-medium">{doneCount}</span> réussie{doneCount > 1 ? "s" : ""}
+                </span>
+              )}
+              {failedCount > 0 && (
+                <span className="text-red-500">
+                  <span className="tabular-nums font-medium">{failedCount}</span> échouée{failedCount > 1 ? "s" : ""}
+                </span>
+              )}
+            </>
+          );
+        })()}
       </div>
 
       <ExercisePickerDialog

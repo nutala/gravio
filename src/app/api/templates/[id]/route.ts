@@ -78,6 +78,7 @@ export async function PUT(req: Request, { params }: Params) {
             position: i + 1,
             notes: e.notes ?? null,
             sets: Array.isArray(e.sets) ? e.sets : [],
+            comboSteps: Array.isArray(e.comboSteps) ? e.comboSteps : [],
           },
         });
       }

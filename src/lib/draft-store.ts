@@ -39,7 +39,6 @@ export type DraftEntry = {
   comboWeightKg?: number;
   comboRpe?: number;
   comboValidated: boolean;
-  comboFailedSteps: string[];
 };
 
 export type WorkoutDraft = {
@@ -108,7 +107,7 @@ interface WorkoutDraftStore extends WorkoutDraft {
   updateComboStep: (entryId: string, stepId: string, patch: Partial<ComboStep>) => void;
   reorderComboStep: (entryId: string, stepId: string, direction: "up" | "down") => void;
   toggleComboValidated: (entryId: string) => void;
-  toggleComboStepFailed: (entryId: string, stepId: string) => void;
+
 
   /// Move an entry from one index to another (drag-and-drop reorder).
   reorderEntries: (fromId: string, toId: string) => void;
@@ -163,7 +162,6 @@ export const useDraftStore = create<WorkoutDraftStore>()(
             ],
             comboSteps: [],
             comboValidated: false,
-            comboFailedSteps: [],
           },
         ],
       };
@@ -304,21 +302,6 @@ export const useDraftStore = create<WorkoutDraftStore>()(
       ),
     })),
 
-  toggleComboStepFailed: (entryId, stepId) =>
-    set((s) => {
-      const entry = s.entries.find((e) => e.id === entryId);
-      if (!entry) return s;
-      const wasFailed = entry.comboFailedSteps.includes(stepId);
-      const newFailed = wasFailed
-        ? entry.comboFailedSteps.filter((id) => id !== stepId)
-        : [...entry.comboFailedSteps, stepId];
-      return {
-        entries: s.entries.map((e) =>
-          e.id === entryId ? { ...e, comboFailedSteps: newFailed } : e,
-        ),
-      };
-    }),
-
   reorderEntries: (fromId, toId) =>
     set((s) => {
       const fromIdx = s.entries.findIndex((e) => e.id === fromId);
@@ -367,7 +350,6 @@ export const useDraftStore = create<WorkoutDraftStore>()(
         comboWeightKg: (e as unknown as { comboWeightKg: number | null }).comboWeightKg ?? undefined,
         comboRpe: (e as unknown as { comboRpe: number | null }).comboRpe ?? undefined,
         comboValidated: false,
-        comboFailedSteps: [],
       });
     }
     set({
@@ -420,7 +402,6 @@ export const useDraftStore = create<WorkoutDraftStore>()(
         sets,
         comboSteps: templateComboSteps,
         comboValidated: false,
-        comboFailedSteps: [],
       });
     }
     set((s) => ({

@@ -399,7 +399,6 @@ export function TemplateEditorView() {
                     <ComboEditor
                       steps={e.comboSteps}
                       validated={false}
-                      failedSteps={[]}
                       onAddStep={(step) =>
                         setEntries((prev) =>
                           prev.map((en) =>

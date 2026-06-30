@@ -4,7 +4,20 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { computeStreak } from "@/lib/calc";
 import { format, subDays } from "date-fns";
-import type { OverviewStats } from "@/lib/types";
+import type { OverviewStats, ComboStep } from "@/lib/types";
+
+function comboStepsVolume(comboSteps: unknown): number {
+  if (!Array.isArray(comboSteps)) return 0;
+  return (comboSteps as ComboStep[]).reduce(
+    (sum, step) => sum + (step.reps ?? step.holdSeconds ?? 0),
+    0,
+  );
+}
+
+function entryVolume(e: { sets: { reps: number | null; holdSeconds: number | null }[]; comboSteps: unknown }): number {
+  return e.sets.reduce((s, set) => s + (set.reps ?? set.holdSeconds ?? 0), 0)
+    + comboStepsVolume(e.comboSteps);
+}
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -19,7 +32,7 @@ export async function GET() {
   const totalWorkouts = workouts.length;
   const totalSets = workouts.reduce((acc, w) => acc + w.entries.reduce((a, e) => a + e.sets.length, 0), 0);
   const totalVolume = workouts.reduce(
-    (acc, w) => acc + w.entries.reduce((a, e) => a + e.sets.reduce((s, set) => s + (set.reps ?? set.holdSeconds ?? 0), 0), 0),
+    (acc, w) => acc + w.entries.reduce((a, e) => a + entryVolume(e), 0),
     0,
   );
   const totalMinutes = workouts.reduce((acc, w) => acc + (w.durationMin ?? 0), 0);
@@ -41,7 +54,7 @@ export async function GET() {
   for (const w of recentWorkouts) {
     for (const e of w.entries) {
       const cat = e.exercise.category;
-      const vol = e.sets.reduce((s, set) => s + (set.reps ?? set.holdSeconds ?? 0), 0);
+      const vol = entryVolume(e);
       const entry = catMap.get(cat) ?? { volume: 0, sessions: new Set() };
       entry.volume += vol;
       entry.sessions.add(w.id);
@@ -61,7 +74,7 @@ export async function GET() {
     const entry = activityMap.get(key);
     if (entry) {
       entry.count += 1;
-      entry.volume += w.entries.reduce((a, e) => a + e.sets.reduce((s, set) => s + (set.reps ?? set.holdSeconds ?? 0), 0), 0);
+      entry.volume += w.entries.reduce((a, e) => a + entryVolume(e), 0);
     }
   }
   const activityCalendar = Array.from(activityMap.entries()).map(([date, v]) => ({ date, count: v.count, volume: v.volume }));

@@ -165,6 +165,7 @@ export interface ComboStep {
   mode: "reps" | "hold";
   reps?: number;
   holdSeconds?: number;
+  done?: boolean;
   failed?: boolean;
 }
 

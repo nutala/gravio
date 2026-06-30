@@ -176,7 +176,6 @@ export type NewWorkoutPayload = {
     weightKg?: number;
     rpe?: number;
     comboValidated?: boolean;
-    comboFailedSteps?: string[];
     sets: {
       variantId?: string | null;
       reps?: number;
