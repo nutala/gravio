@@ -57,9 +57,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   onClick={() => setView(item.id)}
                   className={cn(
                     "gap-2 font-medium",
-                    active && item.id === "new-workout"
-                      ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm"
-                      : active && "shadow-sm",
+                    active && "bg-primary text-primary-foreground shadow-sm",
                   )}
                   aria-current={active ? "page" : undefined}
                 >
