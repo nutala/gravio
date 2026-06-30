@@ -21,6 +21,7 @@ export async function GET() {
 
   const map = new Map<string, TopExercise & { lastDate: Date | null }>();
   for (const e of entries) {
+    if (e.exercise.name === "Combos") continue;
     const existing = map.get(e.exerciseId);
     const metric = e.sets.reduce((s, set) => s + (set.reps ?? set.holdSeconds ?? 0), 0);
     const bestSet = Math.max(...e.sets.map((s) => s.reps ?? s.holdSeconds ?? 0), 0);

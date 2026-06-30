@@ -245,8 +245,8 @@ export function NewWorkoutView() {
       }
       const isCombo = ex.name === "Combos" || entry.comboSteps.length > 0;
       if (isCombo) {
-        if (!entry.comboValidated && entry.comboSteps.some((st) => !st.done && !st.failed)) {
-          toast.error(`« ${ex.name} » — chaque étape doit être validée (✓) ou échouée (✗), ou valider tout le combo.`);
+        if (entry.comboSteps.some((st) => !st.done && !st.failed)) {
+          toast.error(`« ${ex.name} » — chaque étape doit être validée (✓) ou échouée (✗).`);
           return;
         }
         for (const st of entry.comboSteps) {
