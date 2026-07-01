@@ -136,11 +136,6 @@ export function StatsView() {
     });
   }, [overview, getCatMeta]);
 
-  const totalSessions = React.useMemo(
-    () => volumeByCat.reduce((acc, c) => acc + c.sessions, 0),
-    [volumeByCat],
-  );
-
   /* 4: frequency data */
   const frequencyData = React.useMemo(() => {
     if (!overview) return [];
@@ -151,6 +146,11 @@ export function StatsView() {
       volume: d.volume,
     }));
   }, [overview]);
+
+  const totalSessions = React.useMemo(
+    () => frequencyData.reduce((acc, d) => acc + d.count, 0),
+    [frequencyData],
+  );
 
   /* 5: heatmap max */
   const heatmapMax = React.useMemo(
