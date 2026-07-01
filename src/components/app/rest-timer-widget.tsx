@@ -11,19 +11,30 @@ import {
   AnimatePresence,
 } from "framer-motion";
 
-/** Play a short double-beep via the Web Audio API (no asset needed). */
+/** Shared AudioContext (reused so it can be resumed on visibility change). */
+let _beepCtx: AudioContext | null = null;
+
+function getBeepCtx(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  const Ctor =
+    window.AudioContext ||
+    (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+  if (!Ctor) return null;
+  if (!_beepCtx || _beepCtx.state === "closed") {
+    _beepCtx = new Ctor();
+  }
+  return _beepCtx;
+}
+
+/** Play a short double-beep via the Web Audio API. */
 function playBeep() {
   try {
-    const AudioCtx =
-      typeof window !== "undefined"
-        ? (window.AudioContext ||
-            (window as unknown as { webkitAudioContext: typeof AudioContext })
-              .webkitAudioContext)
-        : undefined;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    const now = ctx.currentTime;
+    const ctx = getBeepCtx();
+    if (!ctx) return;
+    // Resume if suspended (tab was backgrounded).
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
 
+    const now = ctx.currentTime;
     const beep = (start: number, freq: number) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -40,9 +51,6 @@ function playBeep() {
 
     beep(now, 880);
     beep(now + 0.45, 1175);
-
-    // Close the context after the beeps finish.
-    setTimeout(() => ctx.close().catch(() => {}), 1200);
   } catch {
     // Audio not available — silent fail.
   }
@@ -60,11 +68,20 @@ export function RestTimerWidget() {
   }, [timer.state]);
 
   // Tick every 250ms while running so the countdown stays smooth.
+  // Also refresh on visibility change so the timer catches up immediately
+  // when the user returns to the tab.
   React.useEffect(() => {
     if (timer.state !== "running") return;
     setNow(Date.now());
     const id = setInterval(() => setNow(Date.now()), 250);
-    return () => clearInterval(id);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") setNow(Date.now());
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [timer.state]);
 
   // Detect completion.

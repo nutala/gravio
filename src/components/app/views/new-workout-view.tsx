@@ -397,6 +397,24 @@ export function NewWorkoutView() {
                 className="tabular-nums"
               />
             </div>
+
+            <div className="space-y-1.5">
+              <Label>Repos par défaut</Label>
+              <div className="flex flex-wrap gap-1">
+                {REST_PRESETS.map((p) => (
+                  <Button
+                    key={p.sec}
+                    type="button"
+                    size="sm"
+                    variant={p.sec === defaultRestSec ? "default" : "outline"}
+                    className="h-8 tabular-nums"
+                    onClick={() => draft.setMeta("defaultRestSec", p.sec)}
+                  >
+                    {p.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
