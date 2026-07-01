@@ -25,11 +25,11 @@ export async function GET(req: Request) {
       workout: userId ? { userId } : { userId: null },
     },
     include: { workout: true, variant: true, sets: { orderBy: { setNumber: "asc" } } },
-    orderBy: { workout: { date: "asc" } },
+    orderBy: { workout: { date: "desc" } },
     take: limit,
   });
 
-  const points: ProgressPoint[] = entries.map((e) => ({
+  const points: ProgressPoint[] = entries.reverse().map((e) => ({
     date: format(e.workout.date, "yyyy-MM-dd"),
     workoutId: e.workoutId,
     bestValue: Math.max(...e.sets.map((s) => s.reps ?? s.holdSeconds ?? 0)),
