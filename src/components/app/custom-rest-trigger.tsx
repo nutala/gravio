@@ -15,41 +15,57 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
+/** Format raw mmss digits into mm:ss for display. */
+function fmt(raw: string): string {
+  const p = raw.padStart(3, "0");
+  return `${p.slice(0, -2).padStart(2, "0")}:${p.slice(-2)}`;
+}
+
+/** Parse raw mmss digits → seconds (last 2 = ss, rest = mm). */
+function parse(raw: string): number {
+  const ss = parseInt(raw.slice(-2), 10);
+  const mm = raw.length > 2 ? parseInt(raw.slice(0, -2), 10) : 0;
+  return mm * 60 + (isNaN(ss) ? 0 : ss);
+}
+
 export function CustomRestTrigger() {
   const [open, setOpen] = React.useState(false);
-  const [minutes, setMinutes] = React.useState(1);
-  const [seconds, setSeconds] = React.useState(30);
+  const [raw, setRaw] = React.useState("0130");
+  const ref = React.useRef<HTMLInputElement>(null);
 
   const sessionActive = useDraftStore((s) => s.sessionStartedAt != null);
   const lastCustom = useTimerStore((s) => s.lastCustomRestSec);
   const start = useTimerStore((s) => s.start);
   const setLastCustomRestSec = useTimerStore((s) => s.setLastCustomRestSec);
 
+  // Pre-fill with last custom value when dialog opens
   React.useEffect(() => {
     if (open) {
-      setMinutes(Math.floor(lastCustom / 60));
-      setSeconds(lastCustom % 60);
+      const m = Math.floor(lastCustom / 60);
+      const s = lastCustom % 60;
+      setRaw(`${String(m).padStart(2, "0")}${String(s).padStart(2, "0")}`);
     }
   }, [open, lastCustom]);
 
+  // Keep cursor at the end after every render
+  React.useEffect(() => {
+    if (open && ref.current) {
+      const len = ref.current.value.length;
+      ref.current.setSelectionRange(len, len);
+    }
+  }, [open, raw]);
+
+  function handleChange(value: string) {
+    const digits = value.replace(/\D/g, "").slice(-4);
+    setRaw(digits.padStart(4, "0"));
+  }
+
   function handleSubmit() {
-    const sec = minutes * 60 + seconds;
+    const sec = parse(raw);
     if (sec <= 0) return;
     setLastCustomRestSec(sec);
     start(sec);
     setOpen(false);
-  }
-
-  function clampMinutes(v: string): number {
-    const n = parseInt(v.replace(/\D/g, ""), 10);
-    if (isNaN(n)) return 0;
-    return Math.min(n, 99);
-  }
-
-  function clampSeconds(v: string): number {
-    const n = parseInt(v.replace(/\D/g, ""), 10);
-    if (isNaN(n)) return 0;
-    return Math.min(n, 59);
   }
 
   if (!sessionActive) return null;
@@ -70,24 +86,28 @@ export function CustomRestTrigger() {
           <DialogHeader>
             <DialogTitle>Repos</DialogTitle>
           </DialogHeader>
-          <div className="flex items-center justify-center gap-1 py-4">
-            <Input
-              value={String(minutes).padStart(2, "0")}
-              onChange={(e) => setMinutes(clampMinutes(e.target.value))}
-              className="h-14 w-16 text-center text-2xl tabular-nums"
-              inputMode="numeric"
-            />
-            <span className="text-2xl text-muted-foreground">:</span>
-            <Input
-              value={String(seconds).padStart(2, "0")}
-              onChange={(e) => setSeconds(clampSeconds(e.target.value))}
-              className="h-14 w-16 text-center text-2xl tabular-nums"
-              inputMode="numeric"
-            />
+          <div className="flex flex-col items-center gap-4 py-4">
+            <div className="relative">
+              <Input
+                ref={ref}
+                value={fmt(raw)}
+                onChange={(e) => handleChange(e.target.value)}
+                className="h-16 w-40 text-center text-3xl tabular-nums tracking-widest"
+                inputMode="numeric"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSubmit();
+                }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {parse(raw) >= 60
+                ? `${Math.floor(parse(raw) / 60)} min ${parse(raw) % 60 || ""}`
+                : `${parse(raw)} s`}
+            </p>
           </div>
           <DialogFooter>
             <Button onClick={handleSubmit} className="w-full">
-              Lancer {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
+              Lancer
             </Button>
           </DialogFooter>
         </DialogContent>
