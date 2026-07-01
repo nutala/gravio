@@ -340,11 +340,12 @@ export const useDraftStore = create<WorkoutDraftStore>()(
         sets: isCombo ? [] : e.sets.map((st) => ({
           id: uid(),
           variantId: st.variantId ?? undefined,
+          mode: st.reps != null ? "reps" : st.holdSeconds != null ? "hold" : undefined,
           reps: st.reps ?? undefined,
           holdSeconds: st.holdSeconds ?? undefined,
           weightKg: st.weightKg ?? undefined,
           rpe: st.rpe ?? undefined,
-          validated: false,
+          validated: true,
         })),
         comboSteps,
         comboWeightKg: (e as unknown as { comboWeightKg: number | null }).comboWeightKg ?? undefined,
@@ -352,17 +353,17 @@ export const useDraftStore = create<WorkoutDraftStore>()(
         comboValidated: false,
       });
     }
-    set({
-      title: workout.title ? `${workout.title} (bis)` : "",
-      date: format(new Date(), "yyyy-MM-dd"),
-      durationMin: workout.durationMin ?? "",
-      exertion: workout.perceivedExertion ?? 5,
-      bodyweight: workout.bodyweightKg ?? "",
-      notes: workout.notes ?? "",
-      defaultRestSec: 90,
-      entries,
-      sessionStartedAt: get().sessionStartedAt ?? Date.now(),
-    });
+      set({
+        title: workout.title ?? "",
+        date: format(new Date(), "yyyy-MM-dd"),
+        durationMin: workout.durationMin ?? "",
+        exertion: workout.perceivedExertion ?? 5,
+        bodyweight: workout.bodyweightKg ?? "",
+        notes: workout.notes ?? "",
+        defaultRestSec: 90,
+        entries,
+        sessionStartedAt: null,
+      });
   },
 
   loadFromTemplate: (template, exerciseMap) => {

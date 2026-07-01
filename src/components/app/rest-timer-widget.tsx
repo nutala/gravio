@@ -27,31 +27,37 @@ function getBeepCtx(): AudioContext | null {
   return _beepCtx;
 }
 
-/** Play a short double-beep via the Web Audio API. */
+/** Play a loud double-beep via the Web Audio API (square wave). */
 function playBeep() {
   try {
     const ctx = getBeepCtx();
     if (!ctx) return;
-    // Resume if suspended (tab was backgrounded).
     if (ctx.state === "suspended") ctx.resume().catch(() => {});
 
     const now = ctx.currentTime;
-    const beep = (start: number, freq: number) => {
+    const beep = (
+      start: number,
+      freq: number,
+      duration: number,
+      type: OscillatorType,
+    ) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = "sine";
+      osc.type = type;
       osc.frequency.setValueAtTime(freq, start);
       gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.exponentialRampToValueAtTime(0.3, start + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.35);
+      gain.gain.exponentialRampToValueAtTime(0.5, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration - 0.05);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start(start);
-      osc.stop(start + 0.4);
+      osc.stop(start + duration);
     };
 
-    beep(now, 880);
-    beep(now + 0.45, 1175);
+    beep(now, 440, 0.4, "square");
+    beep(now + 0.05, 660, 0.4, "square");
+    beep(now + 0.4, 660, 0.5, "square");
+    beep(now + 0.45, 880, 0.5, "square");
   } catch {
     // Audio not available — silent fail.
   }

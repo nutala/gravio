@@ -310,8 +310,9 @@ export function NewWorkoutView() {
     const payload: NewWorkoutPayload = {
       date: isoDate,
       title: title.trim() || undefined,
-      durationMin:
-        sessionStartedAt != null
+      durationMin: editingWorkoutId
+        ? (durationMin || undefined)
+        : sessionStartedAt != null
           ? Math.max(1, Math.round((Date.now() - sessionStartedAt) / 60000))
           : undefined,
       perceivedExertion: exertion,
