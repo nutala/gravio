@@ -26,6 +26,15 @@ export async function GET() {
     const metric = e.sets.reduce((s, set) => s + (set.reps ?? set.holdSeconds ?? 0), 0);
     const bestSet = Math.max(...e.sets.map((s) => s.reps ?? s.holdSeconds ?? 0), 0);
 
+    // Determine whether the best set used hold (static) or reps
+    let bestIsStatic = e.exercise.isStatic;
+    if (bestSet > 0) {
+      const bestSetObj = e.sets.find((s) => (s.reps ?? s.holdSeconds ?? 0) === bestSet);
+      if (bestSetObj) {
+        bestIsStatic = bestSetObj.holdSeconds != null && (bestSetObj.reps == null || bestSetObj.reps === 0);
+      }
+    }
+
     // Find the variant that produced bestSet (first matching set wins)
     let bestSetVariantName: string | null = null;
     if (bestSet > 0) {
@@ -40,7 +49,7 @@ export async function GET() {
     if (!existing) {
       map.set(e.exerciseId, {
         exerciseId: e.exerciseId, exerciseName: e.exercise.name,
-        category: e.exercise.category, isStatic: e.exercise.isStatic,
+        category: e.exercise.category, isStatic: bestIsStatic,
         sessions: 1, totalSets: e.sets.length, totalVolume: metric,
         bestValue: bestSet, topVariantName: bestSetVariantName,
         lastPerformed: e.workout.date.toISOString(), lastDate: e.workout.date,
@@ -51,6 +60,7 @@ export async function GET() {
       existing.totalVolume += metric;
       if (bestSet > existing.bestValue) {
         existing.bestValue = bestSet;
+        existing.isStatic = bestIsStatic;
         if (bestSetVariantName) existing.topVariantName = bestSetVariantName;
       }
       if (!existing.lastDate || e.workout.date > existing.lastDate) {

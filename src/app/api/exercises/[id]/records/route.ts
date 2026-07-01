@@ -121,7 +121,8 @@ export async function GET(_req: Request, { params }: Params) {
     });
   }
 
-  const unit = exercise.isStatic ? "s" : "reps";
+  const setUnit = (s: { reps: number | null; holdSeconds: number | null }): string =>
+    s.holdSeconds != null && (s.reps == null || s.reps === 0) ? "s" : "reps";
 
   const variantRecords: VariantRecord[] = variants.map((v) => {
     const relevantEntries = entries.filter(
@@ -170,7 +171,7 @@ export async function GET(_req: Request, { params }: Params) {
     const bestByWeight = Array.from(byWeight.entries())
       .map(([weight, s]) => ({
         value: metric(s),
-        unit,
+        unit: setUnit(s),
         weightKg: s.weightKg,
         rpe: s.rpe,
         date: format(s.workoutDate, "yyyy-MM-dd"),
@@ -190,7 +191,7 @@ export async function GET(_req: Request, { params }: Params) {
         });
         return {
           value: metric(bestInEntry),
-          unit,
+          unit: setUnit(bestInEntry),
           weightKg: bestInEntry.weightKg,
           rpe: bestInEntry.rpe,
           date: format(e.workout.date, "yyyy-MM-dd"),
@@ -217,7 +218,7 @@ export async function GET(_req: Request, { params }: Params) {
         previousBest = entryVal;
         prHistory.push({
           value: entryVal,
-          unit,
+          unit: setUnit(entryBest),
           weightKg: entryBest.weightKg,
           rpe: entryBest.rpe,
           date: format(e.workout.date, "yyyy-MM-dd"),
@@ -233,7 +234,7 @@ export async function GET(_req: Request, { params }: Params) {
       difficultyLevel: v.difficultyLevel,
       allTimeBest: {
         value: metric(bestSet),
-        unit,
+        unit: setUnit(bestSet),
         weightKg: bestSet.weightKg,
         rpe: bestSet.rpe,
         date: format(bestSet.workoutDate, "yyyy-MM-dd"),
@@ -267,7 +268,7 @@ export async function GET(_req: Request, { params }: Params) {
       }
       const bestByWeight = Array.from(byWeight.entries())
         .map(([weight, s]) => ({
-          value: metric(s), unit, weightKg: s.weightKg, rpe: s.rpe,
+          value: metric(s), unit: setUnit(s), weightKg: s.weightKg, rpe: s.rpe,
           date: format(s.workoutDate, "yyyy-MM-dd"), workoutId: s.workoutId,
         }))
         .sort((a, b) => b.value - a.value || (b.weightKg ?? 0) - (a.weightKg ?? 0));
@@ -279,7 +280,7 @@ export async function GET(_req: Request, { params }: Params) {
           return mA >= mB ? a : b;
         });
         return {
-          value: metric(bestInEntry), unit,
+          value: metric(bestInEntry), unit: setUnit(bestInEntry),
           weightKg: bestInEntry.weightKg, rpe: bestInEntry.rpe,
           date: format(e.workout.date, "yyyy-MM-dd"), workoutId: e.workoutId,
         };
@@ -298,7 +299,7 @@ export async function GET(_req: Request, { params }: Params) {
         if (entryVal > previousBest) {
           previousBest = entryVal;
           prHistory.push({
-            value: entryVal, unit,
+            value: entryVal, unit: setUnit(entryBest),
             weightKg: entryBest.weightKg, rpe: entryBest.rpe,
             date: format(e.workout.date, "yyyy-MM-dd"), workoutId: e.workoutId,
           });
@@ -311,7 +312,7 @@ export async function GET(_req: Request, { params }: Params) {
         targetValue: null,
         difficultyLevel: 0,
         allTimeBest: {
-          value: metric(bestSet), unit,
+          value: metric(bestSet), unit: setUnit(bestSet),
           weightKg: bestSet.weightKg, rpe: bestSet.rpe,
           date: format(bestSet.workoutDate, "yyyy-MM-dd"),
           workoutId: bestSet.workoutId,
