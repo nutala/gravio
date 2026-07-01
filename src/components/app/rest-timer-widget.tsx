@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Pause, Play, X, Plus, Minus, SkipForward, Timer } from "lucide-react";
 import { useTimerStore } from "@/lib/timer-store";
+import { useAppStore } from "@/lib/store";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,10 @@ export function RestTimerWidget() {
   /// Tracks whether the "done" event was handled during this session,
   /// so we don't double-beep after a refresh recovery.
   const doneHandled = React.useRef(false);
+  const endsAtRef = React.useRef(timer.endsAt);
+
+  // Sync ref so intervals always read the latest endsAt.
+  React.useEffect(() => { endsAtRef.current = timer.endsAt; }, [timer.endsAt]);
 
   // Request notification permission when the timer starts running.
   React.useEffect(() => {
@@ -85,6 +90,44 @@ export function RestTimerWidget() {
       clearInterval(id);
       document.removeEventListener("visibilitychange", onVisible);
     };
+  }, [timer.state]);
+
+  // Send periodic countdown updates to the service worker notification.
+  React.useEffect(() => {
+    if (timer.state !== "running") return;
+    const sendUpdate = () => {
+      const endsAt = endsAtRef.current;
+      if (!endsAt) return;
+      if (!("serviceWorker" in navigator) || !navigator.serviceWorker.controller) return;
+      const remainingMs = Math.max(0, endsAt - Date.now());
+      navigator.serviceWorker.controller.postMessage({
+        type: "UPDATE_REST_TIMER",
+        remainingSec: Math.ceil(remainingMs / 1000),
+      });
+    };
+    sendUpdate();
+    const id = setInterval(sendUpdate, 1000);
+    return () => clearInterval(id);
+  }, [timer.state]);
+
+  // Listen for FOCUS_WORKOUT from SW → navigate to workout view.
+  React.useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === "FOCUS_WORKOUT") {
+        useAppStore.getState().setView("new-workout");
+      }
+    };
+    if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener("message", handler);
+      return () => navigator.serviceWorker.removeEventListener("message", handler);
+    }
+  }, []);
+
+  // Close SW notification when timer returns to idle (dismissed / skipped).
+  React.useEffect(() => {
+    if (timer.state === "idle" && "serviceWorker" in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: "CLOSE_REST_TIMER" });
+    }
   }, [timer.state]);
 
   // Detect completion (live).
