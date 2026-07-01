@@ -15,45 +15,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-function toMmSs(sec: number): string {
-  const m = Math.floor(Math.max(0, sec) / 60);
-  const s = Math.max(0, sec) % 60;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
-
-/** Auto-format raw keystrokes into mm:ss display. */
-function formatInput(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.length === 0) return "00:00";
-  const padded = digits.padStart(3, "0");
-  const mm = padded.slice(0, -2);
-  const ss = padded.slice(-2);
-  return `${mm.padStart(2, "0")}:${ss}`;
-}
-
-function parseMmSs(value: string): number | null {
-  const cleaned = value.replace(/[^0-9:]/g, "");
-  if (cleaned.includes(":")) {
-    const parts = cleaned.split(":");
-    const mm = parseInt(parts[0], 10);
-    const ss = parseInt(parts[1], 10);
-    if (!isNaN(mm) && !isNaN(ss) && ss < 60) return mm * 60 + ss;
-    return null;
-  }
-  // Pure digits — interpret as mmss (last 2 = seconds, rest = minutes)
-  if (cleaned.length < 2) {
-    const sec = parseInt(cleaned, 10);
-    return !isNaN(sec) ? sec : null;
-  }
-  const mm = parseInt(cleaned.slice(0, -2), 10);
-  const ss = parseInt(cleaned.slice(-2), 10);
-  if (!isNaN(mm) && !isNaN(ss) && ss < 60) return mm * 60 + ss;
-  return parseInt(cleaned, 10) || null;
-}
-
 export function CustomRestTrigger() {
   const [open, setOpen] = React.useState(false);
-  const [input, setInput] = React.useState("");
+  const [minutes, setMinutes] = React.useState(1);
+  const [seconds, setSeconds] = React.useState(30);
 
   const sessionActive = useDraftStore((s) => s.sessionStartedAt != null);
   const lastCustom = useTimerStore((s) => s.lastCustomRestSec);
@@ -62,16 +27,29 @@ export function CustomRestTrigger() {
 
   React.useEffect(() => {
     if (open) {
-      setInput(toMmSs(lastCustom));
+      setMinutes(Math.floor(lastCustom / 60));
+      setSeconds(lastCustom % 60);
     }
   }, [open, lastCustom]);
 
   function handleSubmit() {
-    const sec = parseMmSs(input);
-    if (sec == null || sec <= 0) return;
+    const sec = minutes * 60 + seconds;
+    if (sec <= 0) return;
     setLastCustomRestSec(sec);
     start(sec);
     setOpen(false);
+  }
+
+  function clampMinutes(v: string): number {
+    const n = parseInt(v.replace(/\D/g, ""), 10);
+    if (isNaN(n)) return 0;
+    return Math.min(n, 99);
+  }
+
+  function clampSeconds(v: string): number {
+    const n = parseInt(v.replace(/\D/g, ""), 10);
+    if (isNaN(n)) return 0;
+    return Math.min(n, 59);
   }
 
   if (!sessionActive) return null;
@@ -88,28 +66,28 @@ export function CustomRestTrigger() {
         <Timer className="h-5 w-5" />
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="w-72">
+        <DialogContent className="w-64">
           <DialogHeader>
-            <DialogTitle>Temps de repos</DialogTitle>
+            <DialogTitle>Repos</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="flex items-center justify-center gap-1 py-4">
             <Input
-              value={input}
-              onChange={(e) => setInput(formatInput(e.target.value))}
-              placeholder="01:30"
-              className="text-center text-lg tabular-nums"
+              value={String(minutes).padStart(2, "0")}
+              onChange={(e) => setMinutes(clampMinutes(e.target.value))}
+              className="h-14 w-16 text-center text-2xl tabular-nums"
               inputMode="numeric"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSubmit();
-              }}
             />
-            <p className="text-center text-xs text-muted-foreground">
-              Format mm:ss
-            </p>
+            <span className="text-2xl text-muted-foreground">:</span>
+            <Input
+              value={String(seconds).padStart(2, "0")}
+              onChange={(e) => setSeconds(clampSeconds(e.target.value))}
+              className="h-14 w-16 text-center text-2xl tabular-nums"
+              inputMode="numeric"
+            />
           </div>
           <DialogFooter>
             <Button onClick={handleSubmit} className="w-full">
-              Lancer le repos
+              Lancer {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
             </Button>
           </DialogFooter>
         </DialogContent>
