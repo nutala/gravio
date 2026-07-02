@@ -109,6 +109,7 @@ export function RestTimerWidget() {
       navigator.serviceWorker.controller.postMessage({
         type: "UPDATE_REST_TIMER",
         remainingSec: Math.ceil(remainingMs / 1000),
+        endsAt,
       });
     };
     sendUpdate();
