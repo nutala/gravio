@@ -12,6 +12,7 @@ const profiles: { id: SoundProfile; label: string; desc: string }[] = [
   { id: 1, label: "Classique", desc: "Sons par défaut — bipes carrés pour le repos, doubles notes pour la validation" },
   { id: 2, label: "Douceur", desc: "Sons doux en triangle — plus agréables, moins agressifs" },
   { id: 3, label: "Énergique", desc: "Sons aigus et percutants — pour rester motivé" },
+  { id: 4, label: "Boxe", desc: "Cloche de ring pour la fin du repos, arpège pour la validation, grondement pour l'échec" },
 ];
 
 export function SettingsView() {

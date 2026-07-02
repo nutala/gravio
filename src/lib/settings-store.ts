@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type SoundProfile = 1 | 2 | 3;
+export type SoundProfile = 1 | 2 | 3 | 4;
 
 interface SettingsStore {
   soundProfile: SoundProfile;
