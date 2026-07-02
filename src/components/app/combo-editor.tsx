@@ -19,6 +19,37 @@ function uid(): string {
   return `cs-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+let soundCtx: AudioContext | null = null;
+
+function playComboSound() {
+  try {
+    const Ctor =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!Ctor) return;
+    if (!soundCtx || soundCtx.state === "closed") soundCtx = new Ctor();
+    if (soundCtx.state === "suspended") soundCtx.resume().catch(() => {});
+    const now = soundCtx.currentTime;
+    const ding = (start: number, freq: number) => {
+      const osc = soundCtx!.createOscillator();
+      const gain = soundCtx!.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, start);
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.3, start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.12);
+      osc.connect(gain);
+      gain.connect(soundCtx!.destination);
+      osc.start(start);
+      osc.stop(start + 0.12);
+    };
+    ding(now, 1047);
+    ding(now + 0.07, 1319);
+  } catch {
+    // Audio not available
+  }
+}
+
 interface ComboEditorProps {
   steps: ComboStep[];
   weightKg?: number;
@@ -132,7 +163,10 @@ export function ComboEditor({
                 "h-8 gap-1.5",
                 validated && "bg-emerald-600 hover:bg-emerald-700",
               )}
-              onClick={onToggleValidated}
+              onClick={() => {
+                if (!validated) playComboSound();
+                onToggleValidated?.();
+              }}
             >
               {validated ? (
                 <><Check className="h-3.5 w-3.5" /> Validé</>
@@ -261,20 +295,21 @@ export function ComboEditor({
                       <>
                         <button
                           type="button"
-                          onClick={() => {
-                            if (isDone) {
-                              onUpdateStep(step.id, { done: false });
-                            } else {
-                              onUpdateStep(step.id, { done: true, failed: false });
-                            }
-                          }}
-                          className={cn(
-                            "flex h-7 w-7 items-center justify-center rounded transition-colors",
-                            isDone
-                              ? "bg-emerald-500 text-white"
-                              : "text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-500",
-                          )}
-                          title={isDone ? "Annuler" : "Valider l'étape"}
+                      onClick={() => {
+                        if (isDone) {
+                          onUpdateStep(step.id, { done: false });
+                        } else {
+                          onUpdateStep(step.id, { done: true, failed: false });
+                          playComboSound();
+                        }
+                      }}
+                      className={cn(
+                        "flex h-7 w-7 items-center justify-center rounded transition-colors",
+                        isDone
+                          ? "bg-emerald-500 text-white"
+                          : "text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-500",
+                      )}
+                      title={isDone ? "Annuler" : "Valider l'étape"}
                         >
                           <Check className="h-3.5 w-3.5" />
                         </button>
