@@ -69,7 +69,6 @@ export function RestTimerWidget() {
   /// Tracks whether the "done" event was handled during this session,
   /// so we don't double-beep after a refresh recovery.
   const doneHandled = React.useRef(false);
-  const lastTickVibrated = React.useRef(0);
   const endsAtRef = React.useRef(timer.endsAt);
 
   // Sync ref so intervals always read the latest endsAt.
@@ -158,17 +157,21 @@ export function RestTimerWidget() {
   }, [timer.state]);
 
   // Vibrate once per second during the last 3 seconds before the alarm.
+  // Uses absolute setTimeout scheduling so it works even when the tab is
+  // backgrounded (setInterval is throttled by browsers for background tabs).
   React.useEffect(() => {
-    if (timer.state !== "running" || timer.endsAt == null) {
-      lastTickVibrated.current = 0;
-      return;
-    }
-    const left = Math.ceil(Math.max(0, timer.endsAt - Date.now()) / 1000);
-    if (left >= 1 && left <= 3 && left !== lastTickVibrated.current) {
-      lastTickVibrated.current = left;
-      try { navigator.vibrate?.(80); } catch { /* no vibrate */ }
-    }
-  }, [now, timer.state, timer.endsAt]);
+    if (timer.state !== "running" || timer.endsAt == null) return;
+    const endsAt = timer.endsAt;
+    const now = Date.now();
+    const schedule = (msBefore: number) => {
+      const delay = Math.max(0, endsAt - now - msBefore);
+      return setTimeout(() => {
+        try { navigator.vibrate?.(80); } catch { /* no vibrate */ }
+      }, delay);
+    };
+    const timers = [schedule(3000), schedule(2000), schedule(1000)];
+    return () => timers.forEach(clearTimeout);
+  }, [timer.state, timer.endsAt]);
 
   function beepAndNotify() {
     playBeep();

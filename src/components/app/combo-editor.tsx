@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Trash2, ChevronUp, ChevronDown, Check, Weight, Gauge } from "lucide-react";
+import { Plus, Trash2, ChevronUp, ChevronDown, Check, Weight, Gauge, Coffee } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import type { ExerciseWithVariants, ExerciseCategory, ComboStep } from "@/lib/ty
 import { difficultyStars } from "@/lib/calc";
 import { ExercisePickerDialog } from "@/components/app/exercise-picker-dialog";
 import { playChime, playFail } from "@/lib/sound";
+import { useTimerStore } from "@/lib/timer-store";
 
 function uid(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -33,6 +34,7 @@ interface ComboEditorProps {
   onWeightKgChange?: (value: number | undefined) => void;
   onRpeChange?: (value: number | undefined) => void;
   readOnly?: boolean;
+  defaultRestSec?: number;
 }
 
 function sortVariants(variants: { id: string; name: string; difficultyLevel: number }[]) {
@@ -52,6 +54,7 @@ export function ComboEditor({
   onWeightKgChange,
   onRpeChange,
   readOnly,
+  defaultRestSec = 90,
 }: ComboEditorProps) {
   const { data: exercises } = useExercises();
   const getCatMeta = useCategoryMeta();
@@ -83,6 +86,7 @@ export function ComboEditor({
   }
 
   const combosExerciseId = exercises?.find((ex) => ex.name === "Combos")?.id;
+  const startRest = useTimerStore((s) => s.start);
 
   return (
     <div className="space-y-3">
@@ -342,10 +346,21 @@ export function ComboEditor({
       )}
 
       {!readOnly && (
-        <Button variant="outline" size="sm" onClick={() => setPickerOpen(true)} className="gap-1.5">
-          <Plus className="h-3.5 w-3.5" />
-          Ajouter une étape
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setPickerOpen(true)} className="gap-1.5">
+            <Plus className="h-3.5 w-3.5" />
+            Ajouter une étape
+          </Button>
+          <button
+            type="button"
+            onClick={() => startRest(defaultRestSec)}
+            className="inline-flex h-7 items-center gap-1 rounded-md border border-border/60 bg-background px-2 text-xs tabular-nums text-muted-foreground hover:text-foreground"
+            title={`Lancer repos ${defaultRestSec}s`}
+          >
+            <Coffee className="h-3 w-3" />
+            {defaultRestSec}s
+          </button>
+        </div>
       )}
 
       <Separator />

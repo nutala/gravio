@@ -111,6 +111,8 @@ interface WorkoutDraftStore extends WorkoutDraft {
 
   /// Move an entry from one index to another (drag-and-drop reorder).
   reorderEntries: (fromId: string, toId: string) => void;
+  /// Move an entry up or down by one position.
+  moveEntry: (entryId: string, direction: "up" | "down") => void;
 
   /// Start the session timer (idempotent).
   startSession: () => void;
@@ -310,6 +312,18 @@ export const useDraftStore = create<WorkoutDraftStore>()(
       const next = [...s.entries];
       const [moved] = next.splice(fromIdx, 1);
       next.splice(toIdx, 0, moved);
+      return { entries: next };
+    }),
+
+  moveEntry: (entryId, direction) =>
+    set((s) => {
+      const idx = s.entries.findIndex((e) => e.id === entryId);
+      if (idx === -1) return s;
+      if (direction === "up" && idx === 0) return s;
+      if (direction === "down" && idx === s.entries.length - 1) return s;
+      const swap = direction === "up" ? idx - 1 : idx + 1;
+      const next = [...s.entries];
+      [next[idx], next[swap]] = [next[swap], next[idx]];
       return { entries: next };
     }),
 

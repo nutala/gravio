@@ -19,6 +19,8 @@ import {
   RefreshCw,
   Clock,
   X,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -495,6 +497,8 @@ export function NewWorkoutView() {
                 entry={entry}
                 exercise={exercise}
                 defaultRestSec={defaultRestSec}
+                isFirst={idx === 0}
+                isLast={idx === entries.length - 1}
                 supersetCount={entries.filter(
                   (e) => e.supersetGroup === entry.supersetGroup,
                 ).length}
@@ -505,6 +509,7 @@ export function NewWorkoutView() {
                 canJoinPrevSuperset={prevEntry?.supersetGroup != null}
                 onChange={(patch) => draft.updateEntry(entry.id, patch)}
                 onRemove={() => draft.removeEntry(entry.id)}
+                onMoveEntry={(dir) => draft.moveEntry(entry.id, dir)}
                 onAddSet={(defaults) => draft.addSet(entry.id, defaults)}
                 onUpdateSet={(setId, patch) =>
                   draft.updateSet(entry.id, setId, patch)
@@ -802,6 +807,8 @@ function EntryCard({
   entry,
   exercise,
   defaultRestSec,
+  isFirst,
+  isLast,
   supersetCount,
   isFirstOfSuperset,
   canJoinPrevSuperset,
@@ -809,6 +816,7 @@ function EntryCard({
   nextGroup,
   onChange,
   onRemove,
+  onMoveEntry,
   onAddSet,
   onUpdateSet,
   onRemoveSet,
@@ -825,6 +833,8 @@ function EntryCard({
   entry: DraftEntry;
   exercise: ExerciseWithVariants;
   defaultRestSec: number;
+  isFirst: boolean;
+  isLast: boolean;
   supersetCount: number;
   isFirstOfSuperset: boolean;
   canJoinPrevSuperset: boolean;
@@ -832,6 +842,7 @@ function EntryCard({
   nextGroup: number;
   onChange: (patch: Partial<DraftEntry>) => void;
   onRemove: () => void;
+  onMoveEntry: (direction: "up" | "down") => void;
   onAddSet: (defaults?: Partial<DraftSet>) => void;
   onUpdateSet: (setId: string, patch: Partial<DraftSet>) => void;
   onRemoveSet: (setId: string) => void;
@@ -1029,6 +1040,28 @@ function EntryCard({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            {!isFirst && (
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => onMoveEntry("up")}
+                aria-label="Monter l'exercice"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              >
+                <ChevronUp className="h-4 w-4" />
+              </Button>
+            )}
+            {!isLast && (
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => onMoveEntry("down")}
+                aria-label="Descendre l'exercice"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              >
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            )}
             <Button
               size="icon"
               variant="ghost"
@@ -1073,6 +1106,7 @@ function EntryCard({
             onToggleValidated={onToggleComboValidated}
             onWeightKgChange={onComboWeightKgChange}
             onRpeChange={onComboRpeChange}
+            defaultRestSec={defaultRestSec}
           />
         ) : (
           <>

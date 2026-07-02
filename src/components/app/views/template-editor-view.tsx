@@ -9,6 +9,8 @@ import {
   ArrowLeft,
   Dumbbell,
   Repeat,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -190,6 +192,19 @@ export function TemplateEditorView() {
     setEntries((prev) => prev.filter((e) => e.id !== id));
   }
 
+  function moveEntry(id: string, direction: "up" | "down") {
+    setEntries((prev) => {
+      const idx = prev.findIndex((e) => e.id === id);
+      if (idx === -1) return prev;
+      if (direction === "up" && idx === 0) return prev;
+      if (direction === "down" && idx === prev.length - 1) return prev;
+      const swap = direction === "up" ? idx - 1 : idx + 1;
+      const next = [...prev];
+      [next[idx], next[swap]] = [next[swap], next[idx]];
+      return next;
+    });
+  }
+
   function addSet(entryId: string) {
     setEntries((prev) =>
       prev.map((e) => {
@@ -329,7 +344,7 @@ export function TemplateEditorView() {
             }
           />
         ) : (
-          entries.map((e) => {
+          entries.map((e, idx) => {
             const ex = exerciseMap.get(e.exerciseId);
             if (!ex) return null;
             const cat = ex.category as ExerciseCategory;
@@ -382,15 +397,39 @@ export function TemplateEditorView() {
                         </Badge>
                       )}
                     </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => removeEntry(entryId)}
-                      aria-label={`Retirer ${ex.name}`}
-                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-0.5">
+                      {idx > 0 && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => moveEntry(entryId, "up")}
+                          aria-label="Monter l'exercice"
+                          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+                        >
+                          <ChevronUp className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {idx < entries.length - 1 && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => moveEntry(entryId, "down")}
+                          aria-label="Descendre l'exercice"
+                          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => removeEntry(entryId)}
+                        aria-label={`Retirer ${ex.name}`}
+                        className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
 
@@ -447,6 +486,7 @@ export function TemplateEditorView() {
                           );
                         })
                       }
+                      defaultRestSec={90}
                     />
                   ) : (
                     <>
