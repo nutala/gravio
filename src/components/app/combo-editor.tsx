@@ -192,7 +192,7 @@ export function ComboEditor({
 
                 {!readOnly ? (
                   <>
-                    <div className="flex items-center gap-1">
+                    <div className="flex w-full items-center gap-1 sm:w-auto">
                       <button
                         type="button"
                         onClick={() =>
