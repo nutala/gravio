@@ -28,3 +28,32 @@ export function playChime() {
     // Audio not available
   }
 }
+
+export function playFail() {
+  try {
+    const Ctor =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!Ctor) return;
+    if (!ctx || ctx.state === "closed") ctx = new Ctor();
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+    const now = ctx.currentTime;
+    const note = (start: number, freq: number) => {
+      const osc = ctx!.createOscillator();
+      const gain = ctx!.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, start);
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.25, start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.18);
+      osc.connect(gain);
+      gain.connect(ctx!.destination);
+      osc.start(start);
+      osc.stop(start + 0.18);
+    };
+    note(now, 400);
+    note(now + 0.1, 320);
+  } catch {
+    // Audio not available
+  }
+}

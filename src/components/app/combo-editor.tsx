@@ -11,7 +11,7 @@ import { useExercises, useCategoryMeta } from "@/hooks/use-data";
 import type { ExerciseWithVariants, ExerciseCategory, ComboStep } from "@/lib/types";
 import { difficultyStars } from "@/lib/calc";
 import { ExercisePickerDialog } from "@/components/app/exercise-picker-dialog";
-import { playChime } from "@/lib/sound";
+import { playChime, playFail } from "@/lib/sound";
 
 function uid(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -290,6 +290,7 @@ export function ComboEditor({
                               onUpdateStep(step.id, { failed: false });
                             } else {
                               onUpdateStep(step.id, { failed: true, done: false });
+                              playFail();
                             }
                           }}
                           className={cn(
