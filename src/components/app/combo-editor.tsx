@@ -202,7 +202,7 @@ export function ComboEditor({
                             holdSeconds: otherMode === "hold" ? undefined : step.holdSeconds,
                           })
                         }
-                        className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground"
+                        className="whitespace-nowrap text-[10px] font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground"
                       >
                         {mode === "reps" ? "Reps" : "Maintien (s)"}
                       </button>
@@ -235,7 +235,7 @@ export function ComboEditor({
                             variantName: v?.name ?? null,
                           });
                         }}
-                        className="h-7 max-w-[100px] rounded-md border border-border/60 bg-background px-1 text-xs outline-none focus:ring-2 focus:ring-ring"
+                        className="h-7 max-w-[100px] rounded-md border border-border/60 bg-background px-1 text-xs outline-none focus:ring-2 focus:ring-ring sm:max-w-[200px]"
                       >
                         {variants.map((v) => (
                           <option key={v.id} value={v.id}>

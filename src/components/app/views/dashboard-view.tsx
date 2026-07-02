@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { format, parseISO } from "date-fns";
 import {
@@ -42,6 +42,7 @@ import {
   useTopExercises,
   useWorkouts,
 } from "@/hooks/use-data";
+import { useProgressStore, ALL_VARIANTS } from "@/lib/progress-store";
 import { useSession } from "next-auth/react";
 import { useAppStore } from "@/lib/store";
 import {
@@ -260,16 +261,18 @@ function KpiGrid() {
 // 2. Progress Tracker (centerpiece)
 // =====================================================
 
-const ALL_VARIANTS = "__all__";
-
 function ProgressTracker() {
   const exercisesQ = useExercises();
   const exercises = exercisesQ.data ?? [];
 
-  const [ex1Id, setEx1Id] = useState<string>("");
-  const [ex1VariantId, setEx1VariantId] = useState<string>(ALL_VARIANTS);
-  const [ex2Id, setEx2Id] = useState<string>("");
-  const [ex2VariantId, setEx2VariantId] = useState<string>(ALL_VARIANTS);
+  const ex1Id = useProgressStore((s) => s.ex1Id);
+  const ex1VariantId = useProgressStore((s) => s.ex1VariantId);
+  const ex2Id = useProgressStore((s) => s.ex2Id);
+  const ex2VariantId = useProgressStore((s) => s.ex2VariantId);
+  const setEx1Id = useProgressStore((s) => s.setEx1Id);
+  const setEx1VariantId = useProgressStore((s) => s.setEx1VariantId);
+  const setEx2Id = useProgressStore((s) => s.setEx2Id);
+  const setEx2VariantId = useProgressStore((s) => s.setEx2VariantId);
 
   // Default exercise 1 to the first available exercise (derived, no effect).
   const effectiveEx1Id = ex1Id || exercises[0]?.id || "";
@@ -396,10 +399,7 @@ function ProgressTracker() {
           <LabeledSelect
             label="Exercice 1"
             value={effectiveEx1Id}
-            onValueChange={(v) => {
-              setEx1Id(v);
-              setEx1VariantId(ALL_VARIANTS);
-            }}
+            onValueChange={setEx1Id}
             placeholder="Sélectionner…"
           >
             {exercises.map((e) => (
@@ -427,10 +427,7 @@ function ProgressTracker() {
           <LabeledSelect
             label="Exercice 2 (optionnel)"
             value={ex2Id || "__none__"}
-            onValueChange={(v) => {
-              setEx2Id(v === "__none__" ? "" : v);
-              setEx2VariantId(ALL_VARIANTS);
-            }}
+            onValueChange={(v) => setEx2Id(v === "__none__" ? "" : v)}
           >
             <SelectItem value="__none__">Aucun</SelectItem>
             {exercises
