@@ -12,7 +12,7 @@ import type { ExerciseWithVariants, ExerciseCategory, ComboStep } from "@/lib/ty
 import { difficultyStars } from "@/lib/calc";
 import { ExercisePickerDialog } from "@/components/app/exercise-picker-dialog";
 import { playChime, playFail } from "@/lib/sound";
-import { useTimerStore } from "@/lib/timer-store";
+import { useTimerStore, REST_PRESETS } from "@/lib/timer-store";
 
 function uid(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -59,6 +59,7 @@ export function ComboEditor({
   const { data: exercises } = useExercises();
   const getCatMeta = useCategoryMeta();
   const [pickerOpen, setPickerOpen] = React.useState(false);
+  const [restOpen, setRestOpen] = React.useState(false);
 
   const exerciseMap = React.useMemo(() => {
     const m = new Map<string, ExerciseWithVariants>();
@@ -351,15 +352,45 @@ export function ComboEditor({
             <Plus className="h-3.5 w-3.5" />
             Ajouter une étape
           </Button>
-          <button
-            type="button"
-            onClick={() => startRest(defaultRestSec)}
-            className="inline-flex h-7 items-center gap-1 rounded-md border border-border/60 bg-background px-2 text-xs tabular-nums text-muted-foreground hover:text-foreground"
-            title={`Lancer repos ${defaultRestSec}s`}
-          >
-            <Coffee className="h-3 w-3" />
-            {defaultRestSec}s
-          </button>
+          {!restOpen ? (
+            <button
+              type="button"
+              onClick={() => startRest(defaultRestSec)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setRestOpen(true);
+              }}
+              className="inline-flex h-7 items-center gap-1 rounded-md border border-border/60 bg-background px-2 text-xs tabular-nums text-muted-foreground hover:text-foreground"
+              title="Clic pour lancer le repos · Clic droit pour les préréglages"
+            >
+              <Coffee className="h-3 w-3" />
+              {defaultRestSec}s
+            </button>
+          ) : (
+            <div className="flex items-center gap-1 overflow-x-auto rounded-lg border bg-card p-1 shadow-sm [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {REST_PRESETS.map((p) => (
+                <button
+                  key={p.sec}
+                  type="button"
+                  onClick={() => {
+                    startRest(p.sec);
+                    setRestOpen(false);
+                  }}
+                  className="inline-flex h-7 items-center rounded-md px-2 text-xs tabular-nums transition-colors hover:bg-muted focus:outline-none data-[active=true]:bg-primary data-[active=true]:text-primary-foreground"
+                  data-active={p.sec === defaultRestSec || undefined}
+                >
+                  {p.label}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setRestOpen(false)}
+                className="inline-flex h-7 items-center rounded-md px-2 text-xs text-muted-foreground hover:bg-muted"
+              >
+                ✕
+              </button>
+            </div>
+          )}
         </div>
       )}
 
