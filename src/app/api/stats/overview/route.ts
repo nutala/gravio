@@ -70,7 +70,7 @@ export async function GET() {
     activityMap.set(format(subDays(new Date(), i), "yyyy-MM-dd"), { count: 0, volume: 0 });
   }
   for (const w of workouts) {
-    const key = format(w.date, "yyyy-MM-dd");
+    const key = w.date.toISOString().slice(0, 10);
     const entry = activityMap.get(key);
     if (entry) {
       entry.count += 1;

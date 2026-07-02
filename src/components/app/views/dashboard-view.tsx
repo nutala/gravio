@@ -858,7 +858,9 @@ function ActivityStrip() {
               const colorClass = activityColorClass(day.volume, maxVolume);
               const dateLabel = (() => {
                 try {
-                  return format(parseISO(day.date), "dd MMM yyyy");
+                  const [y, m, d] = day.date.split("-");
+                  const months = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
+                  return `${parseInt(d)} ${months[parseInt(m) - 1]} ${y}`;
                 } catch {
                   return day.date;
                 }
