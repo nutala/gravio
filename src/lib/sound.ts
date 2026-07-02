@@ -121,37 +121,34 @@ function beepProfile4() {
   const c = getCtx();
   if (!c) return;
   const t = c.currentTime;
-  // Boxing ring bell: three resonant "ding" strikes
-  const bell = (start: number, freq: number) => {
+  // Boxing ring bell: three clean, bright strikes
+  const strike = (start: number, freq: number) => {
     const osc = c!.createOscillator();
     const g = c!.createGain();
-    osc.type = "sine";
+    osc.type = "triangle";
     osc.frequency.setValueAtTime(freq, start);
-    osc.frequency.exponentialRampToValueAtTime(freq * 0.6, start + 0.6);
     g.gain.setValueAtTime(0.0001, start);
-    g.gain.exponentialRampToValueAtTime(0.5, start + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, start + 0.7);
+    g.gain.linearRampToValueAtTime(0.45, start + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, start + 0.4);
     osc.connect(g);
     g.connect(c!.destination);
     osc.start(start);
-    osc.stop(start + 0.7);
-    // Add a metallic overtone
+    osc.stop(start + 0.4);
     const osc2 = c!.createOscillator();
     const g2 = c!.createGain();
     osc2.type = "sine";
-    osc2.frequency.setValueAtTime(freq * 1.9, start);
-    osc2.frequency.exponentialRampToValueAtTime(freq * 1.9 * 0.3, start + 0.3);
+    osc2.frequency.setValueAtTime(freq * 2, start);
     g2.gain.setValueAtTime(0.0001, start);
-    g2.gain.exponentialRampToValueAtTime(0.25, start + 0.01);
-    g2.gain.exponentialRampToValueAtTime(0.0001, start + 0.2);
+    g2.gain.linearRampToValueAtTime(0.2, start + 0.005);
+    g2.gain.exponentialRampToValueAtTime(0.0001, start + 0.15);
     osc2.connect(g2);
     g2.connect(c!.destination);
     osc2.start(start);
-    osc2.stop(start + 0.2);
+    osc2.stop(start + 0.15);
   };
-  bell(t, 520);
-  bell(t + 0.8, 520);
-  bell(t + 1.6, 520);
+  strike(t, 880);
+  strike(t + 0.5, 880);
+  strike(t + 1.0, 880);
 }
 
 // ── success chime ──
