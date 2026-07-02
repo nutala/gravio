@@ -8,6 +8,7 @@ export type ViewId =
   | "history"
   | "stats"
   | "profile"
+  | "settings"
   | "exercise-detail"
   | "templates"
   | "template-editor";

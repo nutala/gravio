@@ -2,13 +2,15 @@
 
 import * as React from "react";
 import { useSession } from "next-auth/react";
-import { Camera, Loader2, Save, User } from "lucide-react";
+import { signOut } from "next-auth/react";
+import { Camera, Loader2, Save, Settings, LogOut, User } from "lucide-react";
 import { useUpdateProfile, useUploadAvatar } from "@/hooks/use-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAppStore } from "@/lib/store";
 
 export function ProfileView() {
   const { data: session, update } = useSession();
@@ -204,6 +206,25 @@ export function ProfileView() {
           </form>
         </CardContent>
       </Card>
+
+      <div className="flex flex-col gap-2 pt-2">
+        <Button
+          variant="outline"
+          className="w-full justify-start gap-3"
+          onClick={() => useAppStore.getState().setView("settings")}
+        >
+          <Settings className="h-4 w-4" />
+          Paramètres
+        </Button>
+        <Button
+          variant="outline"
+          className="w-full justify-start gap-3 text-destructive hover:text-destructive"
+          onClick={() => signOut()}
+        >
+          <LogOut className="h-4 w-4" />
+          Se déconnecter
+        </Button>
+      </div>
     </div>
   );
 }

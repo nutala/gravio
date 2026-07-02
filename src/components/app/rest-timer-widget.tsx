@@ -4,64 +4,13 @@ import * as React from "react";
 import { Pause, Play, X, Plus, Minus, SkipForward, Timer } from "lucide-react";
 import { useTimerStore } from "@/lib/timer-store";
 import { useAppStore } from "@/lib/store";
+import { playBeep } from "@/lib/sound";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import {
-  motion,
-  AnimatePresence,
-} from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
-/** Shared AudioContext (reused so it can be resumed on visibility change). */
-let _beepCtx: AudioContext | null = null;
-
-function getBeepCtx(): AudioContext | null {
-  if (typeof window === "undefined") return null;
-  const Ctor =
-    window.AudioContext ||
-    (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-  if (!Ctor) return null;
-  if (!_beepCtx || _beepCtx.state === "closed") {
-    _beepCtx = new Ctor();
-  }
-  return _beepCtx;
-}
-
-/** Play a loud double-beep via the Web Audio API (square wave). */
-function playBeep() {
-  try {
-    const ctx = getBeepCtx();
-    if (!ctx) return;
-    if (ctx.state === "suspended") ctx.resume().catch(() => {});
-
-    const now = ctx.currentTime;
-    const beep = (
-      start: number,
-      freq: number,
-      duration: number,
-      type: OscillatorType,
-    ) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, start);
-      gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.exponentialRampToValueAtTime(0.5, start + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + duration - 0.05);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(start);
-      osc.stop(start + duration);
-    };
-
-    beep(now, 440, 0.4, "square");
-    beep(now + 0.05, 660, 0.4, "square");
-    beep(now + 0.4, 660, 0.5, "square");
-    beep(now + 0.45, 880, 0.5, "square");
-  } catch {
-    // Audio not available — silent fail.
-  }
-}
+// ── Timer tick etc. ──
 
 export function RestTimerWidget() {
   const timer = useTimerStore();
