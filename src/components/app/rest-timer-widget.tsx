@@ -69,6 +69,7 @@ export function RestTimerWidget() {
   /// Tracks whether the "done" event was handled during this session,
   /// so we don't double-beep after a refresh recovery.
   const doneHandled = React.useRef(false);
+  const lastTickVibrated = React.useRef(0);
   const endsAtRef = React.useRef(timer.endsAt);
 
   // Sync ref so intervals always read the latest endsAt.
@@ -155,6 +156,19 @@ export function RestTimerWidget() {
       beepAndNotify();
     }
   }, [timer.state]);
+
+  // Vibrate once per second during the last 3 seconds before the alarm.
+  React.useEffect(() => {
+    if (timer.state !== "running" || timer.endsAt == null) {
+      lastTickVibrated.current = 0;
+      return;
+    }
+    const left = Math.ceil(Math.max(0, timer.endsAt - Date.now()) / 1000);
+    if (left >= 1 && left <= 3 && left !== lastTickVibrated.current) {
+      lastTickVibrated.current = left;
+      try { navigator.vibrate?.(80); } catch { /* no vibrate */ }
+    }
+  }, [now, timer.state, timer.endsAt]);
 
   function beepAndNotify() {
     playBeep();
