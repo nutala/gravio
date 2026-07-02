@@ -11,43 +11,13 @@ import { useExercises, useCategoryMeta } from "@/hooks/use-data";
 import type { ExerciseWithVariants, ExerciseCategory, ComboStep } from "@/lib/types";
 import { difficultyStars } from "@/lib/calc";
 import { ExercisePickerDialog } from "@/components/app/exercise-picker-dialog";
+import { playChime } from "@/lib/sound";
 
 function uid(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
   }
   return `cs-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-let soundCtx: AudioContext | null = null;
-
-function playComboSound() {
-  try {
-    const Ctor =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!Ctor) return;
-    if (!soundCtx || soundCtx.state === "closed") soundCtx = new Ctor();
-    if (soundCtx.state === "suspended") soundCtx.resume().catch(() => {});
-    const now = soundCtx.currentTime;
-    const ding = (start: number, freq: number) => {
-      const osc = soundCtx!.createOscillator();
-      const gain = soundCtx!.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(freq, start);
-      gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.exponentialRampToValueAtTime(0.3, start + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.12);
-      osc.connect(gain);
-      gain.connect(soundCtx!.destination);
-      osc.start(start);
-      osc.stop(start + 0.12);
-    };
-    ding(now, 1047);
-    ding(now + 0.07, 1319);
-  } catch {
-    // Audio not available
-  }
 }
 
 interface ComboEditorProps {
@@ -164,7 +134,7 @@ export function ComboEditor({
                 validated && "bg-emerald-600 hover:bg-emerald-700",
               )}
               onClick={() => {
-                if (!validated) playComboSound();
+                if (!validated) playChime();
                 onToggleValidated?.();
               }}
             >
@@ -300,7 +270,7 @@ export function ComboEditor({
                           onUpdateStep(step.id, { done: false });
                         } else {
                           onUpdateStep(step.id, { done: true, failed: false });
-                          playComboSound();
+                          playChime();
                         }
                       }}
                       className={cn(

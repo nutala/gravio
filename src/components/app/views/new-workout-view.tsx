@@ -51,6 +51,7 @@ import { useTimerStore, REST_PRESETS } from "@/lib/timer-store";
 import { EmptyState, SectionHeading } from "@/components/app/common";
 import { ExercisePickerDialog } from "@/components/app/exercise-picker-dialog";
 import { ComboEditor } from "@/components/app/combo-editor";
+import { playChime } from "@/lib/sound";
 
 import {
   Card,
@@ -95,26 +96,6 @@ import {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/** Play a short pleasant "ding" when a set is validated. */
-function playSetSound() {
-  try {
-    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(880, ctx.currentTime);
-    osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.05);
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.15);
-  } catch {
-    // Audio not available — fail silently.
-  }
-}
 
 /** Adapter so `setMetric` (which expects the Prisma nullable shape) can read a DraftSet. */
 function draftMetric(set: DraftSet, defaultMode?: "reps" | "hold"): number {
@@ -1255,7 +1236,7 @@ function ValidateButton({
     <button
       type="button"
       onClick={() => {
-        if (!validated) playSetSound();
+        if (!validated) playChime();
         onClick();
       }}
       aria-label={label}
