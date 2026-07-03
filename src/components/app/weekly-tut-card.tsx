@@ -4,10 +4,9 @@ import * as React from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { Activity } from "lucide-react";
 import { format, parseISO, subDays } from "date-fns";
+import { fr } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChartContainer } from "@/components/ui/chart";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
 
 interface WeeklyTutCardProps {
   activityCalendar?: { date: string; volume: number }[];
@@ -21,7 +20,7 @@ export function WeeklyTutCard({ activityCalendar, isLoading }: WeeklyTutCardProp
     return activityCalendar
       .filter((d) => parseISO(d.date) >= cutoff)
       .map((d) => ({
-        label: format(parseISO(d.date), "EEE"),
+        label: format(parseISO(d.date), "EEE", { locale: fr }),
         tut: d.volume,
       }));
   }, [activityCalendar]);
