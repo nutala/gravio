@@ -136,26 +136,46 @@ function computePRs(
   saved: import("@/lib/types").WorkoutFull,
   allWorkouts: import("@/lib/types").WorkoutFull[],
   exMap: Map<string, ExerciseWithVariants>,
-): { exerciseName: string; value: string; unit: string }[] {
-  const prs: { exerciseName: string; value: string; unit: string }[] = [];
+): { exerciseName: string; variantName: string | null; value: string; unit: string }[] {
+  const prs: { exerciseName: string; variantName: string | null; value: string; unit: string }[] = [];
   const previous = allWorkouts.filter((w) => w.id !== saved.id);
   for (const entry of saved.entries) {
     const ex = exMap.get(entry.exerciseId);
-    const isStatic = ex?.isStatic ?? false;
-    const unit = metricUnit(isStatic);
-    const bestThis = Math.max(0, ...entry.sets.map((s) => setMetric(s)));
-    if (bestThis === 0) continue;
+    if (!ex) continue;
+
+    // Find the set with the best value and its actual mode
+    let bestValue = 0;
+    let bestMode: "reps" | "hold" = ex.isStatic ? "hold" : "reps";
+    let bestVariantName: string | null = null;
+    for (const s of entry.sets) {
+      const mode = s.mode ?? (ex.isStatic ? "hold" : "reps");
+      const val = mode === "reps" ? (s.reps ?? 0) : (s.holdSeconds ?? 0);
+      if (val > bestValue) {
+        bestValue = val;
+        bestMode = mode;
+        bestVariantName = s.variantId
+          ? ex.variants.find((v) => v.id === s.variantId)?.name ?? null
+          : null;
+      }
+    }
+    if (bestValue === 0) continue;
+
+    const unit = bestMode === "reps" ? "reps" : "s";
+
     let bestPrev = 0;
     for (const w of previous) {
       for (const e of w.entries) {
         if (e.exerciseId === entry.exerciseId) {
-          const best = Math.max(0, ...e.sets.map((s) => setMetric(s)));
-          if (best > bestPrev) bestPrev = best;
+          for (const s of e.sets) {
+            const val = s.reps ?? s.holdSeconds ?? 0;
+            if (val > bestPrev) bestPrev = val;
+          }
         }
       }
     }
-    if (bestThis > bestPrev) {
-      prs.push({ exerciseName: entry.exercise.name, value: `${bestThis}`, unit });
+
+    if (bestValue > bestPrev) {
+      prs.push({ exerciseName: ex.name, variantName: bestVariantName, value: `${bestValue}`, unit });
     }
   }
   return prs;

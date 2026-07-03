@@ -18,7 +18,7 @@ export interface WorkoutSummary {
   entryCount: number;
   totalSets: number;
   totalVolume: number;
-  prs: { exerciseName: string; value: string; unit: string }[];
+  prs: { exerciseName: string; variantName: string | null; value: string; unit: string }[];
 }
 
 interface WorkoutSummaryModalProps {
@@ -63,7 +63,7 @@ export function WorkoutSummaryModal({ open, summary, onClose, onViewProgress }: 
       `📅 ${summary.date}`,
       `⏱ ${summary.durationMin} min`,
       `🏋️ ${summary.totalSets} séries · ${summary.totalVolume} vol`,
-      summary.prs.length > 0 ? `🏆 Records : ${summary.prs.map((p) => `${p.exerciseName} ${p.value}`).join(", ")}` : "",
+      summary.prs.length > 0 ? `🏆 Records : ${summary.prs.map((p) => `${p.exerciseName} ${p.value}${p.unit}`).join(", ")}` : "",
       `\nGravio — suivi calisthénie`,
     ]
       .filter(Boolean)
@@ -144,7 +144,12 @@ export function WorkoutSummaryModal({ open, summary, onClose, onViewProgress }: 
                 <div className="space-y-1.5">
                   {summary.prs.map((pr, i) => (
                     <div key={i} className="flex items-center justify-between text-sm">
-                      <span className="text-foreground">{pr.exerciseName}</span>
+                      <span className="text-foreground">
+                        {pr.exerciseName}
+                        {pr.variantName && (
+                          <span className="text-muted-foreground"> · {pr.variantName}</span>
+                        )}
+                      </span>
                       <span className="font-bold tabular-nums text-emerald-500">
                         {pr.value} <span className="text-xs text-muted-foreground">{pr.unit}</span>
                       </span>
