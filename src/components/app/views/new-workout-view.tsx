@@ -147,8 +147,8 @@ function computePRs(
     // Group current sets by (exerciseId, variantId) to find best per variant combo
     const bestByKey = new Map<string, { val: number; mode: "reps" | "hold"; vName: string | null }>();
     for (const s of entry.sets) {
-      const mode = s.mode ?? (ex.isStatic ? "hold" : "reps");
-      const val = mode === "reps" ? (s.reps ?? 0) : (s.holdSeconds ?? 0);
+      const mode: "reps" | "hold" = s.reps != null ? "reps" : "hold";
+      const val = s.reps ?? s.holdSeconds ?? 0;
       if (val === 0) continue;
       const key = `${entry.exerciseId}::${s.variantId ?? ""}`;
       const existing = bestByKey.get(key);
