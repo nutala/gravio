@@ -3,7 +3,6 @@
 import * as React from "react";
 import {
   Flame,
-  Trophy,
   CalendarDays,
   Target,
   BarChart3,
@@ -47,6 +46,7 @@ import {
   SectionHeading,
   EmptyState,
 } from "@/components/app/common";
+import { TutChart } from "@/components/app/tut-chart";
 import {
   Card,
   CardContent,
@@ -195,7 +195,7 @@ export function StatsView() {
         subtitle="Analyse détaillée de ton volume d'entraînement, de ta régularité et de tes records personnels."
       />
 
-      {/* 1. Consistency header strip */}
+      {/* 1. Quick stats */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {overviewLoading || !overview ? (
           <>
@@ -206,21 +206,6 @@ export function StatsView() {
           </>
         ) : (
           <>
-            <StatCard
-              label="Série actuelle"
-              value={overview.currentStreakDays}
-              unit="jours"
-              icon={Flame}
-              accent="success"
-              hint="Jours consécutifs d'entraînement"
-            />
-            <StatCard
-              label="Plus longue série"
-              value={overview.longestStreakDays}
-              unit="jours"
-              icon={Trophy}
-              hint="Record personnel"
-            />
             <StatCard
               label="Cette semaine"
               value={overview.thisWeekCount}
@@ -240,9 +225,12 @@ export function StatsView() {
         )}
       </div>
 
+      {/* 2. Time Under Tension chart */}
+      <TutChart />
+
       {/* Charts grid (2 columns on lg) */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* 2. Volume by Category */}
+        {/* 3. Volume by Category */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

@@ -72,8 +72,6 @@ export interface OverviewStats {
   totalSets: number;
   totalVolume: number; // sum of reps*sets or holdSeconds
   totalMinutes: number;
-  currentStreakDays: number;
-  longestStreakDays: number;
   avgExertion: number | null;
   distinctExercises: number;
   thisWeekCount: number;

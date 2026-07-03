@@ -18,9 +18,6 @@ import {
   Activity,
   BarChart3,
   CalendarDays,
-  ChevronRight,
-  Dumbbell,
-  Flame,
   Timer,
   TrendingUp,
   Trophy,
@@ -68,6 +65,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import { WeeklyTutCard } from "@/components/app/weekly-tut-card";
 import { cn } from "@/lib/utils";
 
 // =====================================================
@@ -217,7 +215,7 @@ function KpiGrid() {
     );
   }
 
-  const streakPositive = data.currentStreakDays > 0;
+  const tutData = data.activityCalendar;
 
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -238,14 +236,7 @@ function KpiGrid() {
         icon={Timer}
         hint={`${data.totalSets} séries au total`}
       />
-      <StatCard
-        label="Série actuelle"
-        value={data.currentStreakDays}
-        unit="jours"
-        icon={Flame}
-        accent={streakPositive ? "success" : "default"}
-        hint={`Plus longue : ${data.longestStreakDays} j`}
-      />
+      <WeeklyTutCard activityCalendar={tutData} />
       <StatCard
         label="Cette semaine"
         value={data.thisWeekCount}

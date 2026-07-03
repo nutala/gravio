@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { computeStreak } from "@/lib/calc";
+
 import { format, subDays } from "date-fns";
 import type { OverviewStats, ComboStep } from "@/lib/types";
 
@@ -43,7 +43,6 @@ export async function GET() {
     : null;
 
   const distinctExercises = new Set(workouts.flatMap((w) => w.entries.map((e) => e.exerciseId))).size;
-  const { current: currentStreakDays, longest: longestStreakDays } = computeStreak(workouts.map((w) => w.date));
   const weekStart = subDays(new Date(), 6);
   const thisWeekCount = workouts.filter((w) => w.date >= weekStart).length;
   const lastWorkoutDate = workouts[0]?.date.toISOString() ?? null;
@@ -80,7 +79,7 @@ export async function GET() {
   const activityCalendar = Array.from(activityMap.entries()).map(([date, v]) => ({ date, count: v.count, volume: v.volume }));
 
   const stats: OverviewStats = {
-    totalWorkouts, totalSets, totalVolume, totalMinutes, currentStreakDays, longestStreakDays,
+    totalWorkouts, totalSets, totalVolume, totalMinutes,
     avgExertion, distinctExercises, thisWeekCount, lastWorkoutDate,
     volumeByCategory, activityCalendar,
   };
