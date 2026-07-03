@@ -4,7 +4,7 @@ import * as React from "react";
 import { Pause, Play, X, Plus, Minus, SkipForward, Timer } from "lucide-react";
 import { useTimerStore } from "@/lib/timer-store";
 import { useAppStore } from "@/lib/store";
-import { playBeep } from "@/lib/sound";
+import { playBeep, ensureAudio } from "@/lib/sound";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
