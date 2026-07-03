@@ -572,7 +572,7 @@ function ExerciseCard({
   );
   const unit = metricUnit(exercise.isStatic);
 
-  // Find the current variant (most recently used in workouts)
+  // Find the current variant (hardest variant used in the most recent workout)
   const currentVariantId = React.useMemo(() => {
     const sortedWorkouts = [...workouts]
       .filter((w) => w.entries.some((e) => e.exerciseId === exercise.id))
@@ -582,21 +582,15 @@ function ExerciseCard({
       (e) => e.exerciseId === exercise.id,
     );
     if (!latestEntry) return null;
-    const variantCounts = new Map<string, number>();
+    let hardest: string | null = null;
+    let bestDiff = -1;
     for (const set of latestEntry.sets) {
-      if (set.variant?.id) {
-        variantCounts.set(set.variant.id, (variantCounts.get(set.variant.id) ?? 0) + 1);
+      if (set.variant?.id && (set.variant.difficultyLevel ?? 0) > bestDiff) {
+        hardest = set.variant.id;
+        bestDiff = set.variant.difficultyLevel ?? 0;
       }
     }
-    let mostUsed: string | null = null;
-    let maxCount = 0;
-    for (const [vid, count] of variantCounts) {
-      if (count > maxCount) {
-        mostUsed = vid;
-        maxCount = count;
-      }
-    }
-    return mostUsed;
+    return hardest;
   }, [workouts, exercise.id]);
 
   return (
