@@ -369,7 +369,7 @@ export const useDraftStore = create<WorkoutDraftStore>()(
     }
       set({
         title: workout.title ?? "",
-        date: workout.date.toISOString().slice(0, 10),
+        date: typeof workout.date === "string" ? workout.date.slice(0, 10) : workout.date.toISOString().slice(0, 10),
         durationMin: workout.durationMin ?? "",
         exertion: workout.perceivedExertion ?? 5,
         bodyweight: workout.bodyweightKg ?? "",
