@@ -225,7 +225,7 @@ export function StatsView() {
         )}
       </div>
 
-      {/* 2. Time Under Tension chart */}
+      {/* 2. Volume total par variante */}
       <TutChart />
 
       {/* Charts grid (2 columns on lg) */}

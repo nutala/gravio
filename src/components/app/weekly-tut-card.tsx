@@ -46,7 +46,7 @@ export function WeeklyTutCard({ activityCalendar, isLoading }: WeeklyTutCardProp
       <CardContent className="p-4">
         <div className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
           <Activity className="h-3.5 w-3.5" />
-          <span>Temps sous tension</span>
+          <span>Volume total</span>
         </div>
         <div className="mb-2 text-2xl font-bold tabular-nums tracking-tight text-foreground">
           {weeklyTotal.toLocaleString()}

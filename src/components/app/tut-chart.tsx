@@ -1,15 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { Line, LineChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import { Activity } from "lucide-react";
-import { format, parseISO, subDays } from "date-fns";
+import { BarChart3 } from "lucide-react";
+import { parseISO, subDays } from "date-fns";
 import { useExercises, useProgress } from "@/hooks/use-data";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/app/common";
 import { Label } from "@/components/ui/label";
 
 type Range = "7d" | "30d" | "90d" | "all";
@@ -21,7 +18,7 @@ const RANGES: { value: Range; label: string }[] = [
   { value: "all", label: "Tout" },
 ];
 
-function filterPoints(points: { date: string }[], range: Range) {
+function filterPoints(points: { date: string; totalVolume: number }[], range: Range) {
   if (range === "all") return points;
   const cutoff =
     range === "7d" ? subDays(new Date(), 6) :
@@ -34,13 +31,10 @@ export function TutChart() {
   const exercisesQ = useExercises();
   const exercises = exercisesQ.data ?? [];
 
-  // Variant 1
   const [ex1Id, setEx1Id] = React.useState("");
   const [var1Id, setVar1Id] = React.useState("");
-  // Variant 2
   const [ex2Id, setEx2Id] = React.useState("");
   const [var2Id, setVar2Id] = React.useState("");
-
   const [range, setRange] = React.useState<Range>("30d");
 
   const ex1 = exercises.find((e) => e.id === ex1Id);
@@ -55,53 +49,28 @@ export function TutChart() {
   const p1 = progress1.data?.points ?? [];
   const p2 = progress2.data?.points ?? [];
 
-  const data = React.useMemo(() => {
-    const byDate = new Map<string, { tut1?: number; tut2?: number }>();
-    for (const p of p1) {
-      const d = format(parseISO(p.date), "yyyy-MM-dd");
-      const entry = byDate.get(d) ?? {};
-      entry.tut1 = p.totalVolume;
-      byDate.set(d, entry);
-    }
-    for (const p of p2) {
-      const d = format(parseISO(p.date), "yyyy-MM-dd");
-      const entry = byDate.get(d) ?? {};
-      entry.tut2 = p.totalVolume;
-      byDate.set(d, entry);
-    }
-    return filterPoints(
-      Array.from(byDate.entries())
-        .map(([date, v]) => ({ date, ...v }))
-        .sort((a, b) => (a.date < b.date ? -1 : 1)),
-      range,
-    );
-  }, [p1, p2, range]);
+  const total1 = React.useMemo(
+    () => filterPoints(p1, range).reduce((s, p) => s + p.totalVolume, 0),
+    [p1, range],
+  );
+  const total2 = React.useMemo(
+    () => filterPoints(p2, range).reduce((s, p) => s + p.totalVolume, 0),
+    [p2, range],
+  );
 
-  const hasEx2 = !!ex2Id;
-  const hasData = data.length > 0;
-  const loading = progress1.isLoading || progress2.isLoading;
-
-  const chartConfig: ChartConfig = {
-    tut1: {
-      label: ex1?.name ?? "Variante 1",
-      color: "var(--chart-1)",
-    },
-    ...(hasEx2
-      ? { tut2: { label: ex2?.name ?? "Variante 2", color: "var(--chart-2)" } }
-      : {}),
-  };
+  const rangeLabel = RANGES.find((r) => r.value === range)?.label ?? "";
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <Activity className="h-4 w-4" />
+            <BarChart3 className="h-4 w-4" />
           </div>
           <div>
-            <CardTitle>Temps sous tension</CardTitle>
+            <CardTitle>Volume total</CardTitle>
             <CardDescription>
-              Volume total (répétitions ou secondes) par séance.
+              Somme des répétitions ou secondes réalisées sur une variante.
             </CardDescription>
           </div>
         </div>
@@ -181,69 +150,56 @@ export function TutChart() {
           </div>
         </div>
 
-        {/* Chart */}
-        {loading ? (
-          <Skeleton className="h-[260px] w-full" />
-        ) : !hasData ? (
-          <EmptyState
-            title="Aucune donnée"
-            description="Sélectionne une variante pour voir son temps sous tension dans le temps."
+        {/* Volume displays */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <VolumeCard
+            label={ex1 ? `${ex1.name}${var1Id && ex1 ? ` · ${ex1.variants.find(v => v.id === var1Id)?.name}` : ""}` : "Variante 1"}
+            total={total1}
+            loading={progress1.isLoading}
+            range={rangeLabel}
+            selected={!!ex1Id && !!var1Id}
           />
-        ) : (
-          <ChartContainer config={chartConfig} className="aspect-auto h-[260px] w-full">
-            <LineChart data={data} margin={{ top: 8, bottom: 8, left: 0, right: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-              <XAxis
-                dataKey="date"
-                tick={{ fontSize: 11 }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(d: string) => format(parseISO(d), "dd/MM")}
-              />
-              <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={40} />
-              <ChartTooltip
-                content={
-                  <ChartTooltipContent
-                    formatter={(value, _name, item) => {
-                      const key = (item?.dataKey as string) ?? "tut1";
-                      const is2 = key === "tut2";
-                      const ex = is2 ? ex2 : ex1;
-                      const color = is2 ? "var(--chart-2)" : "var(--chart-1)";
-                      return (
-                        <div className="flex w-full items-center gap-2">
-                          <span className="h-2.5 w-2.5 shrink-0 rounded-[2px]" style={{ backgroundColor: color }} />
-                          <span className="text-muted-foreground">{ex?.name ?? key}</span>
-                          <span className="ml-auto font-mono font-medium tabular-nums text-foreground">
-                            {Number(value).toLocaleString()}
-                          </span>
-                        </div>
-                      );
-                    }}
-                  />
-                }
-              />
-              <Line
-                type="monotone"
-                dataKey="tut1"
-                stroke="var(--chart-1)"
-                strokeWidth={2}
-                dot={{ r: 3 }}
-                connectNulls
-              />
-              {hasEx2 && (
-                <Line
-                  type="monotone"
-                  dataKey="tut2"
-                  stroke="var(--chart-2)"
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
-                  connectNulls
-                />
-              )}
-            </LineChart>
-          </ChartContainer>
-        )}
+          <VolumeCard
+            label={ex2 ? `${ex2.name}${var2Id && ex2 ? ` · ${ex2.variants.find(v => v.id === var2Id)?.name}` : ""}` : "Variante 2"}
+            total={total2}
+            loading={progress2.isLoading}
+            range={rangeLabel}
+            selected={!!ex2Id && !!var2Id}
+          />
+        </div>
       </CardContent>
     </Card>
+  );
+}
+
+function VolumeCard({
+  label,
+  total,
+  loading,
+  range,
+  selected,
+}: {
+  label: string;
+  total: number;
+  loading: boolean;
+  range: string;
+  selected: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-1 rounded-xl border border-border/60 p-4">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      {loading ? (
+        <Skeleton className="h-8 w-20" />
+      ) : !selected ? (
+        <span className="text-sm text-muted-foreground">Sélectionne une variante</span>
+      ) : (
+        <span className="text-3xl font-bold tabular-nums tracking-tight text-foreground">
+          {total.toLocaleString()}
+        </span>
+      )}
+      {selected && !loading && (
+        <span className="text-[10px] text-muted-foreground">{range}</span>
+      )}
+    </div>
   );
 }
