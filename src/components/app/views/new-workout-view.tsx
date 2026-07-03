@@ -31,7 +31,7 @@ import {
   type ExerciseCategory,
   type ComboStep,
 } from "@/lib/types";
-import { metricUnit, fmtCompact, supersetLabel, supersetColor, difficultyStars } from "@/lib/calc";
+import { metricUnit, fmtCompact, supersetLabel, supersetColor, difficultyStars, setMetric, fmtDate } from "@/lib/calc";
 import {
   useExercises,
   useCreateWorkout,
@@ -54,6 +54,14 @@ import { EmptyState, SectionHeading } from "@/components/app/common";
 import { ExercisePickerDialog } from "@/components/app/exercise-picker-dialog";
 import { ComboEditor } from "@/components/app/combo-editor";
 import { playChime } from "@/lib/sound";
+import { WorkoutSummaryModal, type WorkoutSummary } from "@/components/app/WorkoutSummaryModal";
+import { useWorkoutShortcuts } from "@/hooks/use-workout-shortcuts";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import {
   Card,
@@ -123,6 +131,36 @@ function sliderAccentClass(value: number): string {
   return "[&_[data-slot=slider-range]]:bg-red-500 [&_[data-slot=slider-thumb]]:border-red-500";
 }
 
+/** Compute personal records for each exercise in the saved workout. */
+function computePRs(
+  saved: import("@/lib/types").WorkoutFull,
+  allWorkouts: import("@/lib/types").WorkoutFull[],
+  exMap: Map<string, ExerciseWithVariants>,
+): { exerciseName: string; value: string; unit: string }[] {
+  const prs: { exerciseName: string; value: string; unit: string }[] = [];
+  const previous = allWorkouts.filter((w) => w.id !== saved.id);
+  for (const entry of saved.entries) {
+    const ex = exMap.get(entry.exerciseId);
+    const isStatic = ex?.isStatic ?? false;
+    const unit = metricUnit(isStatic);
+    const bestThis = Math.max(0, ...entry.sets.map((s) => setMetric(s)));
+    if (bestThis === 0) continue;
+    let bestPrev = 0;
+    for (const w of previous) {
+      for (const e of w.entries) {
+        if (e.exerciseId === entry.exerciseId) {
+          const best = Math.max(0, ...e.sets.map((s) => setMetric(s)));
+          if (best > bestPrev) bestPrev = best;
+        }
+      }
+    }
+    if (bestThis > bestPrev) {
+      prs.push({ exerciseName: entry.exercise.name, value: `${bestThis}`, unit });
+    }
+  }
+  return prs;
+}
+
 // ---------------------------------------------------------------------------
 // Main view
 // ---------------------------------------------------------------------------
@@ -138,6 +176,8 @@ export function NewWorkoutView() {
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [cancelOpen, setCancelOpen] = React.useState(false);
   const [templatePickerOpen, setTemplatePickerOpen] = React.useState(false);
+  const [summaryOpen, setSummaryOpen] = React.useState(false);
+  const [summaryData, setSummaryData] = React.useState<WorkoutSummary | null>(null);
 
   const { data: templates } = useTemplates();
 
@@ -183,6 +223,50 @@ export function NewWorkoutView() {
 
   const { title, date, exertion, bodyweight, notes, defaultRestSec, entries, sessionStartedAt, durationMin } = draft;
   const existingGroups = React.useMemo(() => usedSupersetGroups(entries), [entries]);
+
+  // ----- Keyboard shortcuts -----
+  const firstUnvalidatedEntryIndex = React.useMemo(() => {
+    return entries.findIndex((e) => e.sets.some((s) => !s.validated));
+  }, [entries]);
+
+  const firstUnvalidatedSetIndex = React.useMemo(() => {
+    if (firstUnvalidatedEntryIndex === -1) return -1;
+    return entries[firstUnvalidatedEntryIndex].sets.findIndex((s) => !s.validated);
+  }, [entries, firstUnvalidatedEntryIndex]);
+
+  const { showCheatsheet, setShowCheatsheet } = useWorkoutShortcuts({
+    onValidateCurrentSet: () => {
+      if (firstUnvalidatedEntryIndex === -1 || firstUnvalidatedSetIndex === -1) return;
+      const entry = entries[firstUnvalidatedEntryIndex];
+      const set = entry.sets[firstUnvalidatedSetIndex];
+      draft.validateSet(entry.id, set.id, true);
+    },
+    onAddSet: () => {
+      if (entries.length === 0) return;
+      const lastEntry = entries[entries.length - 1];
+      draft.addSet(lastEntry.id);
+    },
+    onStartRest: () => {
+      useTimerStore.getState().start(defaultRestSec);
+    },
+  });
+
+  // ----- Workout summary modal -----
+  function handleCloseSummary() {
+    setSummaryOpen(false);
+    setSummaryData(null);
+    draft.resetDraft();
+    setEditingWorkoutId(null);
+    useAppStore.getState().setView("history");
+  }
+
+  function handleViewProgressFromSummary() {
+    setSummaryOpen(false);
+    setSummaryData(null);
+    draft.resetDraft();
+    setEditingWorkoutId(null);
+    useAppStore.getState().setView("stats");
+  }
 
   function addEntry(exercise: ExerciseWithVariants) {
     draft.addEntry(exercise);
@@ -326,16 +410,40 @@ export function NewWorkoutView() {
       }),
     };
 
-    const onSuccess = () => {
-      draft.resetDraft();
-      setEditingWorkoutId(null);
-      useAppStore.getState().setView("history");
-    };
-
     if (editingWorkoutId) {
-      updateWorkoutEntries.mutate({ id: editingWorkoutId, body: payload }, { onSuccess });
+      updateWorkoutEntries.mutate(
+        { id: editingWorkoutId, body: payload },
+        {
+          onSuccess: () => {
+            draft.resetDraft();
+            setEditingWorkoutId(null);
+            useAppStore.getState().setView("history");
+          },
+        },
+      );
     } else {
-      createWorkout.mutate(payload, { onSuccess });
+      createWorkout.mutate(payload, {
+        onSuccess: (data) => {
+          const prs = computePRs(data, workoutsQ.data ?? [], exerciseMap);
+          const totalVolume = data.entries.reduce(
+            (acc, e) => acc + e.sets.reduce((a, s) => a + (s.reps ?? s.holdSeconds ?? 0), 0),
+            0,
+          );
+          const totalSets = data.entries.reduce((acc, e) => acc + e.sets.length, 0);
+          setSummaryData({
+            title: data.title ?? "",
+            date: fmtDate(data.date),
+            durationMin: data.durationMin ?? 0,
+            exertion: data.perceivedExertion ?? 0,
+            bodyweight: data.bodyweightKg ?? "",
+            entryCount: data.entries.length,
+            totalSets,
+            totalVolume,
+            prs,
+          });
+          setSummaryOpen(true);
+        },
+      });
     }
   }
 
@@ -346,6 +454,7 @@ export function NewWorkoutView() {
   }
 
   return (
+    <TooltipProvider>
     <div className="space-y-6 pb-28">
       <SectionHeading
         title="Nouvelle séance"
@@ -744,7 +853,58 @@ export function NewWorkoutView() {
           </div>
         </div>
       )}
+
+        {/* ----------------------- Workout Summary Modal ----------------------- */}
+        <WorkoutSummaryModal
+          open={summaryOpen}
+          summary={summaryData}
+          onClose={handleCloseSummary}
+          onViewProgress={handleViewProgressFromSummary}
+        />
+
+        {/* ----------------------- Keyboard shortcuts cheatsheet ----------------------- */}
+        {showCheatsheet && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            onClick={() => setShowCheatsheet(false)}
+          >
+            <div
+              className="w-full max-w-sm rounded-lg border bg-card p-5 shadow-lg"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="mb-3 text-base font-semibold">Raccourcis clavier ⌨️</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Valider la série</span>
+                  <kbd className="rounded border bg-muted px-2 py-0.5 text-xs font-medium">Entrée</kbd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Lancer le repos</span>
+                  <kbd className="rounded border bg-muted px-2 py-0.5 text-xs font-medium">R</kbd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Préréglages repos</span>
+                  <kbd className="rounded border bg-muted px-2 py-0.5 text-xs font-medium">⌘R</kbd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Ajouter une série</span>
+                  <kbd className="rounded border bg-muted px-2 py-0.5 text-xs font-medium">⇧R</kbd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Aide (ce menu)</span>
+                  <kbd className="rounded border bg-muted px-2 py-0.5 text-xs font-medium">?</kbd>
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <Button variant="outline" size="sm" onClick={() => setShowCheatsheet(false)}>
+                  Fermer
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
+    </TooltipProvider>
   );
 }
 
@@ -1296,29 +1456,52 @@ function RestButton({
 }) {
   const start = useTimerStore((s) => s.start);
   const [open, setOpen] = React.useState(false);
+  const longPressTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleTouchStart() {
+    longPressTimer.current = setTimeout(() => {
+      setOpen(true);
+    }, 500);
+  }
+
+  function handleTouchEnd() {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }
 
   // When the popover is open we show preset buttons; otherwise the main
   // button starts the default rest timer directly.
   if (!open) {
     return (
-      <Button
-        type="button"
-        size="sm"
-        variant={validated ? "secondary" : "outline"}
-        className={cn(
-          "h-8 gap-1.5",
-          validated && "bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/25 dark:text-emerald-400",
-        )}
-        onClick={() => start(defaultRestSec)}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          setOpen(true);
-        }}
-        title="Clic pour lancer le repos · Clic droit pour les préréglages"
-      >
-        <Coffee className="h-3.5 w-3.5" />
-        <span className="tabular-nums">{defaultRestSec}s</span>
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            size="sm"
+            variant={validated ? "secondary" : "outline"}
+            className={cn(
+              "h-8 gap-1.5 select-none",
+              validated && "bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/25 dark:text-emerald-400",
+            )}
+            onClick={() => start(defaultRestSec)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setOpen(true);
+            }}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onTouchMove={handleTouchEnd}
+          >
+            <Coffee className="h-3.5 w-3.5" />
+            <span className="tabular-nums">{defaultRestSec}s</span>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          <p>Clic : lancer le repos · Clic droit / Appui long : préréglages</p>
+        </TooltipContent>
+      </Tooltip>
     );
   }
 

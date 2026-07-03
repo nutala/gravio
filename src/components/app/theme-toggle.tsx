@@ -3,7 +3,8 @@
 import * as React from "react";
 import { Moon, Sun, Palette } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useAccent, ACCENT_THEMES } from "@/components/providers/accent-provider";
+import { ACCENT_THEMES } from "@/components/providers/accent-provider";
+import { useSettingsStore } from "@/lib/settings-store";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -17,7 +18,8 @@ import {
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
-  const { accent, setAccent } = useAccent();
+  const accentTheme = useSettingsStore((s) => s.accentTheme);
+  const setAccentTheme = useSettingsStore((s) => s.setAccentTheme);
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
@@ -48,7 +50,7 @@ export function ThemeToggle() {
         <DropdownMenuSeparator />
 
         <DropdownMenuLabel>Couleur d'accent</DropdownMenuLabel>
-        <DropdownMenuRadioGroup value={accent} onValueChange={(v) => setAccent(v as typeof accent)}>
+        <DropdownMenuRadioGroup value={accentTheme} onValueChange={(v) => setAccentTheme(v as typeof accentTheme)}>
           {ACCENT_THEMES.map((t) => (
             <DropdownMenuRadioItem key={t.id} value={t.id} className="gap-2">
               <span

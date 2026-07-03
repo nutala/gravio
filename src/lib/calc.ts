@@ -147,6 +147,28 @@ export function fmtCompact(n: number): string {
   return `${n}`;
 }
 
+/** Convert kg to lb. */
+export function kgToLb(kg: number): number {
+  return kg * 2.20462;
+}
+
+/** Convert lb to kg. */
+export function lbToKg(lb: number): number {
+  return lb / 2.20462;
+}
+
+/** Format a weight value for display based on the user's preferred unit. */
+export function fmtWeight(kg: number | null | undefined, unit: "kg" | "lb"): string {
+  if (kg == null) return "—";
+  if (unit === "lb") return `${kgToLb(kg).toFixed(1)} lb`;
+  return `${kg.toFixed(1)} kg`;
+}
+
+/** Format a weight input placeholder based on unit. */
+export function weightPlaceholder(unit: "kg" | "lb"): string {
+  return unit === "lb" ? "ex. 155" : "ex. 70";
+}
+
 // ---------------------------------------------------------------------------
 // Superset helpers
 // ---------------------------------------------------------------------------

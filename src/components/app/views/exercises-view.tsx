@@ -32,6 +32,7 @@ import {
   useDeleteVariant,
   useCategories,
   useCategoryMeta,
+  useWorkouts,
 } from "@/hooks/use-data";
 import { CategoryManagerDialog } from "@/components/app/category-manager-dialog";
 import { EmptyState, SectionHeading } from "@/components/app/common";
@@ -130,6 +131,7 @@ export function ExercisesView() {
   const addVariant = useAddVariant();
   const updateVariant = useUpdateVariant();
   const deleteVariant = useDeleteVariant();
+  const workoutsQ = useWorkouts();
 
   // Dynamic category list (fall back to empty array while loading).
   const categories: ExerciseCategory[] = React.useMemo(
@@ -419,6 +421,7 @@ export function ExercisesView() {
                       <ExerciseCard
                         key={ex.id}
                         exercise={ex}
+                        workouts={workoutsQ.data ?? []}
                         onViewDetail={() =>
                           useAppStore.getState().viewExerciseDetail(ex.id)
                         }
@@ -541,6 +544,7 @@ export function ExercisesView() {
 
 function ExerciseCard({
   exercise,
+  workouts,
   onViewDetail,
   onEdit,
   onDelete,
@@ -549,6 +553,7 @@ function ExerciseCard({
   onDeleteVariant,
 }: {
   exercise: ExerciseWithVariants;
+  workouts: import("@/lib/types").WorkoutFull[];
   onViewDetail: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -566,6 +571,33 @@ function ExerciseCard({
     [exercise.variants],
   );
   const unit = metricUnit(exercise.isStatic);
+
+  // Find the current variant (most recently used in workouts)
+  const currentVariantId = React.useMemo(() => {
+    const sortedWorkouts = [...workouts]
+      .filter((w) => w.entries.some((e) => e.exerciseId === exercise.id))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    if (sortedWorkouts.length === 0) return null;
+    const latestEntry = sortedWorkouts[0].entries.find(
+      (e) => e.exerciseId === exercise.id,
+    );
+    if (!latestEntry) return null;
+    const variantCounts = new Map<string, number>();
+    for (const set of latestEntry.sets) {
+      if (set.variant?.id) {
+        variantCounts.set(set.variant.id, (variantCounts.get(set.variant.id) ?? 0) + 1);
+      }
+    }
+    let mostUsed: string | null = null;
+    let maxCount = 0;
+    for (const [vid, count] of variantCounts) {
+      if (count > maxCount) {
+        mostUsed = vid;
+        maxCount = count;
+      }
+    }
+    return mostUsed;
+  }, [workouts, exercise.id]);
 
   return (
     <Card
@@ -652,10 +684,14 @@ function ExerciseCard({
           <ol className="flex flex-col">
             {sortedVariants.map((v, idx) => {
               const isLast = idx === sortedVariants.length - 1;
+              const isCurrent = v.id === currentVariantId;
               return (
                 <li
                   key={v.id}
-                  className="group relative flex items-center gap-2.5 rounded-md px-1.5 py-1.5 transition-colors hover:bg-muted/40"
+                  className={cn(
+                    "group relative flex items-center gap-2.5 rounded-md px-1.5 py-1.5 transition-colors hover:bg-muted/40",
+                    isCurrent && "bg-primary/5 ring-1 ring-primary/20",
+                  )}
                 >
                   {/* connector + rank circle */}
                   <div className="relative flex flex-col items-center">
@@ -666,7 +702,12 @@ function ExerciseCard({
                       />
                     )}
                     <span
-                      className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-background text-[11px] font-bold tabular-nums text-foreground"
+                      className={cn(
+                        "relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-bold tabular-nums",
+                        isCurrent
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-background text-foreground",
+                      )}
                     >
                       {idx + 1}
                     </span>
@@ -678,6 +719,11 @@ function ExerciseCard({
                       <span className="truncate text-sm font-medium text-foreground">
                         {v.name}
                       </span>
+                      {isCurrent && (
+                        <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                          En cours
+                        </span>
+                      )}
                       <span
                         className="shrink-0 text-[11px] tracking-tight text-amber-500"
                         aria-label={`Difficulté ${v.difficultyLevel} sur 5`}

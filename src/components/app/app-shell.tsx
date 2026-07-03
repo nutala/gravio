@@ -16,6 +16,7 @@ import { ThemeToggle } from "@/components/app/theme-toggle";
 import { UserMenu } from "@/components/app/user-menu";
 import { RestTimerWidget } from "@/components/app/rest-timer-widget";
 import { CustomRestTrigger } from "@/components/app/custom-rest-trigger";
+import { PWAInstallPrompt } from "@/components/app/PWAInstallPrompt";
 import { Button } from "@/components/ui/button";
 
 const NAV: { id: ViewId; label: string; icon: React.ComponentType<{ className?: string }>; short: string }[] = [
@@ -130,6 +131,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Floating rest timer (persists across views) */}
       <RestTimerWidget />
+
+      {/* PWA install prompt */}
+      <PWAInstallPrompt />
     </div>
   );
 }
