@@ -55,6 +55,8 @@ export async function GET(req: Request) {
         workoutId: e.workoutId,
         bestValue: Math.max(...sets.map((s) => s.reps ?? s.holdSeconds ?? 0)),
         totalVolume: sets.reduce((acc, s) => acc + (s.reps ?? s.holdSeconds ?? 0), 0),
+        totalReps: sets.reduce((acc, s) => acc + (s.reps ?? 0), 0),
+        totalHoldSeconds: sets.reduce((acc, s) => acc + (s.holdSeconds ?? 0), 0),
         setsCount: sets.length,
         rpe: (() => {
           const rpes = sets.map((s) => s.rpe).filter((v): v is number => v != null);

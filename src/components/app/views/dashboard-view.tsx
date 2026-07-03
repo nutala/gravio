@@ -238,7 +238,11 @@ function KpiGrid() {
         icon={Timer}
         hint={`${data.totalSets} séries au total`}
       />
-      <WeeklyTutCard activityCalendar={tutData} />
+      <WeeklyTutCard
+        activityCalendar={tutData}
+        weeklyReps={data.weeklyReps}
+        weeklyHoldSeconds={data.weeklyHoldSeconds}
+      />
       <StatCard
         label="Cette semaine"
         value={data.thisWeekCount}

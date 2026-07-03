@@ -10,10 +10,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface WeeklyTutCardProps {
   activityCalendar?: { date: string; volume: number }[];
+  weeklyReps?: number;
+  weeklyHoldSeconds?: number;
   isLoading?: boolean;
 }
 
-export function WeeklyTutCard({ activityCalendar, isLoading }: WeeklyTutCardProps) {
+export function WeeklyTutCard({ activityCalendar, weeklyReps = 0, weeklyHoldSeconds = 0, isLoading }: WeeklyTutCardProps) {
   const weekData = React.useMemo(() => {
     if (!activityCalendar) return [];
     const cutoff = subDays(new Date(), 6);
@@ -25,8 +27,9 @@ export function WeeklyTutCard({ activityCalendar, isLoading }: WeeklyTutCardProp
       }));
   }, [activityCalendar]);
 
-  const weeklyTotal = weekData.reduce((s, d) => s + d.tut, 0);
   const maxTut = Math.max(...weekData.map((d) => d.tut), 1);
+  const hasReps = weeklyReps > 0;
+  const hasHold = weeklyHoldSeconds > 0;
 
   if (isLoading) {
     return (
@@ -48,10 +51,10 @@ export function WeeklyTutCard({ activityCalendar, isLoading }: WeeklyTutCardProp
           <span>Volume total</span>
         </div>
         <div className="mb-2 text-2xl font-bold tabular-nums tracking-tight text-foreground">
-          {weeklyTotal.toLocaleString()}
-          <span className="ml-1 text-sm font-normal text-muted-foreground">
-            {weeklyTotal === 1 ? "s" : "s"}
-          </span>
+          {hasReps && <>{(weeklyReps).toLocaleString()} reps</>}
+          {hasReps && hasHold && <span className="mx-1 text-base text-muted-foreground">+</span>}
+          {hasHold && <>{(weeklyHoldSeconds).toLocaleString()} s</>}
+          {!hasReps && !hasHold && <span className="text-base text-muted-foreground">0</span>}
         </div>
         <div className="text-[10px] text-muted-foreground">7 derniers jours</div>
         <div className="mt-2 h-14">

@@ -59,6 +59,8 @@ export interface ProgressPoint {
   bestValue: number;
   /// Total volume for that workout (sum across sets)
   totalVolume: number;
+  totalReps: number;
+  totalHoldSeconds: number;
   setsCount: number;
   rpe: number | null;
   /// Unit derived from the actual set data ("reps" or "s")
@@ -75,6 +77,8 @@ export interface OverviewStats {
   avgExertion: number | null;
   distinctExercises: number;
   thisWeekCount: number;
+  weeklyReps: number;
+  weeklyHoldSeconds: number;
   lastWorkoutDate: string | null;
   /// Volume per category (last 30 days)
   volumeByCategory: { category: string; volume: number; sessions: number }[];

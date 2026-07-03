@@ -45,6 +45,17 @@ export async function GET() {
   const distinctExercises = new Set(workouts.flatMap((w) => w.entries.map((e) => e.exerciseId))).size;
   const weekStart = subDays(new Date(), 6);
   const thisWeekCount = workouts.filter((w) => w.date >= weekStart).length;
+  let weeklyReps = 0;
+  let weeklyHoldSeconds = 0;
+  for (const w of workouts) {
+    if (w.date < weekStart) continue;
+    for (const e of w.entries) {
+      for (const s of e.sets) {
+        weeklyReps += s.reps ?? 0;
+        weeklyHoldSeconds += s.holdSeconds ?? 0;
+      }
+    }
+  }
   const lastWorkoutDate = workouts[0]?.date.toISOString() ?? null;
 
   const thirtyDaysAgo = subDays(new Date(), 30);
@@ -80,7 +91,7 @@ export async function GET() {
 
   const stats: OverviewStats = {
     totalWorkouts, totalSets, totalVolume, totalMinutes,
-    avgExertion, distinctExercises, thisWeekCount, lastWorkoutDate,
+    avgExertion, distinctExercises, thisWeekCount, weeklyReps, weeklyHoldSeconds, lastWorkoutDate,
     volumeByCategory, activityCalendar,
   };
   return NextResponse.json(stats);

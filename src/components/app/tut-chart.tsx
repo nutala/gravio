@@ -18,7 +18,7 @@ const RANGES: { value: Range; label: string }[] = [
   { value: "all", label: "Tout" },
 ];
 
-function filterPoints(points: { date: string; totalVolume: number }[], range: Range) {
+function filterPoints(points: { date: string; totalReps: number; totalHoldSeconds: number }[], range: Range) {
   if (range === "all") return points;
   const cutoff =
     range === "7d" ? subDays(new Date(), 6) :
@@ -49,12 +49,20 @@ export function TutChart() {
   const p1 = progress1.data?.points ?? [];
   const p2 = progress2.data?.points ?? [];
 
-  const total1 = React.useMemo(
-    () => filterPoints(p1, range).reduce((s, p) => s + p.totalVolume, 0),
+  const total1Reps = React.useMemo(
+    () => filterPoints(p1, range).reduce((s, p) => s + p.totalReps, 0),
     [p1, range],
   );
-  const total2 = React.useMemo(
-    () => filterPoints(p2, range).reduce((s, p) => s + p.totalVolume, 0),
+  const total1Hold = React.useMemo(
+    () => filterPoints(p1, range).reduce((s, p) => s + p.totalHoldSeconds, 0),
+    [p1, range],
+  );
+  const total2Reps = React.useMemo(
+    () => filterPoints(p2, range).reduce((s, p) => s + p.totalReps, 0),
+    [p2, range],
+  );
+  const total2Hold = React.useMemo(
+    () => filterPoints(p2, range).reduce((s, p) => s + p.totalHoldSeconds, 0),
     [p2, range],
   );
 
@@ -154,14 +162,16 @@ export function TutChart() {
         <div className="grid gap-4 sm:grid-cols-2">
           <VolumeCard
             label={ex1 ? `${ex1.name}${var1Id && ex1 ? ` · ${ex1.variants.find(v => v.id === var1Id)?.name}` : ""}` : "Variante 1"}
-            total={total1}
+            reps={total1Reps}
+            holdSeconds={total1Hold}
             loading={progress1.isLoading}
             range={rangeLabel}
             selected={!!ex1Id && !!var1Id}
           />
           <VolumeCard
             label={ex2 ? `${ex2.name}${var2Id && ex2 ? ` · ${ex2.variants.find(v => v.id === var2Id)?.name}` : ""}` : "Variante 2"}
-            total={total2}
+            reps={total2Reps}
+            holdSeconds={total2Hold}
             loading={progress2.isLoading}
             range={rangeLabel}
             selected={!!ex2Id && !!var2Id}
@@ -174,17 +184,21 @@ export function TutChart() {
 
 function VolumeCard({
   label,
-  total,
+  reps,
+  holdSeconds,
   loading,
   range,
   selected,
 }: {
   label: string;
-  total: number;
+  reps: number;
+  holdSeconds: number;
   loading: boolean;
   range: string;
   selected: boolean;
 }) {
+  const hasReps = reps > 0;
+  const hasHold = holdSeconds > 0;
   return (
     <div className="flex flex-col gap-1 rounded-xl border border-border/60 p-4">
       <span className="text-xs text-muted-foreground">{label}</span>
@@ -193,9 +207,12 @@ function VolumeCard({
       ) : !selected ? (
         <span className="text-sm text-muted-foreground">Sélectionne une variante</span>
       ) : (
-        <span className="text-3xl font-bold tabular-nums tracking-tight text-foreground">
-          {total.toLocaleString()}
-        </span>
+        <div className="text-2xl font-bold tabular-nums tracking-tight text-foreground">
+          {hasReps && <>{(reps).toLocaleString()} reps</>}
+          {hasReps && hasHold && <span className="mx-1 text-base text-muted-foreground">+</span>}
+          {hasHold && <>{(holdSeconds).toLocaleString()} s</>}
+          {!hasReps && !hasHold && <span className="text-base text-muted-foreground">0</span>}
+        </div>
       )}
       {selected && !loading && (
         <span className="text-[10px] text-muted-foreground">{range}</span>
