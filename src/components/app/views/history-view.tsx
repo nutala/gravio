@@ -578,59 +578,62 @@ function Chip({
 /* Overflow menu (Edit / Delete)                                       */
 /* ------------------------------------------------------------------ */
 
-function OverflowMenu({ workout }: { workout: WorkoutFull }) {
-  const [editMetaOpen, setEditMetaOpen] = React.useState(false);
-  const [deleteOpen, setDeleteOpen] = React.useState(false);
-  const repeatWorkout = useAppStore((s) => s.repeatWorkout);
-  const editWorkout = useAppStore((s) => s.editWorkout);
+  function OverflowMenu({ workout }: { workout: WorkoutFull }) {
+    const [editMetaOpen, setEditMetaOpen] = React.useState(false);
+    const [deleteOpen, setDeleteOpen] = React.useState(false);
+    const repeatWorkout = useAppStore((s) => s.repeatWorkout);
 
-  return (
-    <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-muted-foreground"
-            aria-label="Actions de la séance"
-          >
-            <MoreVertical className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => repeatWorkout(workout)}>
-            <RefreshCw className="h-4 w-4" />
-            Refaire la séance
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => editWorkout(workout)}>
-            <Pencil className="h-4 w-4" />
-            Modifier la séance
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            variant="destructive"
-            onSelect={() => setDeleteOpen(true)}
-          >
-            <Trash2 className="h-4 w-4" />
-            Supprimer
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+    const handleEdit = () => {
+      useAppStore.getState().editWorkout(workout);
+    };
 
-      <EditDialog
-        workout={workout}
-        open={editMetaOpen}
-        onOpenChange={setEditMetaOpen}
-      />
-      <DeleteDialog
-        workoutId={workout.id}
-        open={deleteOpen}
-        onOpenChange={setDeleteOpen}
-      />
-    </>
-  );
-}
+    return (
+      <>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground"
+              aria-label="Actions de la séance"
+            >
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => repeatWorkout(workout)}>
+              <RefreshCw className="h-4 w-4" />
+              Refaire la séance
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={handleEdit}>
+              <Pencil className="h-4 w-4" />
+              Modifier la séance
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              variant="destructive"
+              onSelect={() => setDeleteOpen(true)}
+            >
+              <Trash2 className="h-4 w-4" />
+              Supprimer
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <EditDialog
+          workout={workout}
+          open={editMetaOpen}
+          onOpenChange={setEditMetaOpen}
+        />
+        <DeleteDialog
+          workoutId={workout.id}
+          open={deleteOpen}
+          onOpenChange={setDeleteOpen}
+        />
+      </>
+    );
+  }
 
 /* ------------------------------------------------------------------ */
 /* Expanded entry detail                                               */
