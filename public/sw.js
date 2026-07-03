@@ -1,12 +1,115 @@
-self.addEventListener("install", () => self.skipWaiting());
-self.addEventListener("activate", (e) => e.waitUntil(clients.claim()));
+// ── Cache names ──────────────────────────────────────────────
+var STATIC_CACHE = "gravio-static-v1";
+var API_CACHE = "gravio-api-v1";
+var NAV_CACHE = "gravio-nav-v1";
 
-let timerEndsAt = 0;
-let timerInterval = null;
+// ── Install: precache shell + skip waiting ──────────────────
+self.addEventListener("install", function (e) {
+  e.waitUntil(
+    caches.open(STATIC_CACHE)
+      .then(function () { return self.skipWaiting(); }),
+  );
+});
+
+// ── Activate: clean old caches + take control ───────────────
+self.addEventListener("activate", function (e) {
+  e.waitUntil(
+    caches.keys().then(function (keys) {
+      return Promise.all(
+        keys
+          .filter(function (k) {
+            return k.startsWith("gravio-") && k !== STATIC_CACHE && k !== API_CACHE && k !== NAV_CACHE;
+          })
+          .map(function (k) { return caches.delete(k); }),
+      );
+    }).then(function () { return clients.claim(); }),
+  );
+});
+
+// ── Fetch strategy ──────────────────────────────────────────
+self.addEventListener("fetch", function (e) {
+  var req = e.request;
+  var url = new URL(req.url);
+
+  // Only handle GET, same-origin requests
+  if (req.method !== "GET" || url.origin !== self.location.origin) return;
+
+  // API: network-first with cache fallback
+  if (url.pathname.startsWith("/api/")) {
+    e.respondWith(networkFirst(req, API_CACHE));
+    return;
+  }
+
+  // Next.js static assets (JS, CSS): cache-first
+  if (url.pathname.startsWith("/_next/static/")) {
+    e.respondWith(cacheFirst(req, STATIC_CACHE));
+    return;
+  }
+
+  // Navigation: network-first with cached fallback
+  if (req.mode === "navigate") {
+    e.respondWith(navFirst(req));
+    return;
+  }
+
+  // Other static files (images, fonts, icons): cache-first
+  if (url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff2?|webp|avif)$/)) {
+    e.respondWith(cacheFirst(req, STATIC_CACHE));
+    return;
+  }
+});
+
+function networkFirst(req, cacheName) {
+  return caches.open(cacheName).then(function (cache) {
+    return fetch(req).then(function (res) {
+      if (res.ok) cache.put(req, res.clone());
+      return res;
+    }).catch(function () {
+      return cache.match(req).then(function (cached) {
+        if (cached) return cached;
+        return new Response(JSON.stringify({ error: "offline" }), {
+          status: 503,
+          headers: { "Content-Type": "application/json" },
+        });
+      });
+    });
+  });
+}
+
+function cacheFirst(req, cacheName) {
+  return caches.open(cacheName).then(function (cache) {
+    return cache.match(req).then(function (cached) {
+      if (cached) return cached;
+      return fetch(req).then(function (res) {
+        if (res.ok) cache.put(req, res.clone());
+        return res;
+      });
+    });
+  });
+}
+
+function navFirst(req) {
+  return caches.open(NAV_CACHE).then(function (cache) {
+    return fetch(req).then(function (res) {
+      if (res.ok) cache.put(req, res.clone());
+      return res;
+    }).catch(function () {
+      return cache.match(req).then(function (cached) {
+        if (cached) return cached;
+        // Try the root page as last resort
+        return caches.match("/");
+      });
+    });
+  });
+}
+
+// ── Rest timer (unchanged) ──────────────────────────────────
+var timerEndsAt = 0;
+var timerInterval = null;
 
 function startTimerCheck() {
   if (timerInterval) return;
-  timerInterval = setInterval(() => {
+  timerInterval = setInterval(function () {
     if (timerEndsAt <= 0) return;
     if (Date.now() >= timerEndsAt) {
       timerEndsAt = 0;
@@ -29,8 +132,11 @@ function stopTimerCheck() {
   timerEndsAt = 0;
 }
 
-self.addEventListener("message", (e) => {
-  const { type, remainingSec, endsAt } = e.data || {};
+self.addEventListener("message", function (e) {
+  var data = e.data || {};
+  var type = data.type;
+  var remainingSec = data.remainingSec;
+  var endsAt = data.endsAt;
 
   if (type === "SHOW_NOTIFICATION") {
     self.registration.showNotification("Repos terminé ! 💪", {
@@ -54,11 +160,11 @@ self.addEventListener("message", (e) => {
         requireInteraction: true,
       });
     } else {
-      const m = Math.floor(remainingSec / 60);
-      const s = remainingSec % 60;
-      const timeStr = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-      self.registration.showNotification(`Repos ${timeStr}`, {
-        body: `Temps restant : ${timeStr}`,
+      var m = Math.floor(remainingSec / 60);
+      var s = remainingSec % 60;
+      var timeStr = String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+      self.registration.showNotification("Repos " + timeStr, {
+        body: "Temps restant : " + timeStr,
         tag: "rest-timer",
         silent: true,
         requireInteraction: true,
@@ -69,17 +175,17 @@ self.addEventListener("message", (e) => {
 
   if (type === "CLOSE_REST_TIMER") {
     stopTimerCheck();
-    self.registration.getNotifications({ tag: "rest-timer" }).then((ns) => {
-      ns.forEach((n) => n.close());
+    self.registration.getNotifications({ tag: "rest-timer" }).then(function (ns) {
+      ns.forEach(function (n) { n.close(); });
     });
   }
 });
 
-self.addEventListener("notificationclick", (e) => {
+self.addEventListener("notificationclick", function (e) {
   e.notification.close();
   if (e.notification.tag === "rest-timer") {
     e.waitUntil(
-      clients.matchAll({ type: "window", includeUncontrolled: true }).then((cs) => {
+      clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (cs) {
         if (cs.length > 0) {
           cs[0].focus();
           cs[0].postMessage({ type: "FOCUS_WORKOUT" });

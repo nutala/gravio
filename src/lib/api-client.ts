@@ -1,3 +1,5 @@
+import { addToQueue } from "./offline-queue";
+
 /**
  * Lightweight typed fetcher for the API routes.
  * Adds JSON headers, error handling, and JSON parsing.
@@ -39,6 +41,30 @@ async function request<T>(
   return data as T;
 }
 
+async function requestWithQueue<T>(
+  url: string,
+  options?: RequestInit,
+): Promise<T> {
+  try {
+    return await request<T>(url, options);
+  } catch (err) {
+    // Queue non-GET requests on network error for later replay
+    if (
+      options?.method &&
+      options.method !== "GET" &&
+      err instanceof TypeError
+    ) {
+      // TypeError = network failure (fetch throws TypeError)
+      addToQueue({
+        url,
+        method: options.method as "POST" | "PUT" | "PATCH" | "DELETE",
+        body: options.body ? JSON.parse(options.body as string) : undefined,
+      });
+    }
+    throw err;
+  }
+}
+
 function safeJson(text: string): unknown {
   try {
     return JSON.parse(text);
@@ -50,21 +76,21 @@ function safeJson(text: string): unknown {
 export const api = {
   get: <T>(url: string) => request<T>(url, { method: "GET" }),
   post: <T>(url: string, body?: unknown) =>
-    request<T>(url, {
+    requestWithQueue<T>(url, {
       method: "POST",
       body: body === undefined ? undefined : JSON.stringify(body),
     }),
   patch: <T>(url: string, body?: unknown) =>
-    request<T>(url, {
+    requestWithQueue<T>(url, {
       method: "PATCH",
       body: body === undefined ? undefined : JSON.stringify(body),
     }),
   put: <T>(url: string, body?: unknown) =>
-    request<T>(url, {
+    requestWithQueue<T>(url, {
       method: "PUT",
       body: body === undefined ? undefined : JSON.stringify(body),
     }),
-  delete: <T>(url: string) => request<T>(url, { method: "DELETE" }),
+  delete: <T>(url: string) => requestWithQueue<T>(url, { method: "DELETE" }),
 };
 
 /** Query keys for TanStack Query cache invalidation. */
