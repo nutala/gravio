@@ -131,7 +131,7 @@ function sliderAccentClass(value: number): string {
   return "[&_[data-slot=slider-range]]:bg-red-500 [&_[data-slot=slider-thumb]]:border-red-500";
 }
 
-/** Compute personal records for each exercise in the saved workout. */
+/** Compute personal records per exercise+variant. */
 function computePRs(
   saved: import("@/lib/types").WorkoutFull,
   allWorkouts: import("@/lib/types").WorkoutFull[],
@@ -139,43 +139,48 @@ function computePRs(
 ): { exerciseName: string; variantName: string | null; value: string; unit: string }[] {
   const prs: { exerciseName: string; variantName: string | null; value: string; unit: string }[] = [];
   const previous = allWorkouts.filter((w) => w.id !== saved.id);
+
   for (const entry of saved.entries) {
     const ex = exMap.get(entry.exerciseId);
     if (!ex) continue;
 
-    // Find the set with the best value and its actual mode
-    let bestValue = 0;
-    let bestMode: "reps" | "hold" = ex.isStatic ? "hold" : "reps";
-    let bestVariantName: string | null = null;
+    // Group current sets by (exerciseId, variantId) to find best per variant combo
+    const bestByKey = new Map<string, { val: number; mode: "reps" | "hold"; vName: string | null }>();
     for (const s of entry.sets) {
       const mode = s.mode ?? (ex.isStatic ? "hold" : "reps");
       const val = mode === "reps" ? (s.reps ?? 0) : (s.holdSeconds ?? 0);
-      if (val > bestValue) {
-        bestValue = val;
-        bestMode = mode;
-        bestVariantName = s.variantId
-          ? ex.variants.find((v) => v.id === s.variantId)?.name ?? null
-          : null;
+      if (val === 0) continue;
+      const key = `${entry.exerciseId}::${s.variantId ?? ""}`;
+      const existing = bestByKey.get(key);
+      if (!existing || val > existing.val) {
+        const vName = s.variantId ? ex.variants.find((v) => v.id === s.variantId)?.name ?? null : null;
+        bestByKey.set(key, { val, mode, vName });
       }
     }
-    if (bestValue === 0) continue;
 
-    const unit = bestMode === "reps" ? "reps" : "s";
-
-    let bestPrev = 0;
-    for (const w of previous) {
-      for (const e of w.entries) {
-        if (e.exerciseId === entry.exerciseId) {
+    // For each variant combo, compare to historical best for the same combo
+    for (const [key, cur] of bestByKey) {
+      const [, variantId] = key.split("::");
+      let bestPrev = 0;
+      for (const w of previous) {
+        for (const e of w.entries) {
+          if (e.exerciseId !== entry.exerciseId) continue;
           for (const s of e.sets) {
+            const sKey = `${s.variantId ?? ""}`;
+            if (sKey !== variantId) continue;
             const val = s.reps ?? s.holdSeconds ?? 0;
             if (val > bestPrev) bestPrev = val;
           }
         }
       }
-    }
-
-    if (bestValue > bestPrev) {
-      prs.push({ exerciseName: ex.name, variantName: bestVariantName, value: `${bestValue}`, unit });
+      if (cur.val > bestPrev) {
+        prs.push({
+          exerciseName: ex.name,
+          variantName: cur.vName,
+          value: `${cur.val}`,
+          unit: cur.mode === "reps" ? "reps" : "s",
+        });
+      }
     }
   }
   return prs;
