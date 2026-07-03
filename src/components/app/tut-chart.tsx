@@ -21,7 +21,7 @@ const RANGES: { value: Range; label: string }[] = [
   { value: "all", label: "Tout" },
 ];
 
-function filterPoints(points: { date: string; totalVolume: number }[], range: Range) {
+function filterPoints(points: { date: string }[], range: Range) {
   if (range === "all") return points;
   const cutoff =
     range === "7d" ? subDays(new Date(), 6) :

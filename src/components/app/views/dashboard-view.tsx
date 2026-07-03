@@ -18,6 +18,8 @@ import {
   Activity,
   BarChart3,
   CalendarDays,
+  ChevronRight,
+  Dumbbell,
   Timer,
   TrendingUp,
   Trophy,
