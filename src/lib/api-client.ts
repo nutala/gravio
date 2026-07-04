@@ -4,6 +4,13 @@ import { addToQueue } from "./offline-queue";
  * Lightweight typed fetcher for the API routes.
  * Adds JSON headers, error handling, and JSON parsing.
  */
+export class QueuedOfflineError extends Error {
+  constructor() {
+    super("Request queued for offline sync");
+    this.name = "QueuedOfflineError";
+  }
+}
+
 export class ApiError extends Error {
   status: number;
   body: unknown;
@@ -54,12 +61,12 @@ async function requestWithQueue<T>(
       options.method !== "GET" &&
       err instanceof TypeError
     ) {
-      // TypeError = network failure (fetch throws TypeError)
       addToQueue({
         url,
         method: options.method as "POST" | "PUT" | "PATCH" | "DELETE",
         body: options.body ? JSON.parse(options.body as string) : undefined,
       });
+      throw new QueuedOfflineError();
     }
     throw err;
   }

@@ -94,7 +94,7 @@ export function WorkoutSummaryModal({ open, summary, onClose, onViewProgress }: 
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 40, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 300, damping: 28 }}
-            className="relative z-10 mx-4 w-full max-w-lg rounded-2xl border bg-card p-6 shadow-2xl"
+            className="relative z-10 mx-4 w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl border bg-card p-6 shadow-2xl"
           >
             {/* Confetti container */}
             <div ref={confettiRef} className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none" />

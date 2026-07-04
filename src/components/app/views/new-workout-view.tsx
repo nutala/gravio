@@ -25,7 +25,7 @@ import {
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
-import { api } from "@/lib/api-client";
+import { api, QueuedOfflineError } from "@/lib/api-client";
 import {
   type ExerciseWithVariants,
   type ExerciseCategory,
@@ -444,6 +444,14 @@ export function NewWorkoutView() {
             setEditingWorkoutId(null);
             useAppStore.getState().setView("history");
           },
+          onError: (err) => {
+            if (err instanceof QueuedOfflineError) {
+              draft.resetDraft();
+              setEditingWorkoutId(null);
+              toast.success("Modifications mises en file d'attente — synchronisation automatique au retour en ligne");
+              useAppStore.getState().setView("history");
+            }
+          },
         },
       );
     } else {
@@ -467,6 +475,13 @@ export function NewWorkoutView() {
             prs,
           });
           setSummaryOpen(true);
+        },
+        onError: (err) => {
+          if (err instanceof QueuedOfflineError) {
+            draft.resetDraft();
+            toast.success("Séance mise en file d'attente — synchronisation automatique au retour en ligne");
+            useAppStore.getState().setView("dashboard");
+          }
         },
       });
     }

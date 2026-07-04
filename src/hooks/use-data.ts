@@ -6,7 +6,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { api, qk } from "@/lib/api-client";
+import { api, qk, QueuedOfflineError } from "@/lib/api-client";
 import { toast } from "sonner";
 import type {
   ExerciseWithVariants,
@@ -207,7 +207,11 @@ export function useCreateWorkout() {
       qc.invalidateQueries({ queryKey: ["stats", "progress"] });
       toast.success("Séance enregistrée 🎉");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      if (!(e instanceof QueuedOfflineError)) {
+        toast.error(e.message);
+      }
+    },
   });
 }
 
@@ -248,7 +252,11 @@ export function useUpdateWorkoutEntries() {
       qc.invalidateQueries({ queryKey: ["exercises"] });
       toast.success("Séance mise à jour 🎉");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      if (!(e instanceof QueuedOfflineError)) {
+        toast.error(e.message);
+      }
+    },
   });
 }
 
