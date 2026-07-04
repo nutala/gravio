@@ -40,9 +40,11 @@ export async function signInWithGoogleNative(): Promise<boolean> {
   if (!isNative()) return false;
 
   try {
-    const { Browser } = await import(/* webpackIgnore: true */ "@capacitor/browser");
+    // Use App.openUrl() to open the system browser (not a Chrome Custom Tab)
+    // because Google blocks OAuth from embedded browsers (disallowed_useragent).
+    const { App } = await import(/* webpackIgnore: true */ "@capacitor/app");
     const origin = typeof window !== "undefined" ? window.location.origin : "https://gravio.onrender.com";
-    await Browser.open({ url: origin + "/api/auth/google-start" });
+    await App.openUrl({ url: origin + "/api/auth/google-start" });
     return true;
   } catch {
     return false;
