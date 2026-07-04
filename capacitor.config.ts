@@ -7,6 +7,13 @@ const config: CapacitorConfig = {
   server: {
     url: process.env.CAP_SERVER_URL || "https://gravio.onrender.com",
     cleartext: true,
+    allowNavigation: [
+      "accounts.google.com",
+      "google.com",
+      "*.google.com",
+      "gravio.onrender.com",
+      "*.gravio.onrender.com",
+    ],
   },
   plugins: {
     LocalNotifications: {

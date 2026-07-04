@@ -5,7 +5,7 @@ import { Pause, Play, X, Plus, Minus, SkipForward, Timer } from "lucide-react";
 import { useTimerStore } from "@/lib/timer-store";
 import { useAppStore } from "@/lib/store";
 import { playBeep } from "@/lib/sound";
-import { isNative, scheduleNativeNotification, cancelAllNativeNotifications } from "@/lib/native";
+import { isNative, scheduleNativeNotification, cancelAllNativeNotifications, onNativeNotificationTap } from "@/lib/native";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -152,6 +152,16 @@ export function RestTimerWidget() {
       cancelAllNativeNotifications();
     }
   }, [timer.state]);
+
+  // Listen for native notification tap → navigate to workout view
+  React.useEffect(() => {
+    if (!isNative()) return;
+    let cleanup: (() => void) | undefined;
+    onNativeNotificationTap(() => {
+      useAppStore.getState().setView("new-workout");
+    }).then((unsub) => { cleanup = unsub; });
+    return () => cleanup?.();
+  }, []);
 
   // Vibrate during the last 3 seconds before the alarm.
   React.useEffect(() => {

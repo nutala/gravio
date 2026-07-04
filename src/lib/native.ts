@@ -43,6 +43,24 @@ export async function scheduleNativeNotification(
   }
 }
 
+export type NativeNotificationCallback = () => void;
+
+export async function onNativeNotificationTap(cb: NativeNotificationCallback): Promise<() => void> {
+  if (!isNative()) return () => {};
+  try {
+    const { LocalNotifications } = await import(
+      /* webpackIgnore: true */ "@capacitor/local-notifications"
+    );
+    const handler = await LocalNotifications.addListener(
+      "localNotificationActionPerformed",
+      () => { cb(); },
+    );
+    return () => { handler.remove(); };
+  } catch {
+    return () => {};
+  }
+}
+
 export async function cancelAllNativeNotifications(): Promise<void> {
   if (!isNative()) return;
   try {
