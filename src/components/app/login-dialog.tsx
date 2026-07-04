@@ -327,26 +327,42 @@ export function LoginDialog({
         ) : mode === "code" ? (
           <form onSubmit={handleCodeExchange} className="flex flex-col gap-4">
             <div className="rounded-lg border border-border bg-muted/30 p-3">
-              <p className="text-xs font-medium text-foreground">1. Ouvre ce lien dans Chrome</p>
-              <div className="mt-2 flex items-center gap-2">
-                <code className="flex-1 truncate rounded bg-muted px-2 py-1.5 text-[11px] text-muted-foreground">
-                  {googleUrl}
-                </code>
+              <p className="text-xs font-medium text-foreground">1. Copie ce lien et ouvre-le dans Chrome</p>
+              <div className="mt-2 flex flex-col gap-2">
+                <input
+                  readOnly
+                  value={googleUrl}
+                  onFocus={(e) => e.target.select()}
+                  onClick={(e) => e.currentTarget.select()}
+                  className="w-full rounded bg-background px-3 py-2 text-xs text-foreground border border-border font-mono break-all selection:bg-primary/20"
+                />
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="shrink-0 h-8"
+                  className="h-8 w-full"
                   onClick={() => {
-                    navigator.clipboard.writeText(googleUrl);
-                    toast.success("Lien copié !");
+                    try {
+                      navigator.clipboard.writeText(googleUrl);
+                      toast.success("Lien copié !");
+                    } catch {
+                      const ta = document.createElement("textarea");
+                      ta.value = googleUrl;
+                      ta.style.position = "fixed";
+                      ta.style.left = "-9999px";
+                      document.body.appendChild(ta);
+                      ta.select();
+                      document.execCommand("copy");
+                      ta.remove();
+                      toast.success("Lien copié !");
+                    }
                   }}
                 >
-                  Copier
+                  Copier le lien
                 </Button>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                Colle le lien dans Chrome, connecte-toi avec Google, puis saisis le code ci-dessous.
+                Colle ce lien dans Chrome sur ton téléphone, connecte-toi avec Google, puis copie le code reçu.
               </p>
             </div>
             <div className="grid gap-1.5">
