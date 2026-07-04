@@ -1,24 +1,49 @@
 /**
  * Capacitor native helpers for Google sign-in via system browser
- * and deep link handling. Zero imports from @capacitor/web — all
- * imports are dynamic with webpackIgnore to avoid bundling.
+ * and deep link handling.
+ *
+ * Uses window.Capacitor.plugins directly instead of dynamic imports
+ * (import() with webpackIgnore does NOT work in Capacitor — the
+ * runtime does not intercept ES module imports).
  */
+
+interface CapacitorPluginApp {
+  openUrl: (opts: { url: string }) => Promise<void>;
+  addListener: (event: string, handler: (data: { url: string }) => void) => { remove: () => void };
+}
+
+interface CapacitorPluginLocalNotifications {
+  requestPermissions: () => Promise<{ display: string }>;
+  schedule: (opts: { notifications: Array<{ title: string; body: string; id: number; schedule: { at: Date }; sound?: string }> }) => Promise<void>;
+  getPending: () => Promise<{ notifications: Array<{ id: number }> }>;
+  cancel: (opts: { notifications: Array<{ id: number }> }) => Promise<void>;
+  addListener: (event: string, handler: () => void) => { remove: () => void };
+}
+
+interface CapacitorPlugins {
+  App?: CapacitorPluginApp;
+  LocalNotifications?: CapacitorPluginLocalNotifications;
+}
 
 declare global {
   interface Window {
     Capacitor?: {
-      isNativePlatform: () => boolean;
-      plugins?: Record<string, unknown>;
+      isNativePlatform?: () => boolean;
+      plugins?: CapacitorPlugins;
     };
   }
 }
 
-let _isNative: boolean | null = null;
-
 export function isNative(): boolean {
-  if (_isNative !== null) return _isNative;
-  _isNative = typeof window !== "undefined" && window.Capacitor !== undefined;
-  return _isNative;
+  return typeof window !== "undefined" && window.Capacitor !== undefined;
+}
+
+function getApp(): CapacitorPluginApp | undefined {
+  return window.Capacitor?.plugins?.App;
+}
+
+function getLN(): CapacitorPluginLocalNotifications | undefined {
+  return window.Capacitor?.plugins?.LocalNotifications;
 }
 
 // ── Native Google sign-in (opens system browser) ──
@@ -28,8 +53,8 @@ export function isNative(): boolean {
 // cookie needed), so there is no cookie mismatch between WebView and
 // system browser.
 //
-// 1. Browser.open() navigates to /api/auth/google-start
-// 2. google-start generates a state, stores it server-side, redirects
+// 1. App.openUrl() opens /api/auth/google-start in the system browser
+// 2. google-start generates a state, stores it server-side, 302-redirects
 //    to Google's OAuth URL
 // 3. Google OAuth → callback to /api/auth/google-callback
 // 4. google-callback validates state server-side, exchanges code for
@@ -37,13 +62,11 @@ export function isNative(): boolean {
 // 5. User types the code in the app → exchange → session cookie
 
 export async function signInWithGoogleNative(): Promise<boolean> {
-  // Try to use Capacitor's App.openUrl() directly.
-  // No isNative() check — if the import succeeds we're in Capacitor,
-  // otherwise the catch returns false and the caller falls back to web.
   try {
-    const { App } = await import(/* webpackIgnore: true */ "@capacitor/app");
-    const origin = typeof window !== "undefined" ? window.location.origin : "https://gravio.onrender.com";
-    await App.openUrl({ url: origin + "/api/auth/google-start" });
+    const app = getApp();
+    if (!app) return false;
+    const origin = window.location.origin || "https://gravio.onrender.com";
+    await app.openUrl({ url: origin + "/api/auth/google-start" });
     return true;
   } catch {
     return false;
@@ -55,10 +78,10 @@ export async function signInWithGoogleNative(): Promise<boolean> {
 export type UrlOpenCallback = (url: string) => void;
 
 export async function onAppUrlOpen(cb: UrlOpenCallback): Promise<() => void> {
-  if (!isNative()) return () => {};
   try {
-    const { App } = await import(/* webpackIgnore: true */ "@capacitor/app");
-    const handler = await App.addListener("appUrlOpen", (data) => {
+    const app = getApp();
+    if (!app) return () => {};
+    const handler = await app.addListener("appUrlOpen", (data) => {
       cb(data.url);
     });
     return () => { handler.remove(); };
@@ -70,12 +93,10 @@ export async function onAppUrlOpen(cb: UrlOpenCallback): Promise<() => void> {
 // ── Notification permission ──
 
 export async function requestNativeNotificationPermission(): Promise<boolean> {
-  if (!isNative()) return false;
   try {
-    const { LocalNotifications } = await import(
-      /* webpackIgnore: true */ "@capacitor/local-notifications"
-    );
-    const perm = await LocalNotifications.requestPermissions();
+    const ln = getLN();
+    if (!ln) return false;
+    const perm = await ln.requestPermissions();
     return perm.display === "granted";
   } catch {
     return false;
@@ -89,12 +110,10 @@ export async function scheduleNativeNotification(
   body: string,
   delayMs: number,
 ): Promise<boolean> {
-  if (!isNative()) return false;
   try {
-    const { LocalNotifications } = await import(
-      /* webpackIgnore: true */ "@capacitor/local-notifications"
-    );
-    await LocalNotifications.schedule({
+    const ln = getLN();
+    if (!ln) return false;
+    await ln.schedule({
       notifications: [
         {
           title,
@@ -112,14 +131,12 @@ export async function scheduleNativeNotification(
 }
 
 export async function cancelAllNativeNotifications(): Promise<void> {
-  if (!isNative()) return;
   try {
-    const { LocalNotifications } = await import(
-      /* webpackIgnore: true */ "@capacitor/local-notifications"
-    );
-    const pending = await LocalNotifications.getPending();
+    const ln = getLN();
+    if (!ln) return;
+    const pending = await ln.getPending();
     if (pending.notifications.length > 0) {
-      await LocalNotifications.cancel({ notifications: pending.notifications });
+      await ln.cancel({ notifications: pending.notifications });
     }
   } catch { /* ignore */ }
 }
@@ -127,12 +144,10 @@ export async function cancelAllNativeNotifications(): Promise<void> {
 export type NativeNotificationCallback = () => void;
 
 export async function onNativeNotificationTap(cb: NativeNotificationCallback): Promise<() => void> {
-  if (!isNative()) return () => {};
   try {
-    const { LocalNotifications } = await import(
-      /* webpackIgnore: true */ "@capacitor/local-notifications"
-    );
-    const handler = await LocalNotifications.addListener(
+    const ln = getLN();
+    if (!ln) return () => {};
+    const handler = await ln.addListener(
       "localNotificationActionPerformed",
       () => { cb(); },
     );
