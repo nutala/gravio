@@ -5,6 +5,7 @@ import { Pause, Play, X, Plus, Minus, SkipForward, Timer } from "lucide-react";
 import { useTimerStore } from "@/lib/timer-store";
 import { useAppStore } from "@/lib/store";
 import { playBeep } from "@/lib/sound";
+import { isNative, scheduleNativeNotification, cancelAllNativeNotifications } from "@/lib/native";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,14 @@ export function RestTimerWidget() {
     }
     acquireWakeLock();
     Notification.requestPermission().catch(() => {});
+  }, [timer.state]);
+
+  // Schedule native notification for background alarm (Capacitor only).
+  // Only on explicit start — cleanup is manual (on dismiss/skip), not on unmount.
+  React.useEffect(() => {
+    if (timer.state !== "running" || timer.endsAt == null || !isNative()) return;
+    const delayMs = Math.max(0, timer.endsAt - Date.now());
+    scheduleNativeNotification("⏱ Repos terminé ! 💪", "C'est reparti pour une série !", delayMs);
   }, [timer.state]);
 
   // Tick every 250ms while running for the countdown UI.
@@ -134,10 +143,13 @@ export function RestTimerWidget() {
     }
   }, []);
 
-  // Close SW notification when timer returns to idle (dismissed / skipped).
+  // Close SW notification + cancel native notifications when timer returns to idle.
   React.useEffect(() => {
-    if (timer.state === "idle" && "serviceWorker" in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({ type: "CLOSE_REST_TIMER" });
+    if (timer.state === "idle") {
+      if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: "CLOSE_REST_TIMER" });
+      }
+      cancelAllNativeNotifications();
     }
   }, [timer.state]);
 

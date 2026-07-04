@@ -57,6 +57,10 @@ server.log
 db/custom.db
 prisma/db/
 
+# Capacitor native platforms (regenerate with `npx cap add android`)
+/android/
+/ios/
+
 # tool analysis results
 /tool-results/
 
