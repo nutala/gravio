@@ -4,8 +4,6 @@
  * imports are dynamic with webpackIgnore to avoid bundling.
  */
 
-import { signIn } from "next-auth/react";
-
 declare global {
   interface Window {
     Capacitor?: {
@@ -24,18 +22,26 @@ export function isNative(): boolean {
 }
 
 // ── Native Google sign-in (opens system browser) ──
+//
+// The entire OAuth flow runs in the system browser to avoid CSRF
+// cookie mismatch between WebView and system browser (the signIn()
+// helper from next-auth/react sets the CSRF cookie in the WebView,
+// but the OAuth callback lands in the system browser cookie store).
+//
+// 1. Browser.open() navigates to /api/auth/native-init
+// 2. native-init fetches a CSRF token, then auto-POSTs to NextAuth's
+//    /api/auth/signin/google — all in the SYSTEM BROWSER cookie store
+// 3. Google OAuth → callback → session created → native-callback page
+// 4. The page displays a one-time code (and attempts a deep link)
+// 5. User types the code in the app → exchange → session cookie
 
 export async function signInWithGoogleNative(): Promise<boolean> {
   if (!isNative()) return false;
 
-  // 1. Get the OAuth URL from NextAuth
-  const result = await signIn("google", { redirect: false, callbackUrl: "/api/auth/native-callback" });
-  if (!result?.url) return false;
-
-  // 2. Open in system browser
   try {
     const { Browser } = await import(/* webpackIgnore: true */ "@capacitor/browser");
-    await Browser.open({ url: result.url });
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://gravio.onrender.com";
+    await Browser.open({ url: origin + "/api/auth/native-init" });
     return true;
   } catch {
     return false;

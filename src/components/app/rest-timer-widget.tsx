@@ -43,7 +43,9 @@ export function RestTimerWidget() {
       return;
     }
     acquireWakeLock();
-    Notification.requestPermission().catch(() => {});
+    if (typeof Notification !== "undefined") {
+      Notification.requestPermission().catch(() => {});
+    }
   }, [timer.state]);
 
   // Schedule native notification for background alarm (Capacitor only).
