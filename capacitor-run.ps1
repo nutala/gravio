@@ -1,5 +1,5 @@
 param(
-  [string]$ServerUrl = "http://192.168.100.14:3000"
+  [string]$ServerUrl = "https://gravio.onrender.com"
 )
 
 $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"

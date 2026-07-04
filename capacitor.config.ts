@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Gravio',
   webDir: 'native-assets',
   server: {
-    url: process.env.CAP_SERVER_URL,
+    url: process.env.CAP_SERVER_URL || "https://gravio.onrender.com",
     cleartext: true,
   },
   plugins: {
