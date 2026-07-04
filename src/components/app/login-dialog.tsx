@@ -175,13 +175,19 @@ export function LoginDialog({
       const result = await signInWithGoogleNativePlugin();
       setPendingEmail(null);
       if (result.success) {
-        toast.success("Connecté avec Google !");
+        toast.success("Connexion Google OK !");
         onOpenChange(false);
         window.setTimeout(() => window.location.reload(), 300);
-      } else if (result.error && result.error !== "Connexion annulée") {
+      } else if (result.error === "Connexion annulée") {
+        // user dismissed the dialog, stay quiet
+      } else if (result.error) {
         toast.error(result.error);
+        // if it failed, show the manual URL fallback so user can use Chrome directly
+        setGoogleUrl(getGoogleLoginUrl());
+        setMode("code");
       }
     } else {
+      // Web / PWA: show manual URL fallback so user opens in Chrome
       setGoogleUrl(getGoogleLoginUrl());
       setMode("code");
     }
@@ -342,7 +348,7 @@ export function LoginDialog({
         ) : mode === "code" ? (
           <form onSubmit={handleCodeExchange} className="flex flex-col gap-4">
             <div className="rounded-lg border border-border bg-muted/30 p-3">
-              <p className="text-xs font-medium text-foreground">1. Copie ce lien et ouvre-le dans Chrome</p>
+              <p className="text-xs font-medium text-foreground">1. Ouvre ce lien dans Chrome</p>
               <div className="mt-2 flex flex-col gap-2">
                 <input
                   readOnly
@@ -351,30 +357,43 @@ export function LoginDialog({
                   onClick={(e) => e.currentTarget.select()}
                   className="w-full rounded bg-background px-3 py-2 text-xs text-foreground border border-border font-mono break-all selection:bg-primary/20"
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 w-full"
-                  onClick={() => {
-                    try {
-                      navigator.clipboard.writeText(googleUrl);
-                      toast.success("Lien copié !");
-                    } catch {
-                      const ta = document.createElement("textarea");
-                      ta.value = googleUrl;
-                      ta.style.position = "fixed";
-                      ta.style.left = "-9999px";
-                      document.body.appendChild(ta);
-                      ta.select();
-                      document.execCommand("copy");
-                      ta.remove();
-                      toast.success("Lien copié !");
-                    }
-                  }}
-                >
-                  Copier le lien
-                </Button>
+                <div className="flex flex-row gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 flex-1"
+                    onClick={() => {
+                      try {
+                        navigator.clipboard.writeText(googleUrl);
+                        toast.success("Lien copié !");
+                      } catch {
+                        const ta = document.createElement("textarea");
+                        ta.value = googleUrl;
+                        ta.style.position = "fixed";
+                        ta.style.left = "-9999px";
+                        document.body.appendChild(ta);
+                        ta.select();
+                        document.execCommand("copy");
+                        ta.remove();
+                        toast.success("Lien copié !");
+                      }
+                    }}
+                  >
+                    Copier le lien
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="sm"
+                    className="h-8 flex-1"
+                    onClick={() => {
+                      window.open(googleUrl, "_blank", "noopener,noreferrer");
+                    }}
+                  >
+                    Ouvrir dans Chrome
+                  </Button>
+                </div>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
                 Copie le lien ou tape-le dans Chrome sur ton téléphone, connecte-toi avec Google, puis copie le code reçu.
