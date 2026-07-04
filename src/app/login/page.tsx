@@ -3,13 +3,13 @@
 import * as React from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Loader2, Mail } from "lucide-react";
+import { Copy, Check, Loader2, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GravioLogo } from "@/components/gravio-logo";
-import { signInWithGoogleNative, diagnoseCapacitor } from "@/lib/native";
+import { signInWithGoogleNative, getGoogleLoginUrl } from "@/lib/native";
 
 type DemoAccount = {
   name: string;
@@ -134,12 +134,12 @@ export default function LoginPage() {
     }
   }
 
+  const [googleUrl, setGoogleUrl] = React.useState("");
+  const [copied, setCopied] = React.useState(false);
+
   async function handleGoogle() {
-    const ok = await signInWithGoogleNative();
-    if (ok) return;
-    const diag = diagnoseCapacitor();
-    console.log("[auth] " + diag);
-    toast.error("Google natif indisponible — " + diag, { duration: 10000 });
+    await signInWithGoogleNative();
+    setGoogleUrl(getGoogleLoginUrl());
   }
 
   const redirectUri = typeof window !== "undefined"
@@ -163,6 +163,68 @@ export default function LoginPage() {
                   <GoogleLogo className="h-4 w-4" />
                   Se connecter avec Google
                 </Button>
+                {googleUrl && (
+                  <div className="rounded-lg border border-border bg-muted/30 p-3">
+                    <p className="text-xs font-medium text-foreground">Ouvre ce lien dans Chrome</p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <code className="flex-1 truncate rounded bg-muted px-2 py-1.5 text-[11px] text-muted-foreground">
+                        {googleUrl}
+                      </code>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0 h-8"
+                        onClick={() => {
+                          navigator.clipboard.writeText(googleUrl);
+                          setCopied(true);
+                          setTimeout(() => setCopied(false), 2000);
+                        }}
+                      >
+                        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                      </Button>
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Colle ce lien dans Chrome, connecte-toi avec Google, puis reviens ici. Un code de connexion
+                      apparaîtra dans l'onglet Chrome — copie-le ci-dessous.
+                    </p>
+                    <div className="mt-3 flex gap-2">
+                      <Input
+                        placeholder="Code (ex: ABC12345)"
+                        value={codeInput}
+                        onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
+                        className="flex-1 text-center font-mono tracking-widest text-sm"
+                        maxLength={8}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-10 shrink-0"
+                        disabled={!codeInput.trim()}
+                        onClick={async () => {
+                          try {
+                            const res = await fetch("/api/auth/exchange", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ code: codeInput.trim().toUpperCase() }),
+                            });
+                            const data = await res.json();
+                            if (data.success) {
+                              toast.success("Connecté en tant que " + data.name);
+                              router.replace("/");
+                            } else {
+                              toast.error(data.error || "Code invalide");
+                            }
+                          } catch {
+                            toast.error("Erreur de connexion");
+                          }
+                        }}
+                      >
+                        OK
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-3 py-1">
                   <div className="h-px flex-1 bg-border" />
                   <span className="text-xs text-muted-foreground">ou</span>

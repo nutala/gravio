@@ -72,40 +72,38 @@ export function diagnoseCapacitor(): string {
   return parts.join(" | ");
 }
 
+export function getGoogleLoginUrl(): string {
+  const origin = window.location.origin || "https://gravio.onrender.com";
+  return origin + "/api/auth/google-start";
+}
+
 export async function signInWithGoogleNative(): Promise<boolean> {
-  // First check via plugins
+  const url = getGoogleLoginUrl();
+
+  // Best-effort: try to open in system browser via App plugin
   const app = getApp();
   if (app) {
     try {
-      const origin = window.location.origin || "https://gravio.onrender.com";
-      await app.openUrl({ url: origin + "/api/auth/google-start" });
+      await app.openUrl({ url });
       return true;
     } catch {
-      return false;
+      // ignore, fall through
     }
   }
 
-  // Fallback via Browser plugin if available
+  // Best-effort: try Chrome Custom Tab
   const browser = window.Capacitor?.plugins?.Browser as { open?: (opts: { url: string }) => Promise<void> } | undefined;
   if (browser?.open) {
     try {
-      const origin = window.location.origin || "https://gravio.onrender.com";
-      await browser.open({ url: origin + "/api/auth/google-start" });
+      await browser.open({ url });
       return true;
     } catch {
-      return false;
+      // ignore
     }
   }
 
-  // Last resort: try window.open
-  try {
-    const origin = window.location.origin || "https://gravio.onrender.com";
-    const win = window.open(origin + "/api/auth/google-start", "_blank");
-    if (win && !win.closed) return true;
-  } catch {
-    // ignore
-  }
-
+  // Unless a plugin successfully opened the browser, return false.
+  // The caller should show the URL for manual copy-paste in Chrome.
   return false;
 }
 

@@ -4,7 +4,7 @@ import * as React from "react";
 import { signIn } from "next-auth/react";
 import { Loader2, Mail, ArrowLeft, Check } from "lucide-react";
 import { toast } from "sonner";
-import { signInWithGoogleNative, diagnoseCapacitor } from "@/lib/native";
+import { signInWithGoogleNative, getGoogleLoginUrl } from "@/lib/native";
 import {
   Dialog,
   DialogContent,
@@ -66,6 +66,7 @@ export function LoginDialog({
   const [pendingEmail, setPendingEmail] = React.useState<string | null>(null);
   const [codeInput, setCodeInput] = React.useState("");
   const [codeStatus, setCodeStatus] = React.useState<"idle" | "loading" | "done">("idle");
+  const [googleUrl, setGoogleUrl] = React.useState("");
   const [loginEmail, setLoginEmail] = React.useState("");
   const [loginPassword, setLoginPassword] = React.useState("");
   const [regName, setRegName] = React.useState("");
@@ -166,16 +167,13 @@ export function LoginDialog({
   }
 
   async function handleGoogle() {
+    // Best-effort: open system browser automatically
     const ok = await signInWithGoogleNative();
-    if (ok) { setMode("code"); return; }
 
-    // Show diagnostic instead of silently falling back to web (which redirects
-    // the WebView to Google and gets blocked with disallowed_useragent).
-    const diag = diagnoseCapacitor();
-    console.log("[auth] " + diag);
-    toast.error("Google natif indisponible — " + diag, { duration: 10000 });
-    // DO NOT fall back to signIn("google") — it navigates the WebView
-    // to Google which returns disallowed_useragent.
+    // Always show the code dialog with the URL, whether auto-open succeeded or not
+    // (Google blocks Chrome Custom Tabs, so the user may need to open Chrome manually)
+    setGoogleUrl(getGoogleLoginUrl());
+    setMode("code");
   }
 
   async function handleCodeExchange(e: React.FormEvent) {
@@ -328,14 +326,31 @@ export function LoginDialog({
           </form>
         ) : mode === "code" ? (
           <form onSubmit={handleCodeExchange} className="flex flex-col gap-4">
-            <div className="text-center">
-              <p className="text-sm">Navigateur ouvert pour la connexion Google.</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Connecte-toi dans le navigateur, puis saisis le code affiché.
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <p className="text-xs font-medium text-foreground">1. Ouvre ce lien dans Chrome</p>
+              <div className="mt-2 flex items-center gap-2">
+                <code className="flex-1 truncate rounded bg-muted px-2 py-1.5 text-[11px] text-muted-foreground">
+                  {googleUrl}
+                </code>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 h-8"
+                  onClick={() => {
+                    navigator.clipboard.writeText(googleUrl);
+                    toast.success("Lien copié !");
+                  }}
+                >
+                  Copier
+                </Button>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Colle le lien dans Chrome, connecte-toi avec Google, puis saisis le code ci-dessous.
               </p>
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="code-input">Code de connexion</Label>
+              <Label htmlFor="code-input">2. Code de connexion</Label>
               <Input
                 id="code-input"
                 placeholder="Ex: ABC12345"
