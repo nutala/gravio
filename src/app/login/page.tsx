@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GravioLogo } from "@/components/gravio-logo";
+import { signInWithGoogleNative, diagnoseCapacitor } from "@/lib/native";
 
 type DemoAccount = {
   name: string;
@@ -134,7 +135,11 @@ export default function LoginPage() {
   }
 
   async function handleGoogle() {
-    await signIn("google", { callbackUrl: "/" });
+    const ok = await signInWithGoogleNative();
+    if (ok) return;
+    const diag = diagnoseCapacitor();
+    console.log("[auth] " + diag);
+    toast.error("Google natif indisponible — " + diag, { duration: 10000 });
   }
 
   const redirectUri = typeof window !== "undefined"

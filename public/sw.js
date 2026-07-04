@@ -1,5 +1,5 @@
 // ── Cache names ──────────────────────────────────────────────
-var STATIC_CACHE = "gravio-static-v1";
+var STATIC_CACHE = "gravio-static-v2";
 var API_CACHE = "gravio-api-v1";
 var NAV_CACHE = "gravio-nav-v1";
 
@@ -40,9 +40,9 @@ self.addEventListener("fetch", function (e) {
     return;
   }
 
-  // Next.js static assets (JS, CSS): cache-first
+  // Next.js static assets (JS, CSS): stale-while-revalidate
   if (url.pathname.startsWith("/_next/static/")) {
-    e.respondWith(cacheFirst(req, STATIC_CACHE));
+    e.respondWith(staleWhileRevalidate(req, STATIC_CACHE));
     return;
   }
 
@@ -52,9 +52,9 @@ self.addEventListener("fetch", function (e) {
     return;
   }
 
-  // Other static files (images, fonts, icons): cache-first
+  // Other static files (images, fonts, icons): stale-while-revalidate
   if (url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff2?|webp|avif)$/)) {
-    e.respondWith(cacheFirst(req, STATIC_CACHE));
+    e.respondWith(staleWhileRevalidate(req, STATIC_CACHE));
     return;
   }
 });
@@ -84,6 +84,18 @@ function cacheFirst(req, cacheName) {
         if (res.ok) cache.put(req, res.clone());
         return res;
       });
+    });
+  });
+}
+
+function staleWhileRevalidate(req, cacheName) {
+  return caches.open(cacheName).then(function (cache) {
+    return cache.match(req).then(function (cached) {
+      var fetchPromise = fetch(req).then(function (res) {
+        if (res.ok) cache.put(req, res.clone());
+        return res;
+      });
+      return cached || fetchPromise;
     });
   });
 }
