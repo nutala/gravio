@@ -37,11 +37,10 @@ export function isNative(): boolean {
 // 5. User types the code in the app → exchange → session cookie
 
 export async function signInWithGoogleNative(): Promise<boolean> {
-  if (!isNative()) return false;
-
+  // Try to use Capacitor's App.openUrl() directly.
+  // No isNative() check — if the import succeeds we're in Capacitor,
+  // otherwise the catch returns false and the caller falls back to web.
   try {
-    // Use App.openUrl() to open the system browser (not a Chrome Custom Tab)
-    // because Google blocks OAuth from embedded browsers (disallowed_useragent).
     const { App } = await import(/* webpackIgnore: true */ "@capacitor/app");
     const origin = typeof window !== "undefined" ? window.location.origin : "https://gravio.onrender.com";
     await App.openUrl({ url: origin + "/api/auth/google-start" });

@@ -4,7 +4,7 @@ import * as React from "react";
 import { signIn } from "next-auth/react";
 import { Loader2, Mail, ArrowLeft, Check } from "lucide-react";
 import { toast } from "sonner";
-import { isNative, signInWithGoogleNative } from "@/lib/native";
+import { signInWithGoogleNative } from "@/lib/native";
 import {
   Dialog,
   DialogContent,
@@ -166,12 +166,12 @@ export function LoginDialog({
   }
 
   async function handleGoogle() {
-    if (isNative()) {
-      const ok = await signInWithGoogleNative();
-      if (ok) setMode("code");
-      else toast.error("Impossible d'ouvrir le navigateur");
-      return;
-    }
+    // Always try the native flow first (opens system browser).
+    // Falls back to web redirect only if Capacitor is not available.
+    const ok = await signInWithGoogleNative();
+    if (ok) { setMode("code"); return; }
+
+    // Web fallback: redirect the current browser tab to Google
     try {
       await signIn("google", { callbackUrl: "/" });
     } catch (e) {
