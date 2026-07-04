@@ -18,6 +18,7 @@ import { RestTimerWidget } from "@/components/app/rest-timer-widget";
 import { CustomRestTrigger } from "@/components/app/custom-rest-trigger";
 import { PWAInstallPrompt } from "@/components/app/PWAInstallPrompt";
 import { NetworkStatus } from "@/components/app/network-status";
+import { NativeAuthHandler } from "@/components/app/native-auth-handler";
 import { Button } from "@/components/ui/button";
 
 const NAV: { id: ViewId; label: string; icon: React.ComponentType<{ className?: string }>; short: string }[] = [
@@ -135,6 +136,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Offline indicator */}
       <NetworkStatus />
+
+      {/* Native auth handler (code exchange on deep link) */}
+      <NativeAuthHandler />
 
       {/* PWA install prompt */}
       <PWAInstallPrompt />

@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import { signIn } from "next-auth/react";
-import { Loader2, Mail } from "lucide-react";
+import { Loader2, Mail, ArrowLeft, Check } from "lucide-react";
 import { toast } from "sonner";
+import { isNative, signInWithGoogleNative } from "@/lib/native";
 import {
   Dialog,
   DialogContent,
@@ -51,7 +52,7 @@ function GoogleLogo({ className }: { className?: string }) {
   );
 }
 
-type AuthMode = "choose" | "login" | "register";
+type AuthMode = "choose" | "login" | "register" | "code";
 
 export function LoginDialog({
   open,
@@ -63,6 +64,8 @@ export function LoginDialog({
   const [googleConfigured, setGoogleConfigured] = React.useState<boolean | null>(null);
   const [mode, setMode] = React.useState<AuthMode>("choose");
   const [pendingEmail, setPendingEmail] = React.useState<string | null>(null);
+  const [codeInput, setCodeInput] = React.useState("");
+  const [codeStatus, setCodeStatus] = React.useState<"idle" | "loading" | "done">("idle");
   const [loginEmail, setLoginEmail] = React.useState("");
   const [loginPassword, setLoginPassword] = React.useState("");
   const [regName, setRegName] = React.useState("");
@@ -91,6 +94,8 @@ export function LoginDialog({
       setRegName("");
       setRegEmail("");
       setRegPassword("");
+      setCodeInput("");
+      setCodeStatus("idle");
     }
   }, [open]);
 
@@ -161,10 +166,43 @@ export function LoginDialog({
   }
 
   async function handleGoogle() {
+    if (isNative()) {
+      const ok = await signInWithGoogleNative();
+      if (ok) setMode("code");
+      else toast.error("Impossible d'ouvrir le navigateur");
+      return;
+    }
     try {
       await signIn("google", { callbackUrl: "/" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Échec Google");
+    }
+  }
+
+  async function handleCodeExchange(e: React.FormEvent) {
+    e.preventDefault();
+    const code = codeInput.trim().toUpperCase();
+    if (!code) return;
+    setCodeStatus("loading");
+    try {
+      const res = await fetch("/api/auth/exchange", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCodeStatus("done");
+        toast.success("Connecté en tant que " + data.name);
+        onOpenChange(false);
+        window.setTimeout(() => window.location.reload(), 500);
+      } else {
+        toast.error(data.error || "Code invalide");
+        setCodeStatus("idle");
+      }
+    } catch {
+      toast.error("Erreur de connexion");
+      setCodeStatus("idle");
     }
   }
 
@@ -288,6 +326,40 @@ export function LoginDialog({
                 </Button>
               </div>
             </div>
+          </form>
+        ) : mode === "code" ? (
+          <form onSubmit={handleCodeExchange} className="flex flex-col gap-4">
+            <div className="text-center">
+              <p className="text-sm">Navigateur ouvert pour la connexion Google.</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Connecte-toi dans le navigateur, puis saisis le code affiché.
+              </p>
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="code-input">Code de connexion</Label>
+              <Input
+                id="code-input"
+                placeholder="Ex: ABC12345"
+                value={codeInput}
+                onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
+                className="text-center text-lg font-mono tracking-widest"
+                maxLength={8}
+                autoFocus
+                disabled={codeStatus !== "idle"}
+              />
+            </div>
+            <Button type="submit" disabled={codeStatus !== "idle"} className="h-10 w-full gap-2">
+              {codeStatus === "loading" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : codeStatus === "done" ? (
+                <Check className="h-4 w-4" />
+              ) : null}
+              {codeStatus === "loading" ? "Connexion..." : codeStatus === "done" ? "Connecté !" : "Valider le code"}
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setMode("choose")} disabled={codeStatus !== "idle"}>
+              <ArrowLeft className="mr-1 h-3 w-3" />
+              Retour
+            </Button>
           </form>
         ) : (
           <form onSubmit={handleRegister} className="flex flex-col gap-3">
