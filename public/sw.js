@@ -103,23 +103,54 @@ function navFirst(req) {
   });
 }
 
-// ── Rest timer (unchanged) ──────────────────────────────────
+// ── Rest timer ──────────────────────────────────────────────
 var timerEndsAt = 0;
 var timerInterval = null;
+var repeatInterval = null;
+var timerNotified = false;
+
+function notifyTimerEnd() {
+  timerNotified = true;
+  self.registration.showNotification("Repos terminé ! 💪", {
+    body: "C'est reparti pour une série !",
+    tag: "rest-timer",
+    silent: false,
+    vibrate: [300, 150, 300, 150, 600],
+    requireInteraction: true,
+  });
+  // Wake up any client so it can play the sound
+  self.clients.matchAll({ type: "window" }).then(function (cs) {
+    cs.forEach(function (c) { c.postMessage({ type: "REST_TIMER_ENDED" }); });
+  });
+}
+
+function startRepeatNotify() {
+  if (repeatInterval) return;
+  repeatInterval = setInterval(function () {
+    if (timerEndsAt > 0) return; // timer still running, skip
+    self.registration.getNotifications({ tag: "rest-timer" }).then(function (ns) {
+      if (ns.length === 0) { stopRepeatNotify(); return; }
+      notifyTimerEnd();
+    });
+  }, 8000);
+}
+
+function stopRepeatNotify() {
+  if (repeatInterval) {
+    clearInterval(repeatInterval);
+    repeatInterval = null;
+  }
+}
 
 function startTimerCheck() {
+  timerNotified = false;
   if (timerInterval) return;
   timerInterval = setInterval(function () {
     if (timerEndsAt <= 0) return;
     if (Date.now() >= timerEndsAt) {
       timerEndsAt = 0;
-      self.registration.showNotification("Repos terminé ! 💪", {
-        body: "C'est reparti pour une série !",
-        tag: "rest-timer",
-        silent: false,
-        vibrate: [200, 100, 200],
-        requireInteraction: true,
-      });
+      notifyTimerEnd();
+      startRepeatNotify();
     }
   }, 1000);
 }
@@ -130,6 +161,8 @@ function stopTimerCheck() {
     timerInterval = null;
   }
   timerEndsAt = 0;
+  timerNotified = false;
+  stopRepeatNotify();
 }
 
 self.addEventListener("message", function (e) {
@@ -139,26 +172,17 @@ self.addEventListener("message", function (e) {
   var endsAt = data.endsAt;
 
   if (type === "SHOW_NOTIFICATION") {
-    self.registration.showNotification("Repos terminé ! 💪", {
-      body: "C'est reparti pour une série !",
-      tag: "rest-timer",
-      silent: false,
-      vibrate: [200, 100, 200],
-    });
+    notifyTimerEnd();
   }
 
   if (type === "UPDATE_REST_TIMER") {
     if (endsAt) timerEndsAt = endsAt;
+    timerNotified = false;
     startTimerCheck();
 
     if (remainingSec <= 0) {
-      self.registration.showNotification("Repos terminé ! 💪", {
-        body: "C'est reparti pour une série !",
-        tag: "rest-timer",
-        silent: false,
-        vibrate: [200, 100, 200],
-        requireInteraction: true,
-      });
+      notifyTimerEnd();
+      startRepeatNotify();
     } else {
       var m = Math.floor(remainingSec / 60);
       var s = remainingSec % 60;

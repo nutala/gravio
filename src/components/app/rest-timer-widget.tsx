@@ -66,11 +66,21 @@ export function RestTimerWidget() {
     return () => clearInterval(id);
   }, [timer.state]);
 
-  // Listen for FOCUS_WORKOUT from SW → navigate to workout view.
+  // Listen for messages from the service worker.
   React.useEffect(() => {
     const handler = (e: MessageEvent) => {
       if (e.data?.type === "FOCUS_WORKOUT") {
         useAppStore.getState().setView("new-workout");
+      }
+      if (e.data?.type === "REST_TIMER_ENDED") {
+        const st = useTimerStore.getState();
+        if (st.state === "running" && st.endsAt != null && Date.now() >= st.endsAt) {
+          doneHandled.current = true;
+          playBeep();
+          try { navigator.vibrate?.([200, 100, 200]); } catch { /* no vibrate */ }
+          toast.success("Repos terminé — c'est reparti ! 💪", { duration: 4000 });
+          st.complete();
+        }
       }
     };
     if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
