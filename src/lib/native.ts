@@ -17,7 +17,7 @@ let _isNative: boolean | null = null;
 
 export function isNative(): boolean {
   if (_isNative !== null) return _isNative;
-  _isNative = typeof window !== "undefined" && (window.Capacitor?.isNativePlatform() ?? false);
+  _isNative = typeof window !== "undefined" && window.Capacitor !== undefined;
   return _isNative;
 }
 
