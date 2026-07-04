@@ -61,16 +61,52 @@ function getLN(): CapacitorPluginLocalNotifications | undefined {
 //    tokens, creates/finds user, generates a one-time login code
 // 5. User types the code in the app → exchange → session cookie
 
+export function diagnoseCapacitor(): string {
+  const parts: string[] = [];
+  parts.push("Capacitor: " + (typeof window.Capacitor !== "undefined" ? "OK" : "MANQUANT"));
+  parts.push("Plugins: " + (window.Capacitor?.plugins ? "OK" : "MANQUANT"));
+  parts.push("App plugin: " + (window.Capacitor?.plugins?.App ? "OK" : "MANQUANT"));
+  parts.push("LN plugin: " + (window.Capacitor?.plugins?.LocalNotifications ? "OK" : "MANQUANT"));
+  parts.push("Browser plugin: " + (window.Capacitor?.plugins?.Browser ? "OK" : "MANQUANT"));
+  parts.push("Origin: " + window.location.origin);
+  return parts.join(" | ");
+}
+
 export async function signInWithGoogleNative(): Promise<boolean> {
-  try {
-    const app = getApp();
-    if (!app) return false;
-    const origin = window.location.origin || "https://gravio.onrender.com";
-    await app.openUrl({ url: origin + "/api/auth/google-start" });
-    return true;
-  } catch {
-    return false;
+  // First check via plugins
+  const app = getApp();
+  if (app) {
+    try {
+      const origin = window.location.origin || "https://gravio.onrender.com";
+      await app.openUrl({ url: origin + "/api/auth/google-start" });
+      return true;
+    } catch {
+      return false;
+    }
   }
+
+  // Fallback via Browser plugin if available
+  const browser = window.Capacitor?.plugins?.Browser as { open?: (opts: { url: string }) => Promise<void> } | undefined;
+  if (browser?.open) {
+    try {
+      const origin = window.location.origin || "https://gravio.onrender.com";
+      await browser.open({ url: origin + "/api/auth/google-start" });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // Last resort: try window.open
+  try {
+    const origin = window.location.origin || "https://gravio.onrender.com";
+    const win = window.open(origin + "/api/auth/google-start", "_blank");
+    if (win && !win.closed) return true;
+  } catch {
+    // ignore
+  }
+
+  return false;
 }
 
 // ── Deep link / app URL open listener ──

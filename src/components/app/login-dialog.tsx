@@ -4,7 +4,7 @@ import * as React from "react";
 import { signIn } from "next-auth/react";
 import { Loader2, Mail, ArrowLeft, Check } from "lucide-react";
 import { toast } from "sonner";
-import { signInWithGoogleNative } from "@/lib/native";
+import { signInWithGoogleNative, diagnoseCapacitor } from "@/lib/native";
 import {
   Dialog,
   DialogContent,
@@ -166,16 +166,18 @@ export function LoginDialog({
   }
 
   async function handleGoogle() {
-    // Always try the native flow first (opens system browser).
-    // Falls back to web redirect only if Capacitor is not available.
     const ok = await signInWithGoogleNative();
     if (ok) { setMode("code"); return; }
+
+    // Diagnostic — affiche l'état de Capacitor
+    const diag = diagnoseCapacitor();
+    console.log("[auth] " + diag);
 
     // Web fallback: redirect the current browser tab to Google
     try {
       await signIn("google", { callbackUrl: "/" });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Échec Google");
+      toast.error("Google natif indisponible (" + diag + ")");
     }
   }
 
