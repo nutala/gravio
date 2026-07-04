@@ -107,15 +107,16 @@ function navFirst(req) {
 var timerEndsAt = 0;
 var timerInterval = null;
 var repeatInterval = null;
-var timerNotified = false;
+
+var VIBE_ALARM = [400, 150, 400, 150, 200, 150, 600, 200, 600];
 
 function notifyTimerEnd() {
-  timerNotified = true;
-  self.registration.showNotification("Repos terminé ! 💪", {
+  self.registration.showNotification("⏱ Repos terminé ! 💪", {
     body: "C'est reparti pour une série !",
     tag: "rest-timer",
     silent: false,
-    vibrate: [300, 150, 300, 150, 600],
+    vibrate: VIBE_ALARM,
+    renotify: true,
     requireInteraction: true,
   });
   // Wake up any client so it can play the sound
@@ -127,12 +128,12 @@ function notifyTimerEnd() {
 function startRepeatNotify() {
   if (repeatInterval) return;
   repeatInterval = setInterval(function () {
-    if (timerEndsAt > 0) return; // timer still running, skip
+    if (timerEndsAt > 0) return;
     self.registration.getNotifications({ tag: "rest-timer" }).then(function (ns) {
       if (ns.length === 0) { stopRepeatNotify(); return; }
       notifyTimerEnd();
     });
-  }, 8000);
+  }, 6000);
 }
 
 function stopRepeatNotify() {
@@ -143,7 +144,6 @@ function stopRepeatNotify() {
 }
 
 function startTimerCheck() {
-  timerNotified = false;
   if (timerInterval) return;
   timerInterval = setInterval(function () {
     if (timerEndsAt <= 0) return;
@@ -161,7 +161,6 @@ function stopTimerCheck() {
     timerInterval = null;
   }
   timerEndsAt = 0;
-  timerNotified = false;
   stopRepeatNotify();
 }
 
@@ -177,7 +176,6 @@ self.addEventListener("message", function (e) {
 
   if (type === "UPDATE_REST_TIMER") {
     if (endsAt) timerEndsAt = endsAt;
-    timerNotified = false;
     startTimerCheck();
 
     if (remainingSec <= 0) {
@@ -187,7 +185,7 @@ self.addEventListener("message", function (e) {
       var m = Math.floor(remainingSec / 60);
       var s = remainingSec % 60;
       var timeStr = String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
-      self.registration.showNotification("Repos " + timeStr, {
+      self.registration.showNotification("⏱ Repos " + timeStr, {
         body: "Temps restant : " + timeStr,
         tag: "rest-timer",
         silent: true,

@@ -4,47 +4,92 @@ import * as React from "react";
 import { Pause, Play, X, Plus, Minus, SkipForward, Timer } from "lucide-react";
 import { useTimerStore } from "@/lib/timer-store";
 import { useAppStore } from "@/lib/store";
-import { playBeep, ensureAudio } from "@/lib/sound";
+import { playBeep } from "@/lib/sound";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 
-// ── Timer tick etc. ──
+let wakeLockRef: WakeLockSentinel | null = null;
+
+async function acquireWakeLock() {
+  try {
+    if (wakeLockRef) return;
+    wakeLockRef = await navigator.wakeLock.request("screen");
+    wakeLockRef.onrelease = () => { wakeLockRef = null; };
+  } catch { /* wake lock not supported */ }
+}
+
+function releaseWakeLock() {
+  if (wakeLockRef) {
+    wakeLockRef.release().catch(() => {});
+    wakeLockRef = null;
+  }
+}
 
 export function RestTimerWidget() {
   const timer = useTimerStore();
   const [now, setNow] = React.useState(Date.now());
-  /// Tracks whether the "done" event was handled during this session,
-  /// so we don't double-beep after a refresh recovery.
   const doneHandled = React.useRef(false);
   const endsAtRef = React.useRef(timer.endsAt);
 
-  // Sync ref so intervals always read the latest endsAt.
   React.useEffect(() => { endsAtRef.current = timer.endsAt; }, [timer.endsAt]);
 
-  // Request notification permission when the timer starts running.
+  // Wake lock + notification permission + absolute setTimeout for completion
   React.useEffect(() => {
-    if (timer.state === "running" && typeof Notification !== "undefined" && Notification.permission === "default") {
-      Notification.requestPermission().catch(() => {});
+    if (timer.state !== "running" || timer.endsAt == null) {
+      releaseWakeLock();
+      return;
     }
+    acquireWakeLock();
+    Notification.requestPermission().catch(() => {});
   }, [timer.state]);
 
-  // Tick every 250ms while running so the countdown stays smooth.
-  // Also refresh on visibility change so the timer catches up immediately
-  // when the user returns to the tab.
+  // Tick every 250ms while running for the countdown UI.
   React.useEffect(() => {
     if (timer.state !== "running") return;
     setNow(Date.now());
     const id = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(id);
+  }, [timer.state]);
+
+  // Absolute setTimeout: schedules the beep exactly at endsAt.
+  // This is more reliable than setInterval because it fires once at the
+  // precise target time, even if the tab is backgrounded (browsers throttle
+  // repeated timers but single setTimeout for a future time is more reliable).
+  React.useEffect(() => {
+    if (timer.state !== "running" || timer.endsAt == null) return;
+    const delay = Math.max(0, timer.endsAt - Date.now());
+    const id = setTimeout(() => {
+      doneHandled.current = true;
+      beepAndNotify();
+      timer.complete();
+    }, delay);
+    return () => clearTimeout(id);
+  }, [timer.state, timer.endsAt, timer]);
+
+  // Visibility change: when user returns, check if timer expired and beep.
+  React.useEffect(() => {
     const onVisible = () => {
-      if (document.visibilityState === "visible") setNow(Date.now());
+      if (document.visibilityState !== "visible") return;
+      setNow(Date.now());
+      const st = useTimerStore.getState();
+      if (st.state === "running" && st.endsAt != null && Date.now() >= st.endsAt && !doneHandled.current) {
+        doneHandled.current = true;
+        beepAndNotify();
+        st.complete();
+      }
     };
     document.addEventListener("visibilitychange", onVisible);
-    return () => {
-      clearInterval(id);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
+
+  // Recovery after page refresh: timer persisted as "done" during hydration.
+  React.useEffect(() => {
+    if (timer.state === "done" && !doneHandled.current) {
+      doneHandled.current = true;
+      beepAndNotify();
+    }
   }, [timer.state]);
 
   // Send periodic countdown updates to the service worker notification.
@@ -74,7 +119,7 @@ export function RestTimerWidget() {
       }
       if (e.data?.type === "REST_TIMER_ENDED") {
         const st = useTimerStore.getState();
-        if (st.state === "running" && st.endsAt != null && Date.now() >= st.endsAt) {
+        if (st.state === "running" && st.endsAt != null && Date.now() >= st.endsAt && !doneHandled.current) {
           doneHandled.current = true;
           playBeep();
           try { navigator.vibrate?.([200, 100, 200]); } catch { /* no vibrate */ }
@@ -96,35 +141,13 @@ export function RestTimerWidget() {
     }
   }, [timer.state]);
 
-  // Detect completion (live).
-  React.useEffect(() => {
-    if (timer.state === "running" && timer.endsAt != null) {
-      const left = timer.endsAt - Date.now();
-      if (left <= 0) {
-        doneHandled.current = true;
-        beepAndNotify();
-        timer.complete();
-      }
-    }
-  }, [now, timer.state, timer.endsAt, timer]);
-
-  // Recovery after page refresh: timer was persisted as "done" during hydration.
-  React.useEffect(() => {
-    if (timer.state === "done" && !doneHandled.current) {
-      doneHandled.current = true;
-      beepAndNotify();
-    }
-  }, [timer.state]);
-
-  // Vibrate once per second during the last 3 seconds before the alarm.
-  // Uses absolute setTimeout scheduling so it works even when the tab is
-  // backgrounded (setInterval is throttled by browsers for background tabs).
+  // Vibrate during the last 3 seconds before the alarm.
   React.useEffect(() => {
     if (timer.state !== "running" || timer.endsAt == null) return;
     const endsAt = timer.endsAt;
-    const now = Date.now();
+    const t0 = Date.now();
     const schedule = (msBefore: number) => {
-      const delay = Math.max(0, endsAt - now - msBefore);
+      const delay = Math.max(0, endsAt - t0 - msBefore);
       return setTimeout(() => {
         try { navigator.vibrate?.(80); } catch { /* no vibrate */ }
       }, delay);
