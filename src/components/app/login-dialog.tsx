@@ -4,7 +4,7 @@ import * as React from "react";
 import { signIn } from "next-auth/react";
 import { Loader2, Mail, ArrowLeft, Check } from "lucide-react";
 import { toast } from "sonner";
-import { getGoogleLoginUrl } from "@/lib/native";
+import { getGoogleLoginUrl, isNative, signInWithGoogleNativePlugin } from "@/lib/native";
 import {
   Dialog,
   DialogContent,
@@ -167,8 +167,21 @@ export function LoginDialog({
   }
 
   async function handleGoogle() {
-    setGoogleUrl(getGoogleLoginUrl());
-    setMode("code");
+    if (isNative()) {
+      setPendingEmail("native-google");
+      const result = await signInWithGoogleNativePlugin();
+      setPendingEmail(null);
+      if (result.success) {
+        toast.success("Connecté avec Google !");
+        onOpenChange(false);
+        window.setTimeout(() => window.location.reload(), 300);
+      } else if (result.error && result.error !== "Connexion annulée") {
+        toast.error(result.error);
+      }
+    } else {
+      setGoogleUrl(getGoogleLoginUrl());
+      setMode("code");
+    }
   }
 
   async function handleCodeExchange(e: React.FormEvent) {
@@ -225,9 +238,9 @@ export function LoginDialog({
           <div className="flex flex-col gap-2">
             {googleConfigured && (
               <>
-                <Button onClick={handleGoogle} variant="outline" className="h-11 w-full gap-3">
-                  <GoogleLogo className="h-4 w-4" />
-                  Se connecter avec Google
+                <Button onClick={handleGoogle} disabled={pendingEmail !== null} variant="outline" className="h-11 w-full gap-3">
+                  {pendingEmail === "native-google" ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleLogo className="h-4 w-4" />}
+                  {pendingEmail === "native-google" ? "Connexion..." : "Se connecter avec Google"}
                 </Button>
                 <div className="flex items-center gap-3 py-1">
                   <div className="h-px flex-1 bg-border" />

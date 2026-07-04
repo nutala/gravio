@@ -5,7 +5,12 @@
  * Uses window.Capacitor.plugins directly instead of dynamic imports
  * (import() with webpackIgnore does NOT work in Capacitor — the
  * runtime does not intercept ES module imports).
+ *
+ * Static imports ARE bundled fine — only dynamic import()+webpackIgnore
+ * is broken.
  */
+
+import { SocialLogin } from "@capgo/capacitor-social-login";
 
 interface CapacitorPluginApp {
   openUrl: (opts: { url: string }) => Promise<void>;
@@ -20,9 +25,20 @@ interface CapacitorPluginLocalNotifications {
   addListener: (event: string, handler: () => void) => { remove: () => void };
 }
 
+interface CapacitorPluginBrowser {
+  open: (opts: { url: string }) => Promise<void>;
+}
+
+interface CapacitorPluginSocialLogin {
+  initialize: (opts: { google: { webClientId: string; mode: string } }) => Promise<void>;
+  login: (opts: { provider: string; options: { scopes: string[] } }) => Promise<unknown>;
+}
+
 interface CapacitorPlugins {
   App?: CapacitorPluginApp;
   LocalNotifications?: CapacitorPluginLocalNotifications;
+  Browser?: CapacitorPluginBrowser;
+  SocialLogin?: CapacitorPluginSocialLogin;
 }
 
 declare global {
@@ -68,8 +84,67 @@ export function diagnoseCapacitor(): string {
   parts.push("App plugin: " + (window.Capacitor?.plugins?.App ? "OK" : "MANQUANT"));
   parts.push("LN plugin: " + (window.Capacitor?.plugins?.LocalNotifications ? "OK" : "MANQUANT"));
   parts.push("Browser plugin: " + (window.Capacitor?.plugins?.Browser ? "OK" : "MANQUANT"));
+  parts.push("SocialLogin plugin: " + (window.Capacitor?.plugins?.SocialLogin ? "OK" : "MANQUANT"));
   parts.push("Origin: " + window.location.origin);
   return parts.join(" | ");
+}
+
+export async function signInWithGoogleNativePlugin(): Promise<{ success: boolean; error?: string }> {
+  if (!isNative()) {
+    return { success: false, error: "Pas sur une plateforme native" };
+  }
+
+  try {
+    const statusRes = await fetch("/api/auth/status");
+    const statusData = await statusRes.json();
+    const webClientId = statusData.webClientId as string | undefined;
+
+    if (!webClientId) {
+      return { success: false, error: "Google non configuré sur le serveur" };
+    }
+
+    await SocialLogin.initialize({
+      google: {
+        webClientId,
+        mode: "online",
+      },
+    });
+
+    const result = await SocialLogin.login({
+      provider: "google",
+      options: {
+        scopes: ["profile", "email"],
+      },
+    });
+
+    if (result.provider !== "google" || result.result.responseType !== "online") {
+      return { success: false, error: "Réponse inattendue du plugin" };
+    }
+
+    const idToken = result.result.idToken;
+    if (!idToken) {
+      return { success: false, error: "Aucun idToken reçu" };
+    }
+
+    const exchangeRes = await fetch("/api/auth/native-google", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken }),
+    });
+
+    const exchangeData = await exchangeRes.json();
+    if (!exchangeRes.ok || !exchangeData.success) {
+      return { success: false, error: exchangeData.error || "Échec de l'échange du token" };
+    }
+
+    return { success: true };
+  } catch (e: unknown) {
+    const err = e as { code?: string; message?: string };
+    if (err.code === "USER_CANCELLED") {
+      return { success: false, error: "Connexion annulée" };
+    }
+    return { success: false, error: err.message || "Erreur inconnue" };
+  }
 }
 
 export function getGoogleLoginUrl(): string {
@@ -93,7 +168,7 @@ export async function signInWithGoogleNative(): Promise<boolean> {
   }
 
   // Best-effort: try Chrome Custom Tab
-  const browser = window.Capacitor?.plugins?.Browser as { open?: (opts: { url: string }) => Promise<void> } | undefined;
+  const browser = window.Capacitor?.plugins?.Browser;
   if (browser?.open) {
     try {
       await browser.open({ url });
