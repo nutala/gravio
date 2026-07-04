@@ -1,5 +1,6 @@
 /**
  * One-time login code store for Capacitor native auth flow.
+ * Also stores Google OAuth state for the custom flow.
  * In-memory Map (single-server, adequate for render.com).
  */
 
@@ -8,6 +9,11 @@ interface NativeAuthEntry {
   email: string;
   name: string;
   image: string;
+  createdAt: number;
+}
+
+interface OAuthStateEntry {
+  state: string;
   createdAt: number;
 }
 
@@ -45,4 +51,29 @@ export function consumeNativeLoginCode(code: string): NativeAuthEntry | null {
   }
   store.delete(code); // one-time use
   return entry;
+}
+
+// ── Google OAuth state store (server-side, no cookies) ──
+
+const oauthStore = new Map<string, OAuthStateEntry>();
+
+export function createOAuthState(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let state = "";
+  for (let i = 0; i < 32; i++) {
+    state += chars[Math.floor(Math.random() * chars.length)];
+  }
+  oauthStore.set(state, { state, createdAt: Date.now() });
+  return state;
+}
+
+export function consumeOAuthState(state: string): boolean {
+  const entry = oauthStore.get(state);
+  if (!entry) return false;
+  if (Date.now() - entry.createdAt > 300_000) {
+    oauthStore.delete(state);
+    return false;
+  }
+  oauthStore.delete(state);
+  return true;
 }

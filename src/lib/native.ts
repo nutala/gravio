@@ -23,16 +23,17 @@ export function isNative(): boolean {
 
 // ── Native Google sign-in (opens system browser) ──
 //
-// The entire OAuth flow runs in the system browser to avoid CSRF
-// cookie mismatch between WebView and system browser (the signIn()
-// helper from next-auth/react sets the CSRF cookie in the WebView,
-// but the OAuth callback lands in the system browser cookie store).
+// Uses a completely server-side OAuth flow that bypasses NextAuth's
+// CSRF mechanism. The state parameter is stored server-side (no CSRF
+// cookie needed), so there is no cookie mismatch between WebView and
+// system browser.
 //
-// 1. Browser.open() navigates to /api/auth/native-init
-// 2. native-init fetches a CSRF token, then auto-POSTs to NextAuth's
-//    /api/auth/signin/google — all in the SYSTEM BROWSER cookie store
-// 3. Google OAuth → callback → session created → native-callback page
-// 4. The page displays a one-time code (and attempts a deep link)
+// 1. Browser.open() navigates to /api/auth/google-start
+// 2. google-start generates a state, stores it server-side, redirects
+//    to Google's OAuth URL
+// 3. Google OAuth → callback to /api/auth/google-callback
+// 4. google-callback validates state server-side, exchanges code for
+//    tokens, creates/finds user, generates a one-time login code
 // 5. User types the code in the app → exchange → session cookie
 
 export async function signInWithGoogleNative(): Promise<boolean> {
@@ -41,7 +42,7 @@ export async function signInWithGoogleNative(): Promise<boolean> {
   try {
     const { Browser } = await import(/* webpackIgnore: true */ "@capacitor/browser");
     const origin = typeof window !== "undefined" ? window.location.origin : "https://gravio.onrender.com";
-    await Browser.open({ url: origin + "/api/auth/native-init" });
+    await Browser.open({ url: origin + "/api/auth/google-start" });
     return true;
   } catch {
     return false;
