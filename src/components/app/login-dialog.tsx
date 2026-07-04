@@ -150,8 +150,11 @@ export function LoginDialog({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: regEmail.trim(), password: regPassword, name: regName.trim() || undefined }),
       });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: "Erreur serveur lors de l'inscription" }));
+        throw new Error(errorData.error || "Erreur d'inscription");
+      }
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Erreur d'inscription");
       toast.success("Compte créé ! Connecte-toi.");
       setPendingEmail(null);
       setMode("login");
@@ -195,6 +198,10 @@ export function LoginDialog({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code }),
       });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: "Erreur serveur lors de l'échange" }));
+        throw new Error(errorData.error || "Erreur de connexion");
+      }
       const data = await res.json();
       if (data.success) {
         setCodeStatus("done");
@@ -205,8 +212,8 @@ export function LoginDialog({
         toast.error(data.error || "Code invalide");
         setCodeStatus("idle");
       }
-    } catch {
-      toast.error("Erreur de connexion");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur de connexion");
       setCodeStatus("idle");
     }
   }
