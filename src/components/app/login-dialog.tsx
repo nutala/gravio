@@ -4,7 +4,7 @@ import * as React from "react";
 import { signIn } from "next-auth/react";
 import { Loader2, Mail, ArrowLeft, Check } from "lucide-react";
 import { toast } from "sonner";
-import { signInWithGoogleNative, getGoogleLoginUrl } from "@/lib/native";
+import { getGoogleLoginUrl } from "@/lib/native";
 import {
   Dialog,
   DialogContent,
@@ -167,11 +167,6 @@ export function LoginDialog({
   }
 
   async function handleGoogle() {
-    // Best-effort: open system browser automatically
-    const ok = await signInWithGoogleNative();
-
-    // Always show the code dialog with the URL, whether auto-open succeeded or not
-    // (Google blocks Chrome Custom Tabs, so the user may need to open Chrome manually)
     setGoogleUrl(getGoogleLoginUrl());
     setMode("code");
   }
@@ -362,7 +357,7 @@ export function LoginDialog({
                 </Button>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                Colle ce lien dans Chrome sur ton téléphone, connecte-toi avec Google, puis copie le code reçu.
+                Copie le lien ou tape-le dans Chrome sur ton téléphone, connecte-toi avec Google, puis copie le code reçu.
               </p>
             </div>
             <div className="grid gap-1.5">

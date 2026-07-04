@@ -73,8 +73,9 @@ export function diagnoseCapacitor(): string {
 }
 
 export function getGoogleLoginUrl(): string {
-  const origin = window.location.origin || "https://gravio.onrender.com";
-  return origin + "/api/auth/google-start";
+  // Always use the production URL — window.location.origin can be wrong
+  // in Capacitor WebView (localhost / ip mismatch).
+  return "https://gravio.onrender.com/api/auth/google-start";
 }
 
 export async function signInWithGoogleNative(): Promise<boolean> {

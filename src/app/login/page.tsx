@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GravioLogo } from "@/components/gravio-logo";
-import { signInWithGoogleNative, getGoogleLoginUrl } from "@/lib/native";
+import { getGoogleLoginUrl } from "@/lib/native";
 
 type DemoAccount = {
   name: string;
@@ -138,7 +138,6 @@ export default function LoginPage() {
   const [copied, setCopied] = React.useState(false);
 
   async function handleGoogle() {
-    await signInWithGoogleNative();
     setGoogleUrl(getGoogleLoginUrl());
   }
 
