@@ -169,16 +169,13 @@ export function LoginDialog({
     const ok = await signInWithGoogleNative();
     if (ok) { setMode("code"); return; }
 
-    // Diagnostic — affiche l'état de Capacitor
+    // Show diagnostic instead of silently falling back to web (which redirects
+    // the WebView to Google and gets blocked with disallowed_useragent).
     const diag = diagnoseCapacitor();
     console.log("[auth] " + diag);
-
-    // Web fallback: redirect the current browser tab to Google
-    try {
-      await signIn("google", { callbackUrl: "/" });
-    } catch (e) {
-      toast.error("Google natif indisponible (" + diag + ")");
-    }
+    toast.error("Google natif indisponible — " + diag, { duration: 10000 });
+    // DO NOT fall back to signIn("google") — it navigates the WebView
+    // to Google which returns disallowed_useragent.
   }
 
   async function handleCodeExchange(e: React.FormEvent) {
