@@ -209,11 +209,10 @@ self.addEventListener("notificationclick", function (e) {
     e.waitUntil(
       clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (cs) {
         if (cs.length > 0) {
-          cs[0].focus();
+          cs[0].focus().catch(function () {});
           cs[0].postMessage({ type: "FOCUS_WORKOUT" });
-        } else {
-          clients.openWindow("/");
         }
+        // In Capacitor, clients.openWindow is not supported. Skip silently.
       }),
     );
   }

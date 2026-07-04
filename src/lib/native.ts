@@ -65,6 +65,21 @@ export async function onAppUrlOpen(cb: UrlOpenCallback): Promise<() => void> {
   }
 }
 
+// ── Notification permission ──
+
+export async function requestNativeNotificationPermission(): Promise<boolean> {
+  if (!isNative()) return false;
+  try {
+    const { LocalNotifications } = await import(
+      /* webpackIgnore: true */ "@capacitor/local-notifications"
+    );
+    const perm = await LocalNotifications.requestPermissions();
+    return perm.display === "granted";
+  } catch {
+    return false;
+  }
+}
+
 // ── Local notifications ──
 
 export async function scheduleNativeNotification(
