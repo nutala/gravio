@@ -193,11 +193,6 @@ async function handleGoogle() {
       setGoogleUrl(getGoogleLoginUrl());
       setMode("code");
     } else {
-      setGoogleUrl(getGoogleLoginUrl());
-      setMode("code");
-    }
-  }
-    } else {
       // Web / PWA: show manual URL fallback so user opens in Chrome
       setGoogleUrl(getGoogleLoginUrl());
       setMode("code");
