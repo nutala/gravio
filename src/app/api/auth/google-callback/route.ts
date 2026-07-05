@@ -1,4 +1,5 @@
 import { consumeOAuthState, createNativeLoginCode } from "@/lib/native-auth-store";
+import { encode } from "next-auth/jwt";
 import { db } from "@/lib/db";
 import { DEFAULT_CATEGORIES } from "@/lib/default-categories";
 
@@ -58,13 +59,14 @@ async function exchangeCode(code: string): Promise<GoogleUser> {
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
-  const state = url.searchParams.get("state");
+  const stateParam = url.searchParams.get("state");
 
-  if (!code || !state) {
+  if (!code || !stateParam) {
     return errorPage("Paramètres manquants");
   }
 
-  if (!consumeOAuthState(state)) {
+  const { valid, source } = consumeOAuthState(stateParam);
+  if (!valid) {
     return errorPage("État invalide ou expiré");
   }
 
@@ -91,6 +93,34 @@ export async function GET(req: Request) {
   }
   await ensureDefaultCategories(dbUser.id);
 
+  if (source === "web") {
+    // Auto-login for web: create JWT session and redirect
+    const secret = process.env.NEXTAUTH_SECRET;
+    if (!secret) return errorPage("Serveur mal configuré");
+
+    const token = await encode({
+      secret,
+      token: {
+        uid: dbUser.id,
+        sub: dbUser.id,
+        email: dbUser.email,
+        name: dbUser.name || name,
+        image: dbUser.image || image,
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 30 * 24 * 3600,
+      },
+    });
+
+    const response = new Response(null, { status: 302, headers: { location: "/" } });
+    const isSecure = req.url?.startsWith("https");
+    response.headers.set(
+      "Set-Cookie",
+      `next-auth.session-token=${token}; Path=/; HttpOnly; SameSite=Lax;${isSecure ? " Secure;" : ""} Max-Age=${30 * 24 * 3600}`
+    );
+    return response;
+  }
+
+  // Native: show login code for copy-paste
   const loginCode = createNativeLoginCode(dbUser.id, dbUser.email, dbUser.name || name, dbUser.image || image);
 
   const codeHtml = `<!DOCTYPE html>

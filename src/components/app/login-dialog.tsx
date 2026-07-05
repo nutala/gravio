@@ -171,7 +171,6 @@ export function LoginDialog({
 
 async function handleGoogle() {
     if (isNative()) {
-      // Native: use Capacitor SocialLogin plugin
       try {
         setPendingEmail("native-google");
         const result = await signInWithGoogleNativePlugin();
@@ -182,6 +181,23 @@ async function handleGoogle() {
           window.setTimeout(() => window.location.reload(), 300);
           return;
         }
+        if (result.error === "Connexion annulée") {
+          return;
+        }
+        toast.error(result.error);
+      } catch {
+        setPendingEmail(null);
+      }
+      // Fallback: open Google OAuth in external Chrome popup to bypass WebView block
+      const url = getGoogleLoginUrl();
+      setGoogleUrl(url);
+      setMode("code");
+      window.open(url, "_blank", "noopener,noreferrer");
+    } else {
+      // Web / PWA: server-side redirect — no client JS needed
+      window.location.href = "/api/auth/google-start?source=web";
+    }
+  }
         if (result.error === "Connexion annulée") {
           return;
         }

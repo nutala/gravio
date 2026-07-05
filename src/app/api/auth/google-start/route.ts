@@ -5,8 +5,10 @@ const CALLBACK_URL = process.env.NEXTAUTH_URL
   ? `${process.env.NEXTAUTH_URL}/api/auth/google-callback`
   : "https://gravio.onrender.com/api/auth/google-callback";
 
-export async function GET() {
-  const state = createOAuthState();
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const source = url.searchParams.get("source") || "native";
+  const { state } = createOAuthState(source);
 
   const params = new URLSearchParams({
     client_id: CLIENT_ID,

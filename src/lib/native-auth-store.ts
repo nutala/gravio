@@ -14,6 +14,7 @@ interface NativeAuthEntry {
 
 interface OAuthStateEntry {
   state: string;
+  source: string;
   createdAt: number;
 }
 
@@ -57,23 +58,23 @@ export function consumeNativeLoginCode(code: string): NativeAuthEntry | null {
 
 const oauthStore = new Map<string, OAuthStateEntry>();
 
-export function createOAuthState(): string {
+export function createOAuthState(source: string = "native"): { state: string; source: string } {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   let state = "";
   for (let i = 0; i < 32; i++) {
     state += chars[Math.floor(Math.random() * chars.length)];
   }
-  oauthStore.set(state, { state, createdAt: Date.now() });
-  return state;
+  oauthStore.set(state, { state, source, createdAt: Date.now() });
+  return { state, source };
 }
 
-export function consumeOAuthState(state: string): boolean {
+export function consumeOAuthState(state: string): { valid: boolean; source: string } {
   const entry = oauthStore.get(state);
-  if (!entry) return false;
+  if (!entry) return { valid: false, source: "" };
   if (Date.now() - entry.createdAt > 300_000) {
     oauthStore.delete(state);
-    return false;
+    return { valid: false, source: "" };
   }
   oauthStore.delete(state);
-  return true;
+  return { valid: true, source: entry.source };
 }
