@@ -2,15 +2,14 @@
  * Capacitor native helpers for Google sign-in via system browser
  * and deep link handling.
  *
- * Uses window.Capacitor.plugins directly instead of dynamic imports
- * (import() with webpackIgnore does NOT work in Capacitor — the
- * runtime does not intercept ES module imports).
+ * Uses window.Capacitor.plugins directly instead of static imports
+ * to avoid bundling native-only modules on web.
  *
- * Static imports ARE bundled fine — only dynamic import()+webpackIgnore
- * is broken.
+ * Static imports from @capgo/capacitor-social-login cause runtime
+ * errors on web because registerPlugin() evaluates during module
+ * init.  Reading from window.Capacitor.plugins.SocialLogin is the
+ * safest pattern — it is only defined on native Capacitor builds.
  */
-
-import { SocialLogin } from "@capgo/capacitor-social-login";
 
 interface CapacitorPluginApp {
   openUrl: (opts: { url: string }) => Promise<void>;
@@ -89,6 +88,14 @@ export function diagnoseCapacitor(): string {
   return parts.join(" | ");
 }
 
+function getSocialLogin(): CapacitorPluginSocialLogin {
+  const sl = window.Capacitor?.plugins?.SocialLogin;
+  if (!sl) {
+    throw new Error("Plugin SocialLogin non disponible");
+  }
+  return sl;
+}
+
 export async function signInWithGoogleNativePlugin(): Promise<{ success: boolean; error?: string }> {
   if (!isNative()) {
     return { success: false, error: "Pas sur une plateforme native" };
@@ -103,19 +110,20 @@ export async function signInWithGoogleNativePlugin(): Promise<{ success: boolean
       return { success: false, error: "Google non configuré sur le serveur" };
     }
 
-    await SocialLogin.initialize({
+    const sl = getSocialLogin();
+    await sl.initialize({
       google: {
         webClientId,
         mode: "online",
       },
     });
 
-    const result = await SocialLogin.login({
+    const result = await sl.login({
       provider: "google",
       options: {
         scopes: ["profile", "email"],
       },
-    });
+    }) as { provider: string; result: { responseType: string; idToken?: string } };
 
     if (result.provider !== "google" || result.result.responseType !== "online") {
       return { success: false, error: "Réponse inattendue du plugin" };
