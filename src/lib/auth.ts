@@ -48,19 +48,24 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email) return null;
-        const email = credentials.email.toLowerCase().trim();
-        const name = credentials.name || email.split("@")[0];
-        const image =
-          credentials.image ||
-          `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=4f46e5`;
+        try {
+          const email = credentials.email.toLowerCase().trim();
+          const name = credentials.name || email.split("@")[0];
+          const image =
+            credentials.image ||
+            `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=4f46e5`;
 
-        let user = await db.user.findUnique({ where: { email } });
-        if (!user) {
-          user = await db.user.create({ data: { email, name, image } });
+          let user = await db.user.findUnique({ where: { email } });
+          if (!user) {
+            user = await db.user.create({ data: { email, name, image } });
+          }
+          await ensureDefaultCategories(user.id);
+
+          return { id: user.id, email: user.email, name: user.name, image: user.image };
+        } catch (e) {
+          console.error("[auth] google-demo authorize error:", e instanceof Error ? e.message : e);
+          return null;
         }
-        await ensureDefaultCategories(user.id);
-
-        return { id: user.id, email: user.email, name: user.name, image: user.image };
       },
     }),
     CredentialsProvider({
@@ -72,12 +77,17 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
-        const email = credentials.email.toLowerCase().trim();
-        const user = await db.user.findUnique({ where: { email } });
-        if (!user || !user.password) return null;
-        if (!verifyPassword(credentials.password, user.password)) return null;
-        await ensureDefaultCategories(user.id);
-        return { id: user.id, email: user.email, name: user.name, image: user.image };
+        try {
+          const email = credentials.email.toLowerCase().trim();
+          const user = await db.user.findUnique({ where: { email } });
+          if (!user || !user.password) return null;
+          if (!verifyPassword(credentials.password, user.password)) return null;
+          await ensureDefaultCategories(user.id);
+          return { id: user.id, email: user.email, name: user.name, image: user.image };
+        } catch (e) {
+          console.error("[auth] authorize error:", e instanceof Error ? e.message : e);
+          return null;
+        }
       },
     }),
   ],

@@ -25,7 +25,5 @@ export const db =
     log: ['error', 'warn'],
   })
 
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = db
-  globalForPrisma.prismaSchemaVersion = SCHEMA_VERSION
-}
+globalForPrisma.prisma = db
+globalForPrisma.prismaSchemaVersion = SCHEMA_VERSION

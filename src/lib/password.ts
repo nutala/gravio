@@ -7,8 +7,14 @@ export function hashPassword(password: string): string {
 }
 
 export function verifyPassword(password: string, stored: string): boolean {
+  if (!stored || !stored.includes(":")) return false;
   const [salt, key] = stored.split(":");
-  const hash = scryptSync(password, salt, 64);
-  const storedBuffer = Buffer.from(key, "hex");
-  return storedBuffer.length === hash.length && timingSafeEqual(hash, storedBuffer);
+  if (!salt || !key) return false;
+  try {
+    const hash = scryptSync(password, salt, 64);
+    const storedBuffer = Buffer.from(key, "hex");
+    return storedBuffer.length === hash.length && timingSafeEqual(hash, storedBuffer);
+  } catch {
+    return false;
+  }
 }
