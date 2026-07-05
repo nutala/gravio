@@ -61,7 +61,7 @@ export const authOptions: NextAuthOptions = {
           }
           await ensureDefaultCategories(user.id);
 
-          return { id: user.id, email: user.email, name: user.name, image: user.image };
+          return { id: user.id, email: user.email, name: user.name, image: user.image && !user.image.startsWith("data:") ? user.image : null };
         } catch (e) {
           console.error("[auth] google-demo authorize error:", e instanceof Error ? e.message : e);
           return null;
@@ -83,7 +83,7 @@ export const authOptions: NextAuthOptions = {
           if (!user || !user.password) return null;
           if (!verifyPassword(credentials.password, user.password)) return null;
           await ensureDefaultCategories(user.id);
-          return { id: user.id, email: user.email, name: user.name, image: user.image };
+          return { id: user.id, email: user.email, name: user.name, image: user.image && !user.image.startsWith("data:") ? user.image : null };
         } catch (e) {
           console.error("[auth] authorize error:", e instanceof Error ? e.message : e);
           return null;
@@ -123,6 +123,9 @@ export const authOptions: NextAuthOptions = {
           try {
             const dbUser = await db.user.findUnique({ where: { email } });
             token.uid = dbUser?.id ?? user.id;
+            if (dbUser?.image?.startsWith("data:")) {
+              await db.user.update({ where: { id: dbUser.id }, data: { image: null } });
+            }
           } catch {
             token.uid = user.id;
           }
@@ -137,6 +140,9 @@ export const authOptions: NextAuthOptions = {
               token.image = dbUser.image;
             } else {
               delete token.image;
+              if (dbUser.image?.startsWith("data:")) {
+                await db.user.update({ where: { id: dbUser.id }, data: { image: null } });
+              }
             }
           }
         } catch {
