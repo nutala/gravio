@@ -143,8 +143,11 @@ export const authOptions: NextAuthOptions = {
           // keep stale token values
         }
       }
-      if (token.image && typeof token.image === "string" && token.image.startsWith("data:")) {
+      if (typeof token.image === "string" && token.image.startsWith("data:")) {
         delete token.image;
+      }
+      if (typeof token.picture === "string" && token.picture.startsWith("data:")) {
+        delete token.picture;
       }
       return token;
     },
