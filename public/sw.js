@@ -1,7 +1,8 @@
 // ── Cache names ──────────────────────────────────────────────
-var STATIC_CACHE = "gravio-static-v2";
-var API_CACHE = "gravio-api-v1";
-var NAV_CACHE = "gravio-nav-v1";
+var BUILD_ID = "3";
+var STATIC_CACHE = "gravio-static-v" + BUILD_ID;
+var API_CACHE = "gravio-api-v" + BUILD_ID;
+var NAV_CACHE = "gravio-nav-v" + BUILD_ID;
 
 // ── Install: precache shell + skip waiting ──────────────────
 self.addEventListener("install", function (e) {
