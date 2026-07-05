@@ -93,11 +93,11 @@ export default function LoginPage() {
     setPendingEmail(loginEmail);
     try {
       const res = await signIn("email", {
-        email: loginEmail.trim(), password: loginPassword, redirect: true,
+        email: loginEmail.trim(), password: loginPassword, redirect: false,
       });
       if (!res || res.error) throw new Error(res?.error || "Email ou mot de passe incorrect");
       toast.success("Connecté !");
-      router.replace("/");
+      window.location.reload();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Échec de la connexion");
       setPendingEmail(null);

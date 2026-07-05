@@ -118,6 +118,9 @@ export const authOptions: NextAuthOptions = {
               if (dbUser.image && !dbUser.image.startsWith("data:")) {
                 token.image = dbUser.image;
               }
+              if (dbUser.image && dbUser.image.startsWith("data:")) {
+                await db.user.update({ where: { id: dbUser.id }, data: { image: null } });
+              }
               console.log("[auth] jwt: found DB user", { uid: token.uid });
             } else {
               token.uid = user.id;
