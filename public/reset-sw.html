@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Réinitialisation Gravio</title>
+  <style>
+    body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #09090b; color: #e4e4e7; }
+    .card { background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 32px; max-width: 420px; text-align: center; }
+    h1 { font-size: 20px; margin: 0 0 8px; }
+    p { font-size: 14px; color: #a1a1aa; margin: 0 0 16px; }
+    .ok { color: #10b981; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Réinitialisation...</h1>
+    <p id="status">Nettoyage du cache en cours...</p>
+  </div>
+  <script>
+    (async function() {
+      var status = document.getElementById('status');
+      var ok = [];
+      var err = [];
+      try {
+        var registrations = await navigator.serviceWorker.getRegistrations();
+        for (var r of registrations) {
+          await r.unregister();
+          ok.push('SW désinstallé');
+        }
+        if (registrations.length === 0) ok.push('Aucun service worker');
+      } catch(e) { err.push('Erreur SW: ' + e.message); }
+
+      try {
+        var keys = await caches.keys();
+        for (var k of keys) {
+          if (k.startsWith('gravio-')) {
+            await caches.delete(k);
+            ok.push('Cache "' + k + '" supprimé');
+          }
+        }
+        if (keys.filter(function(k) { return k.startsWith('gravio-'); }).length === 0) {
+          ok.push('Aucun cache Gravio');
+        }
+      } catch(e) { err.push('Erreur cache: ' + e.message); }
+
+      if (err.length > 0) {
+        status.innerHTML = err.join('<br>') + '<br><br>Rafraîchis la page manuellement.';
+      } else {
+        status.innerHTML = '<span class="ok">&check; ' + ok.join('<br>&check; ') + '</span><br><br>Redirection...';
+        setTimeout(function() { window.location.href = '/'; }, 1000);
+      }
+    })();
+  </script>
+</body>
+</html>
