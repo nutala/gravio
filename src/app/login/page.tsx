@@ -3,7 +3,7 @@
 import * as React from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Copy, Check, Loader2, Mail } from "lucide-react";
+import { Loader2, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -135,11 +135,6 @@ export default function LoginPage() {
   }
 
   const [googleUrl, setGoogleUrl] = React.useState("");
-  const [copied, setCopied] = React.useState(false);
-
-  async function handleGoogle() {
-    setGoogleUrl(getGoogleLoginUrl());
-  }
 
   const redirectUri = typeof window !== "undefined"
     ? `${window.location.origin}/api/auth/callback/google`
@@ -158,52 +153,22 @@ export default function LoginPage() {
           <div className="flex flex-col gap-3">
             {googleConfigured && (
               <>
-                <Button onClick={handleGoogle} variant="outline" className="h-11 w-full gap-3">
-                  <GoogleLogo className="h-4 w-4" />
-                  Se connecter avec Google
-                </Button>
+                {isNative() ? (
+                  <Button onClick={() => setGoogleUrl(getGoogleLoginUrl())} variant="outline" className="h-11 w-full gap-3">
+                    <GoogleLogo className="h-4 w-4" />
+                    Se connecter avec Google
+                  </Button>
+                ) : (
+                  <Button variant="outline" className="h-11 w-full gap-3" asChild>
+                    <a href="/api/auth/google-start?source=web">
+                      <GoogleLogo className="h-4 w-4" />
+                      Se connecter avec Google
+                    </a>
+                  </Button>
+                )}
                 {googleUrl && (
                   <div className="rounded-lg border border-border bg-muted/30 p-3">
-                    <p className="text-xs font-medium text-foreground">1. Copie ce lien et ouvre-le dans Chrome</p>
-                    <div className="mt-2 flex flex-col gap-2">
-                      <input
-                        readOnly
-                        value={googleUrl}
-                        onFocus={(e) => e.target.select()}
-                        onClick={(e) => e.currentTarget.select()}
-                        className="w-full rounded bg-background px-3 py-2 text-xs text-foreground border border-border font-mono break-all selection:bg-primary/20"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-8 w-full"
-                        onClick={() => {
-                          try {
-                            navigator.clipboard.writeText(googleUrl);
-                            setCopied(true);
-                            setTimeout(() => setCopied(false), 2000);
-                          } catch {
-                            const ta = document.createElement("textarea");
-                            ta.value = googleUrl;
-                            ta.style.position = "fixed";
-                            ta.style.left = "-9999px";
-                            document.body.appendChild(ta);
-                            ta.select();
-                            document.execCommand("copy");
-                            ta.remove();
-                            setCopied(true);
-                            setTimeout(() => setCopied(false), 2000);
-                          }
-                        }}
-                      >
-                        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                        Copier le lien
-                      </Button>
-                    </div>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Colle ce lien dans Chrome sur ton téléphone, connecte-toi avec Google, puis copie le code reçu.
-                    </p>
+                    <p className="text-xs font-medium text-foreground">Code de connexion reçu</p>
                     <div className="mt-3 flex gap-2">
                       <Input
                         placeholder="Code (ex: ABC12345)"
