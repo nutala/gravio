@@ -6,9 +6,6 @@ import { DEFAULT_CATEGORIES } from "@/lib/default-categories";
 
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
-const CALLBACK_URL = process.env.NEXTAUTH_URL
-  ? `${process.env.NEXTAUTH_URL}/api/auth/google-callback`
-  : "https://gravio.onrender.com/api/auth/google-callback";
 
 async function ensureDefaultCategories(userId: string) {
   const existing = await db.category.count({ where: { userId } });
@@ -25,7 +22,7 @@ interface GoogleUser {
   picture?: string;
 }
 
-async function exchangeCode(code: string): Promise<GoogleUser> {
+async function exchangeCode(code: string, callbackUrl: string): Promise<GoogleUser> {
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -33,7 +30,7 @@ async function exchangeCode(code: string): Promise<GoogleUser> {
       code,
       client_id: CLIENT_ID,
       client_secret: CLIENT_SECRET,
-      redirect_uri: CALLBACK_URL,
+      redirect_uri: callbackUrl,
       grant_type: "authorization_code",
     }),
   });
@@ -71,9 +68,11 @@ export async function GET(req: Request) {
     return errorPage("État invalide ou expiré");
   }
 
+  const callbackUrl = `${url.origin}/api/auth/google-callback`;
+
   let googleUser: GoogleUser;
   try {
-    googleUser = await exchangeCode(code);
+    googleUser = await exchangeCode(code, callbackUrl);
   } catch (e) {
     return errorPage(e instanceof Error ? e.message : "Erreur d'échange");
   }

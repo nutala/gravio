@@ -1,14 +1,14 @@
 import { createOAuthState } from "@/lib/native-auth-store";
 
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
-const CALLBACK_URL = process.env.NEXTAUTH_URL
-  ? `${process.env.NEXTAUTH_URL}/api/auth/google-callback`
-  : "https://gravio.onrender.com/api/auth/google-callback";
 
 export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const source = url.searchParams.get("source") || "native";
+  const reqUrl = new URL(req.url);
+  const source = reqUrl.searchParams.get("source") || "native";
   const { state } = createOAuthState(source);
+
+  // Always derive callback URL from request origin — NEXTAUTH_URL may be localhost
+  const CALLBACK_URL = `${reqUrl.origin}/api/auth/google-callback`;
 
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
