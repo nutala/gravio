@@ -169,7 +169,7 @@ export function LoginDialog({
     }
   }
 
-async function handleGoogle() {
+  async function handleGoogle() {
     if (isNative()) {
       try {
         setPendingEmail("native-google");
@@ -188,14 +188,10 @@ async function handleGoogle() {
       } catch {
         setPendingEmail(null);
       }
-      // Fallback: open Google OAuth in external Chrome popup to bypass WebView block
       const url = getGoogleLoginUrl();
       setGoogleUrl(url);
       setMode("code");
       window.open(url, "_blank", "noopener,noreferrer");
-    } else {
-      // Web / PWA: server-side redirect — no client JS needed
-      window.location.href = "/api/auth/google-start?source=web";
     }
   }
 
@@ -257,10 +253,24 @@ async function handleGoogle() {
           <div className="flex flex-col gap-2">
             {googleConfigured && (
               <>
-                <Button onClick={handleGoogle} disabled={pendingEmail !== null} variant="outline" className="h-11 w-full gap-3">
-                  {pendingEmail === "native-google" ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleLogo className="h-4 w-4" />}
-                  {pendingEmail === "native-google" ? "Connexion..." : "Se connecter avec Google"}
-                </Button>
+                {isNative() ? (
+                  <Button onClick={handleGoogle} disabled={pendingEmail !== null} variant="outline" className="h-11 w-full gap-3">
+                    {pendingEmail === "native-google" ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleLogo className="h-4 w-4" />}
+                    {pendingEmail === "native-google" ? "Connexion..." : "Se connecter avec Google"}
+                  </Button>
+                ) : pendingEmail ? (
+                  <Button disabled variant="outline" className="h-11 w-full gap-3">
+                    <GoogleLogo className="h-4 w-4" />
+                    Se connecter avec Google
+                  </Button>
+                ) : (
+                  <Button variant="outline" className="h-11 w-full gap-3" asChild>
+                    <a href="/api/auth/google-start?source=web">
+                      <GoogleLogo className="h-4 w-4" />
+                      Se connecter avec Google
+                    </a>
+                  </Button>
+                )}
                 <div className="flex items-center gap-3 py-1">
                   <div className="h-px flex-1 bg-border" />
                   <span className="text-xs text-muted-foreground">ou</span>
