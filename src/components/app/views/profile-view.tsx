@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { Camera, Loader2, Save, Settings, LogOut, User } from "lucide-react";
 import { useUpdateProfile, useUploadAvatar } from "@/hooks/use-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +15,7 @@ import { useAppStore } from "@/lib/store";
 
 export function ProfileView() {
   const { data: session, update } = useSession();
+  const router = useRouter();
   const profileMutation = useUpdateProfile();
   const avatarMutation = useUploadAvatar();
   const user = session?.user;
@@ -27,7 +29,9 @@ export function ProfileView() {
   React.useEffect(() => {
     if (user) {
       setName(user.name ?? "");
-      setPreview(user.image ?? "");
+      if (!preview || !preview.startsWith("data:")) {
+        setPreview(user.image ?? "");
+      }
     }
   }, [user]);
 
@@ -65,7 +69,8 @@ export function ProfileView() {
     try {
       const result = await avatarMutation.mutateAsync(file);
       setPreview(result.image);
-      update();
+      await update();
+      router.refresh();
     } finally {
       URL.revokeObjectURL(localUrl);
     }
