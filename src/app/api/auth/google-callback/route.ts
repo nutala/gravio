@@ -1,5 +1,6 @@
 import { consumeOAuthState, createNativeLoginCode } from "@/lib/native-auth-store";
 import { encode } from "next-auth/jwt";
+import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { DEFAULT_CATEGORIES } from "@/lib/default-categories";
 
@@ -111,12 +112,14 @@ export async function GET(req: Request) {
       },
     });
 
-    const response = new Response(null, { status: 302, headers: { location: "/" } });
-    const isSecure = req.url?.startsWith("https");
-    response.headers.set(
-      "Set-Cookie",
-      `next-auth.session-token=${token}; Path=/; HttpOnly; SameSite=Lax;${isSecure ? " Secure;" : ""} Max-Age=${30 * 24 * 3600}`
-    );
+    const response = NextResponse.redirect(new URL("/", req.url));
+    response.cookies.set("next-auth.session-token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 30 * 24 * 3600,
+    });
     return response;
   }
 
