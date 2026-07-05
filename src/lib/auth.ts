@@ -122,11 +122,7 @@ export const authOptions: NextAuthOptions = {
         if (email) {
           try {
             const dbUser = await db.user.findUnique({ where: { email } });
-            if (dbUser) {
-              token.uid = dbUser.id;
-            } else {
-              token.uid = user.id;
-            }
+            token.uid = dbUser?.id ?? user.id;
           } catch {
             token.uid = user.id;
           }
@@ -137,7 +133,9 @@ export const authOptions: NextAuthOptions = {
           const dbUser = await db.user.findUnique({ where: { id: token.uid as string } });
           if (dbUser) {
             token.name = dbUser.name ?? token.name;
-            token.image = dbUser.image ?? token.image;
+            if (dbUser.image && !dbUser.image.startsWith("data:")) {
+              token.image = dbUser.image;
+            }
           }
         } catch {
           // keep stale token values
@@ -149,7 +147,16 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.uid as string;
         session.user.name = token.name as string ?? session.user.name;
-        if (token.image) session.user.image = token.image as string;
+        if (token.uid) {
+          try {
+            const dbUser = await db.user.findUnique({ where: { id: token.uid as string } });
+            if (dbUser?.image) session.user.image = dbUser.image;
+          } catch {
+            if (token.image) session.user.image = token.image as string;
+          }
+        } else if (token.image) {
+          session.user.image = token.image as string;
+        }
       }
       return session;
     },
