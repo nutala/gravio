@@ -93,7 +93,7 @@ export default function LoginPage() {
     setPendingEmail(loginEmail);
     try {
       const res = await signIn("email", {
-        email: loginEmail.trim(), password: loginPassword, redirect: false,
+        email: loginEmail.trim(), password: loginPassword, redirect: true,
       });
       if (!res || res.error) throw new Error(res?.error || "Email ou mot de passe incorrect");
       toast.success("Connecté !");
