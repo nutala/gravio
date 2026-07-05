@@ -39,7 +39,7 @@ setInterval(() => {
 
 export function createNativeLoginCode(uid: string, email: string, name: string, image: string): string {
   const code = generateCode();
-  store.set(code, { uid, email, name, image, createdAt: Date.now() });
+  store.set(code, { uid, email, name, image: image && !image.startsWith("data:") ? image : "", createdAt: Date.now() });
   return code;
 }
 

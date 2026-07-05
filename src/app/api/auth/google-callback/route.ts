@@ -105,7 +105,7 @@ export async function GET(req: Request) {
         sub: dbUser.id,
         email: dbUser.email,
         name: dbUser.name || name,
-        image: dbUser.image || image,
+        image: dbUser.image && !dbUser.image.startsWith("data:") ? dbUser.image : (image.startsWith("data:") ? null : image),
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 30 * 24 * 3600,
       },

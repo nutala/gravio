@@ -19,18 +19,18 @@ export async function POST(req: NextRequest) {
   }
 
   // Create a JWT token matching NextAuth's format
-  const token = await encode({
-    secret,
-    token: {
-      uid: entry.uid,
-      sub: entry.uid,
-      email: entry.email,
-      name: entry.name,
-      image: entry.image,
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 30 * 24 * 3600, // 30 days
-    },
-  });
+const token = await encode({
+      secret,
+      token: {
+        uid: entry.uid,
+        sub: entry.uid,
+        email: entry.email,
+        name: entry.name,
+        image: entry.image && !entry.image.startsWith("data:") ? entry.image : null,
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + 30 * 24 * 3600,
+      },
+    });
 
   const response = NextResponse.json({ success: true, email: entry.email, name: entry.name });
 
