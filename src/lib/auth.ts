@@ -135,11 +135,16 @@ export const authOptions: NextAuthOptions = {
             token.name = dbUser.name ?? token.name;
             if (dbUser.image && !dbUser.image.startsWith("data:")) {
               token.image = dbUser.image;
+            } else {
+              delete token.image;
             }
           }
         } catch {
           // keep stale token values
         }
+      }
+      if (token.image && typeof token.image === "string" && token.image.startsWith("data:")) {
+        delete token.image;
       }
       return token;
     },
