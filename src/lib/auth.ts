@@ -116,40 +116,40 @@ export const authOptions: NextAuthOptions = {
       }
       return true;
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user }) {
       if (user) {
-        console.log("[auth] jwt callback", { provider: account?.provider, email: user.email, hasId: !!user.id });
         const email = user.email?.toLowerCase().trim();
         if (email) {
           try {
             const dbUser = await db.user.findUnique({ where: { email } });
             if (dbUser) {
               token.uid = dbUser.id;
-              if (dbUser.image && !dbUser.image.startsWith("data:")) {
-                token.image = dbUser.image;
-              }
-              if (dbUser.image && dbUser.image.startsWith("data:")) {
-                await db.user.update({ where: { id: dbUser.id }, data: { image: null } });
-              }
-              console.log("[auth] jwt: found DB user", { uid: token.uid });
             } else {
               token.uid = user.id;
-              console.log("[auth] jwt: no DB user, using provider id", { uid: token.uid });
             }
-          } catch (e) {
-            console.error("[auth] jwt DB lookup failed", e instanceof Error ? e.message : e);
+          } catch {
             token.uid = user.id;
           }
         }
-        if (user.image && !user.image.startsWith("data:")) token.image = user.image;
+      }
+      if (token.uid) {
+        try {
+          const dbUser = await db.user.findUnique({ where: { id: token.uid as string } });
+          if (dbUser) {
+            token.name = dbUser.name ?? token.name;
+            token.image = dbUser.image ?? token.image;
+          }
+        } catch {
+          // keep stale token values
+        }
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.uid as string;
+        session.user.name = token.name as string ?? session.user.name;
         if (token.image) session.user.image = token.image as string;
-        console.log("[auth] session created", { uid: session.user.id });
       }
       return session;
     },

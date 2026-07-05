@@ -62,9 +62,13 @@ export function ProfileView() {
     setPreview(localUrl);
     fileRef.current!.value = "";
 
-    await avatarMutation.mutateAsync(file);
-    update();
-    URL.revokeObjectURL(localUrl);
+    try {
+      const result = await avatarMutation.mutateAsync(file);
+      setPreview(result.image);
+      update();
+    } finally {
+      URL.revokeObjectURL(localUrl);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
