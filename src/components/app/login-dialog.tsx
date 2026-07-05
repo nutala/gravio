@@ -195,9 +195,14 @@ async function handleGoogle() {
       setMode("code");
       window.open(url, "_blank", "noopener,noreferrer");
     } else {
-      // Web / PWA: show manual URL fallback
-      setGoogleUrl(getGoogleLoginUrl());
-      setMode("code");
+      // Web / PWA: use standard NextAuth redirect (works in any browser)
+      setPendingEmail("web-google");
+      try {
+        await signIn("google", { callbackUrl: "/" });
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Échec connexion Google");
+        setPendingEmail(null);
+      }
     }
   }
 
