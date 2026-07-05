@@ -198,29 +198,6 @@ async function handleGoogle() {
       window.location.href = "/api/auth/google-start?source=web";
     }
   }
-        if (result.error === "Connexion annulée") {
-          return;
-        }
-        toast.error(result.error);
-      } catch {
-        setPendingEmail(null);
-      }
-      // Fallback: open Google OAuth in external Chrome popup to bypass WebView block
-      const url = getGoogleLoginUrl();
-      setGoogleUrl(url);
-      setMode("code");
-      window.open(url, "_blank", "noopener,noreferrer");
-    } else {
-      // Web / PWA: use standard NextAuth redirect (works in any browser)
-      setPendingEmail("web-google");
-      try {
-        await signIn("google", { callbackUrl: "/" });
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Échec connexion Google");
-        setPendingEmail(null);
-      }
-    }
-  }
 
   async function handleCodeExchange(e: React.FormEvent) {
     e.preventDefault();
