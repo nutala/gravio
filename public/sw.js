@@ -35,9 +35,11 @@ self.addEventListener("fetch", function (e) {
   // Only handle GET, same-origin requests
   if (req.method !== "GET" || url.origin !== self.location.origin) return;
 
-  // API: network-first with cache fallback
+  // API: network-first with cache fallback for XHR/fetch — let navigations pass through natively
   if (url.pathname.startsWith("/api/")) {
-    e.respondWith(networkFirst(req, API_CACHE));
+    if (req.mode !== "navigate") {
+      e.respondWith(networkFirst(req, API_CACHE));
+    }
     return;
   }
 
