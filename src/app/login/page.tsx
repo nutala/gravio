@@ -135,6 +135,7 @@ export default function LoginPage() {
   }
 
   const [googleUrl, setGoogleUrl] = React.useState("");
+  const [codeInput, setCodeInput] = React.useState("");
 
   const redirectUri = typeof window !== "undefined"
     ? `${window.location.origin}/api/auth/callback/google`
