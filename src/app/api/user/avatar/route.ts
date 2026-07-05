@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import sharp from "sharp";
 
 const MAX_SIZE = 2 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const AVATAR_SIZE = 200;
 
 export async function POST(req: Request) {
   try {
@@ -35,8 +37,12 @@ export async function POST(req: Request) {
     }
 
     const bytes = await file.arrayBuffer();
-    const base64 = Buffer.from(bytes).toString("base64");
-    const dataUrl = `data:${file.type};base64,${base64}`;
+    const resized = await sharp(Buffer.from(bytes))
+      .resize(AVATAR_SIZE, AVATAR_SIZE, { fit: "cover" })
+      .jpeg({ quality: 80 })
+      .toBuffer();
+    const base64 = resized.toString("base64");
+    const dataUrl = `data:image/jpeg;base64,${base64}`;
 
     await db.user.update({
       where: { id: session.user.id },

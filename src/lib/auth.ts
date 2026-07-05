@@ -115,7 +115,9 @@ export const authOptions: NextAuthOptions = {
             const dbUser = await db.user.findUnique({ where: { email } });
             if (dbUser) {
               token.uid = dbUser.id;
-              token.image = dbUser.image ?? user.image;
+              if (dbUser.image && !dbUser.image.startsWith("data:")) {
+                token.image = dbUser.image;
+              }
               console.log("[auth] jwt: found DB user", { uid: token.uid });
             } else {
               token.uid = user.id;
@@ -126,7 +128,7 @@ export const authOptions: NextAuthOptions = {
             token.uid = user.id;
           }
         }
-        if (user.image) token.image = user.image;
+        if (user.image && !user.image.startsWith("data:")) token.image = user.image;
       }
       return token;
     },
