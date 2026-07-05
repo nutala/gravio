@@ -171,6 +171,7 @@ export function LoginDialog({
 
 async function handleGoogle() {
     if (isNative()) {
+      // Native: use Capacitor SocialLogin plugin
       try {
         setPendingEmail("native-google");
         const result = await signInWithGoogleNativePlugin();
@@ -181,19 +182,20 @@ async function handleGoogle() {
           window.setTimeout(() => window.location.reload(), 300);
           return;
         }
-        if (result.error === "Connexion annulée" || !result.error) {
+        if (result.error === "Connexion annulée") {
           return;
         }
         toast.error(result.error);
       } catch {
-        // fallback if plugin not available
         setPendingEmail(null);
       }
-      // Show manual URL fallback on ANY failure
-      setGoogleUrl(getGoogleLoginUrl());
+      // Fallback: open Google OAuth in external Chrome popup to bypass WebView block
+      const url = getGoogleLoginUrl();
+      setGoogleUrl(url);
       setMode("code");
+      window.open(url, "_blank", "noopener,noreferrer");
     } else {
-      // Web / PWA: show manual URL fallback so user opens in Chrome
+      // Web / PWA: show manual URL fallback
       setGoogleUrl(getGoogleLoginUrl());
       setMode("code");
     }
@@ -368,7 +370,7 @@ async function handleGoogle() {
                 </Button>
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                Ouvre le lien avec le bouton ci-dessus ; si ça ne fonctionne pas, copie manuellement l'URL :
+                Si le bouton ne fonctionne pas, copie l'URL et ouvre-la manuellement dans Chrome :
               </p>
               <div className="mt-2 flex flex-row gap-2">
                 <input
