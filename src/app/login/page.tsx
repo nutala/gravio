@@ -159,12 +159,13 @@ export default function LoginPage() {
                     Se connecter avec Google
                   </Button>
                 ) : (
-                  <Button variant="outline" className="h-11 w-full gap-3" asChild>
-                    <a href="/api/auth/google-start?source=web">
-                      <GoogleLogo className="h-4 w-4" />
-                      Se connecter avec Google
-                    </a>
-                  </Button>
+                  <a
+                    href="/api/auth/google-start?source=web"
+                    className="inline-flex items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-xs hover:bg-accent hover:text-accent-foreground h-11 w-full"
+                  >
+                    <GoogleLogo className="h-4 w-4" />
+                    Se connecter avec Google
+                  </a>
                 )}
                 {googleUrl && (
                   <div className="rounded-lg border border-border bg-muted/30 p-3">
