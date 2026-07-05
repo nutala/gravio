@@ -1,5 +1,5 @@
 // ── Cache names ──────────────────────────────────────────────
-var BUILD_ID = "3";
+var BUILD_ID = "4";
 var STATIC_CACHE = "gravio-static-v" + BUILD_ID;
 var API_CACHE = "gravio-api-v" + BUILD_ID;
 var NAV_CACHE = "gravio-nav-v" + BUILD_ID;
@@ -40,6 +40,9 @@ self.addEventListener("fetch", function (e) {
     e.respondWith(networkFirst(req, API_CACHE));
     return;
   }
+
+  // Never cache sw.js itself — must be fetched fresh for update detection
+  if (url.pathname === "/sw.js") return;
 
   // Next.js static assets (JS, CSS): stale-while-revalidate
   if (url.pathname.startsWith("/_next/static/")) {
