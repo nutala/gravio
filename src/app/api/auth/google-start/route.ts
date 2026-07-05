@@ -22,9 +22,21 @@ export async function GET(req: Request) {
 
   const googleUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
 
-  // 302 redirect — no JS needed, works in any browser
-  return new Response(null, {
-    status: 302,
-    headers: { location: googleUrl },
+  // HTML page with meta refresh — works even if 302 is blocked by SW / CDN / extensions
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="refresh" content="0;url=${googleUrl.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;")}">
+  <title>Redirection vers Google...</title>
+</head>
+<body>
+  <p>Redirection vers Google...</p>
+  <a href="${googleUrl.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;")}">Clique ici si rien ne se passe</a>
+</body>
+</html>`;
+  return new Response(html, {
+    status: 200,
+    headers: { "Content-Type": "text/html; charset=utf-8" },
   });
 }
