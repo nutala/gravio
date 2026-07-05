@@ -31,10 +31,7 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env
-.env.local
-.env.production
-.env.development
+.env*
 
 # vercel
 .vercel
@@ -59,10 +56,6 @@ server.log
 # database
 db/custom.db
 prisma/db/
-
-# Capacitor native platforms (regenerate with `npx cap add android`)
-/android/
-/ios/
 
 # tool analysis results
 /tool-results/

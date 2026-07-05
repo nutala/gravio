@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GravioLogo } from "@/components/gravio-logo";
-import { getGoogleLoginUrl } from "@/lib/native";
 
 type DemoAccount = {
   name: string;
@@ -134,8 +133,9 @@ export default function LoginPage() {
     }
   }
 
-  const [googleUrl, setGoogleUrl] = React.useState("");
-  const [codeInput, setCodeInput] = React.useState("");
+  async function handleGoogle() {
+    await signIn("google", { callbackUrl: "/" });
+  }
 
   const redirectUri = typeof window !== "undefined"
     ? `${window.location.origin}/api/auth/callback/google`
@@ -154,60 +154,10 @@ export default function LoginPage() {
           <div className="flex flex-col gap-3">
             {googleConfigured && (
               <>
-                {isNative() ? (
-                  <Button onClick={() => setGoogleUrl(getGoogleLoginUrl())} variant="outline" className="h-11 w-full gap-3">
-                    <GoogleLogo className="h-4 w-4" />
-                    Se connecter avec Google
-                  </Button>
-                ) : (
-                  <a
-                    href="/api/auth/google-start?source=web"
-                    className="inline-flex items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-xs hover:bg-accent hover:text-accent-foreground h-11 w-full"
-                  >
-                    <GoogleLogo className="h-4 w-4" />
-                    Se connecter avec Google
-                  </a>
-                )}
-                {googleUrl && (
-                  <div className="rounded-lg border border-border bg-muted/30 p-3">
-                    <p className="text-xs font-medium text-foreground">Code de connexion reçu</p>
-                    <div className="mt-3 flex gap-2">
-                      <Input
-                        placeholder="Code (ex: ABC12345)"
-                        value={codeInput}
-                        onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
-                        className="flex-1 text-center font-mono tracking-widest text-sm"
-                        maxLength={8}
-                      />
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="h-10 shrink-0"
-                        disabled={!codeInput.trim()}
-                        onClick={async () => {
-                          try {
-                            const res = await fetch("/api/auth/exchange", {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ code: codeInput.trim().toUpperCase() }),
-                            });
-                            const data = await res.json();
-                            if (data.success) {
-                              toast.success("Connecté en tant que " + data.name);
-                              router.replace("/");
-                            } else {
-                              toast.error(data.error || "Code invalide");
-                            }
-                          } catch {
-                            toast.error("Erreur de connexion");
-                          }
-                        }}
-                      >
-                        OK
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                <Button onClick={handleGoogle} variant="outline" className="h-11 w-full gap-3">
+                  <GoogleLogo className="h-4 w-4" />
+                  Se connecter avec Google
+                </Button>
                 <div className="flex items-center gap-3 py-1">
                   <div className="h-px flex-1 bg-border" />
                   <span className="text-xs text-muted-foreground">ou</span>

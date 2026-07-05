@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Gravio</string>
+    <string name="title_activity_main">Gravio</string>
+    <string name="package_name">com.calistrack.app</string>
+    <string name="custom_url_scheme">com.calistrack.app</string>
+</resources>

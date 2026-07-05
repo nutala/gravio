@@ -16,12 +16,6 @@ import { TemplatesView } from "@/components/app/views/templates-view";
 import { TemplateEditorView } from "@/components/app/views/template-editor-view";
 import { SettingsView } from "@/components/app/views/settings-view";
 
-class PageBoundary extends React.Component<{children:React.ReactNode},{error:Error|null}> {
-  state={error:null};
-  static getDerivedStateFromError(e:Error){return{error:e}}
-  render(){return this.state.error ? <div className="flex min-h-screen items-center justify-center bg-background p-8 text-center"><pre className="max-w-lg whitespace-pre-wrap break-all text-xs text-red-400">{this.state.error.stack || this.state.error.message}</pre></div> : this.props.children}
-}
-
 export default function Home() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -42,19 +36,17 @@ export default function Home() {
   }
 
   return (
-    <PageBoundary>
-      <AppShell>
-        <React.Suspense
-          fallback={
-            <div className="flex items-center justify-center py-20 text-sm text-muted-foreground">
-              Loading…
-            </div>
-          }
-        >
-          <ViewRouter view={view} />
-        </React.Suspense>
-      </AppShell>
-    </PageBoundary>
+    <AppShell>
+      <React.Suspense
+        fallback={
+          <div className="flex items-center justify-center py-20 text-sm text-muted-foreground">
+            Loading…
+          </div>
+        }
+      >
+        <ViewRouter view={view} />
+      </React.Suspense>
+    </AppShell>
   );
 }
 

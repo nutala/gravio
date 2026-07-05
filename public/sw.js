@@ -1,8 +1,7 @@
 // ── Cache names ──────────────────────────────────────────────
-var BUILD_ID = "4";
-var STATIC_CACHE = "gravio-static-v" + BUILD_ID;
-var API_CACHE = "gravio-api-v" + BUILD_ID;
-var NAV_CACHE = "gravio-nav-v" + BUILD_ID;
+var STATIC_CACHE = "gravio-static-v1";
+var API_CACHE = "gravio-api-v1";
+var NAV_CACHE = "gravio-nav-v1";
 
 // ── Install: precache shell + skip waiting ──────────────────
 self.addEventListener("install", function (e) {
@@ -35,20 +34,15 @@ self.addEventListener("fetch", function (e) {
   // Only handle GET, same-origin requests
   if (req.method !== "GET" || url.origin !== self.location.origin) return;
 
-  // API: network-first with cache fallback for XHR/fetch — let navigations pass through natively
+  // API: network-first with cache fallback
   if (url.pathname.startsWith("/api/")) {
-    if (req.mode !== "navigate") {
-      e.respondWith(networkFirst(req, API_CACHE));
-    }
+    e.respondWith(networkFirst(req, API_CACHE));
     return;
   }
 
-  // Never cache sw.js itself — must be fetched fresh for update detection
-  if (url.pathname === "/sw.js") return;
-
-  // Next.js static assets (JS, CSS): stale-while-revalidate
+  // Next.js static assets (JS, CSS): cache-first
   if (url.pathname.startsWith("/_next/static/")) {
-    e.respondWith(staleWhileRevalidate(req, STATIC_CACHE));
+    e.respondWith(cacheFirst(req, STATIC_CACHE));
     return;
   }
 
@@ -58,9 +52,9 @@ self.addEventListener("fetch", function (e) {
     return;
   }
 
-  // Other static files (images, fonts, icons): stale-while-revalidate
+  // Other static files (images, fonts, icons): cache-first
   if (url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff2?|webp|avif)$/)) {
-    e.respondWith(staleWhileRevalidate(req, STATIC_CACHE));
+    e.respondWith(cacheFirst(req, STATIC_CACHE));
     return;
   }
 });
@@ -90,18 +84,6 @@ function cacheFirst(req, cacheName) {
         if (res.ok) cache.put(req, res.clone());
         return res;
       });
-    });
-  });
-}
-
-function staleWhileRevalidate(req, cacheName) {
-  return caches.open(cacheName).then(function (cache) {
-    return cache.match(req).then(function (cached) {
-      var fetchPromise = fetch(req).then(function (res) {
-        if (res.ok) cache.put(req, res.clone());
-        return res;
-      });
-      return cached || fetchPromise;
     });
   });
 }
@@ -227,10 +209,11 @@ self.addEventListener("notificationclick", function (e) {
     e.waitUntil(
       clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (cs) {
         if (cs.length > 0) {
-          cs[0].focus().catch(function () {});
+          cs[0].focus();
           cs[0].postMessage({ type: "FOCUS_WORKOUT" });
+        } else {
+          clients.openWindow("/");
         }
-        // In Capacitor, clients.openWindow is not supported. Skip silently.
       }),
     );
   }

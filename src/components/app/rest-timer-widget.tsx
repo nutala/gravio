@@ -5,7 +5,6 @@ import { Pause, Play, X, Plus, Minus, SkipForward, Timer } from "lucide-react";
 import { useTimerStore } from "@/lib/timer-store";
 import { useAppStore } from "@/lib/store";
 import { playBeep } from "@/lib/sound";
-import { isNative, scheduleNativeNotification, cancelAllNativeNotifications, onNativeNotificationTap, requestNativeNotificationPermission } from "@/lib/native";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -43,21 +42,7 @@ export function RestTimerWidget() {
       return;
     }
     acquireWakeLock();
-    if (typeof Notification !== "undefined") {
-      Notification.requestPermission().catch(() => {});
-    }
-    if (isNative()) {
-      requestNativeNotificationPermission();
-    }
-  }, [timer.state]);
-
-  // Schedule native notification for background alarm (Capacitor only).
-  // Cancel any pending before scheduling a new one (handles pause/resume).
-  React.useEffect(() => {
-    if (timer.state !== "running" || timer.endsAt == null || !isNative()) return;
-    cancelAllNativeNotifications();
-    const delayMs = Math.max(0, timer.endsAt - Date.now());
-    scheduleNativeNotification("⏱ Repos terminé ! 💪", "C'est reparti pour une série !", delayMs);
+    Notification.requestPermission().catch(() => {});
   }, [timer.state]);
 
   // Tick every 250ms while running for the countdown UI.
@@ -149,25 +134,12 @@ export function RestTimerWidget() {
     }
   }, []);
 
-  // Close SW notification + cancel native notifications when timer stops.
+  // Close SW notification when timer returns to idle (dismissed / skipped).
   React.useEffect(() => {
-    if (timer.state === "idle" || timer.state === "paused") {
-      if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({ type: "CLOSE_REST_TIMER" });
-      }
-      cancelAllNativeNotifications();
+    if (timer.state === "idle" && "serviceWorker" in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: "CLOSE_REST_TIMER" });
     }
   }, [timer.state]);
-
-  // Listen for native notification tap → navigate to workout view
-  React.useEffect(() => {
-    if (!isNative()) return;
-    let cleanup: (() => void) | undefined;
-    onNativeNotificationTap(() => {
-      useAppStore.getState().setView("new-workout");
-    }).then((unsub) => { cleanup = unsub; });
-    return () => cleanup?.();
-  }, []);
 
   // Vibrate during the last 3 seconds before the alarm.
   React.useEffect(() => {

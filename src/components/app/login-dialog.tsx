@@ -2,9 +2,8 @@
 
 import * as React from "react";
 import { signIn } from "next-auth/react";
-import { Loader2, Mail, ArrowLeft, Check } from "lucide-react";
+import { Loader2, Mail } from "lucide-react";
 import { toast } from "sonner";
-import { getGoogleLoginUrl, isNative, signInWithGoogleNativePlugin } from "@/lib/native";
 import {
   Dialog,
   DialogContent,
@@ -52,7 +51,7 @@ function GoogleLogo({ className }: { className?: string }) {
   );
 }
 
-type AuthMode = "choose" | "login" | "register" | "code";
+type AuthMode = "choose" | "login" | "register";
 
 export function LoginDialog({
   open,
@@ -64,9 +63,6 @@ export function LoginDialog({
   const [googleConfigured, setGoogleConfigured] = React.useState<boolean | null>(null);
   const [mode, setMode] = React.useState<AuthMode>("choose");
   const [pendingEmail, setPendingEmail] = React.useState<string | null>(null);
-  const [codeInput, setCodeInput] = React.useState("");
-  const [codeStatus, setCodeStatus] = React.useState<"idle" | "loading" | "done">("idle");
-  const [googleUrl, setGoogleUrl] = React.useState("");
   const [loginEmail, setLoginEmail] = React.useState("");
   const [loginPassword, setLoginPassword] = React.useState("");
   const [regName, setRegName] = React.useState("");
@@ -95,8 +91,6 @@ export function LoginDialog({
       setRegName("");
       setRegEmail("");
       setRegPassword("");
-      setCodeInput("");
-      setCodeStatus("idle");
     }
   }, [open]);
 
@@ -150,11 +144,8 @@ export function LoginDialog({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: regEmail.trim(), password: regPassword, name: regName.trim() || undefined }),
       });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: "Erreur serveur lors de l'inscription" }));
-        throw new Error(errorData.error || "Erreur d'inscription");
-      }
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erreur d'inscription");
       toast.success("Compte créé ! Connecte-toi.");
       setPendingEmail(null);
       setMode("login");
@@ -170,59 +161,10 @@ export function LoginDialog({
   }
 
   async function handleGoogle() {
-    if (isNative()) {
-      try {
-        setPendingEmail("native-google");
-        const result = await signInWithGoogleNativePlugin();
-        setPendingEmail(null);
-        if (result.success) {
-          toast.success("Connexion Google OK !");
-          onOpenChange(false);
-          window.setTimeout(() => window.location.reload(), 300);
-          return;
-        }
-        if (result.error === "Connexion annulée") {
-          return;
-        }
-        toast.error(result.error);
-      } catch {
-        setPendingEmail(null);
-      }
-      const url = getGoogleLoginUrl();
-      setGoogleUrl(url);
-      setMode("code");
-      window.open(url, "_blank", "noopener,noreferrer");
-    }
-  }
-
-  async function handleCodeExchange(e: React.FormEvent) {
-    e.preventDefault();
-    const code = codeInput.trim().toUpperCase();
-    if (!code) return;
-    setCodeStatus("loading");
     try {
-      const res = await fetch("/api/auth/exchange", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
-      });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: "Erreur serveur lors de l'échange" }));
-        throw new Error(errorData.error || "Erreur de connexion");
-      }
-      const data = await res.json();
-      if (data.success) {
-        setCodeStatus("done");
-        toast.success("Connecté en tant que " + data.name);
-        onOpenChange(false);
-        window.setTimeout(() => window.location.reload(), 500);
-      } else {
-        toast.error(data.error || "Code invalide");
-        setCodeStatus("idle");
-      }
+      await signIn("google", { callbackUrl: "/" });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erreur de connexion");
-      setCodeStatus("idle");
+      toast.error(e instanceof Error ? e.message : "Échec Google");
     }
   }
 
@@ -253,25 +195,10 @@ export function LoginDialog({
           <div className="flex flex-col gap-2">
             {googleConfigured && (
               <>
-                {isNative() ? (
-                  <Button onClick={handleGoogle} disabled={pendingEmail !== null} variant="outline" className="h-11 w-full gap-3">
-                    {pendingEmail === "native-google" ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleLogo className="h-4 w-4" />}
-                    {pendingEmail === "native-google" ? "Connexion..." : "Se connecter avec Google"}
-                  </Button>
-                ) : pendingEmail ? (
-                  <Button disabled variant="outline" className="h-11 w-full gap-3">
-                    <GoogleLogo className="h-4 w-4" />
-                    Se connecter avec Google
-                  </Button>
-                ) : (
-                  <a
-                    href="/api/auth/google-start?source=web"
-                    className="inline-flex items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-xs hover:bg-accent hover:text-accent-foreground h-11 w-full"
-                  >
-                    <GoogleLogo className="h-4 w-4" />
-                    Se connecter avec Google
-                  </a>
-                )}
+                <Button onClick={handleGoogle} variant="outline" className="h-11 w-full gap-3">
+                  <GoogleLogo className="h-4 w-4" />
+                  Se connecter avec Google
+                </Button>
                 <div className="flex items-center gap-3 py-1">
                   <div className="h-px flex-1 bg-border" />
                   <span className="text-xs text-muted-foreground">ou</span>
@@ -361,85 +288,6 @@ export function LoginDialog({
                 </Button>
               </div>
             </div>
-          </form>
-        ) : mode === "code" ? (
-          <form onSubmit={handleCodeExchange} className="flex flex-col gap-4">
-            <div className="rounded-lg border border-border bg-muted/30 p-3">
-              <p className="text-xs font-medium text-foreground">1. Se connecter avec Google dans Chrome</p>
-              <div className="mt-2">
-                <Button
-                  type="button"
-                  variant="default"
-                  className="h-9 w-full gap-2"
-                  onClick={() => {
-                    window.open(googleUrl, "_blank", "noopener,noreferrer");
-                  }}
-                >
-                  Ouvrir dans Chrome
-                </Button>
-              </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Si le bouton ne fonctionne pas, copie l'URL et ouvre-la manuellement dans Chrome :
-              </p>
-              <div className="mt-2 flex flex-row gap-2">
-                <input
-                  readOnly
-                  value={googleUrl}
-                  onFocus={(e) => e.target.select()}
-                  onClick={(e) => e.currentTarget.select()}
-                  className="flex-1 rounded bg-background px-2 py-1 text-xs text-foreground border border-border font-mono break-all selection:bg-primary/20"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 shrink-0"
-                  onClick={() => {
-                    try {
-                      navigator.clipboard.writeText(googleUrl);
-                      toast.success("Lien copié !");
-                    } catch {
-                      const ta = document.createElement("textarea");
-                      ta.value = googleUrl;
-                      ta.style.position = "fixed";
-                      ta.style.left = "-9999px";
-                      document.body.appendChild(ta);
-                      ta.select();
-                      document.execCommand("copy");
-                      ta.remove();
-                      toast.success("Lien copié !");
-                    }
-                  }}
-                >
-                  Copier
-                </Button>
-              </div>
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="code-input">2. Code de connexion</Label>
-              <Input
-                id="code-input"
-                placeholder="Ex: ABC12345"
-                value={codeInput}
-                onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
-                className="text-center text-lg font-mono tracking-widest"
-                maxLength={8}
-                autoFocus
-                disabled={codeStatus !== "idle"}
-              />
-            </div>
-            <Button type="submit" disabled={codeStatus !== "idle"} className="h-10 w-full gap-2">
-              {codeStatus === "loading" ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : codeStatus === "done" ? (
-                <Check className="h-4 w-4" />
-              ) : null}
-              {codeStatus === "loading" ? "Connexion..." : codeStatus === "done" ? "Connecté !" : "Valider le code"}
-            </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setMode("choose")} disabled={codeStatus !== "idle"}>
-              <ArrowLeft className="mr-1 h-3 w-3" />
-              Retour
-            </Button>
           </form>
         ) : (
           <form onSubmit={handleRegister} className="flex flex-col gap-3">
