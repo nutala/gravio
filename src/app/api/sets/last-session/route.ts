@@ -21,12 +21,15 @@ export async function GET(req: Request) {
   const entry = await db.workoutEntry.findFirst({
     where: {
       exerciseId,
-      ...(variantId ? { variantId } : {}),
       workout: userId ? { userId } : { userId: null },
+      ...(variantId
+        ? { sets: { some: { variantId } } }
+        : {}),
     },
     orderBy: { createdAt: "desc" },
     include: {
       sets: {
+        where: variantId ? { variantId } : {},
         orderBy: { createdAt: "asc" },
         select: {
           reps: true,
