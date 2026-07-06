@@ -38,10 +38,12 @@ export async function GET() {
 
     // Find the variant that produced bestSet (first matching set wins)
     let bestSetVariantName: string | null = null;
+    let bestSetVariantDifficulty = 1;
     if (bestSet > 0) {
       for (const s of e.sets) {
         if ((s.reps ?? s.holdSeconds ?? 0) === bestSet) {
           bestSetVariantName = s.variant?.name ?? e.variant?.name ?? null;
+          bestSetVariantDifficulty = s.variant?.difficultyLevel ?? e.variant?.difficultyLevel ?? 1;
           break;
         }
       }
@@ -52,7 +54,7 @@ export async function GET() {
         exerciseId: e.exerciseId, exerciseName: e.exercise.name,
         category: e.exercise.category, isStatic: bestIsStatic,
         sessions: 1, totalSets: e.sets.length, totalVolume: metric,
-        bestValue: bestSet, topVariantName: bestSetVariantName,
+        bestValue: bestSet, topVariantName: bestSetVariantName, topVariantDifficulty: bestSetVariantDifficulty,
         lastPerformed: e.workout.date.toISOString(), lastDate: e.workout.date,
         seenWorkouts: new Set([wid]),
       });

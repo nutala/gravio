@@ -568,7 +568,7 @@ export function StatsView() {
                             {ex.topVariantName ? (
                               <div className="flex flex-col gap-0.5 leading-tight">
                                 <span className="text-xs text-amber-500">
-                                  {difficultyStars(3)}
+                                  {difficultyStars(ex.topVariantDifficulty ?? 1)}
                                 </span>
                                 <span className="text-sm">
                                   {ex.topVariantName}

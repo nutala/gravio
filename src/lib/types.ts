@@ -98,6 +98,7 @@ export interface TopExercise {
   bestValue: number;
   /// Best variant name (highest difficulty used)
   topVariantName: string | null;
+  topVariantDifficulty: number;
   lastPerformed: string | null;
 }
 

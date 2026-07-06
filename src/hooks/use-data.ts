@@ -127,6 +127,7 @@ export function useUpdateVariant() {
     }) => api.patch(`/api/variants/${id}`, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.exercises });
+      qc.invalidateQueries({ queryKey: qk.topExercises });
       toast.success("Variante mise à jour");
     },
     onError: (e: Error) => toast.error(e.message),
