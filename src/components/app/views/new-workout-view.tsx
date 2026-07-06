@@ -1013,31 +1013,6 @@ async function fetchLastSession(
   }
 }
 
-/** Fetch the last performed set values for a given exercise+variant. */
-async function fetchLastSet(
-  exerciseId: string,
-  variantId: string,
-): Promise<Partial<DraftSet> | null> {
-  try {
-    const params = new URLSearchParams({ exerciseId, variantId });
-    const data = await api.get<{
-      reps: number | null;
-      holdSeconds: number | null;
-      weightKg: number | null;
-      rpe: number | null;
-    } | null>(`/api/sets/last?${params}`);
-    if (!data) return null;
-    return {
-      reps: data.reps ?? undefined,
-      holdSeconds: data.holdSeconds ?? undefined,
-      weightKg: data.weightKg ?? undefined,
-      rpe: data.rpe ?? undefined,
-    };
-  } catch {
-    return null;
-  }
-}
-
 // ---------------------------------------------------------------------------
 // EntryCard — one exercise with its sets
 // ---------------------------------------------------------------------------
@@ -1156,8 +1131,27 @@ function EntryCard({
   }
 
   async function handleVariantChange(setId: string, newVariantId: string) {
-    const last = await fetchLastSet(exercise.id, newVariantId);
-    onUpdateSet(setId, { variantId: newVariantId, ...last });
+    const setIndex = sets.findIndex((s) => s.id === setId);
+    const historySets = await fetchLastSession(exercise.id, newVariantId);
+    const historySet = historySets[setIndex];
+    if (historySet) {
+      onUpdateSet(setId, {
+        variantId: newVariantId,
+        mode: historySet.reps != null ? "reps" : historySet.holdSeconds != null ? "hold" : undefined,
+        reps: historySet.reps ?? undefined,
+        holdSeconds: historySet.holdSeconds ?? undefined,
+        weightKg: historySet.weightKg ?? undefined,
+        rpe: historySet.rpe ?? undefined,
+      });
+    } else {
+      onUpdateSet(setId, {
+        variantId: newVariantId,
+        reps: undefined,
+        holdSeconds: undefined,
+        weightKg: undefined,
+        rpe: undefined,
+      });
+    }
   }
 
   return (
