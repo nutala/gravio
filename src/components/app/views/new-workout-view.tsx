@@ -308,7 +308,7 @@ export function NewWorkoutView() {
       .sort((a, b) => a.difficultyLevel - b.difficultyLevel)[0];
     if (!firstVariant) return;
 
-    fetchLastSession(exercise.id).then((historySets) => {
+    fetchLastSession(exercise.id, firstVariant.id).then((historySets) => {
       const historySet = historySets[0];
       draft.updateSet(newEntry.id, newEntry.sets[0].id, {
         variantId: firstVariant.id,
