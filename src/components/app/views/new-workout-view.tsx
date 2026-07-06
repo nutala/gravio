@@ -311,7 +311,7 @@ export function NewWorkoutView() {
     const entryId = newEntry.id;
     const emptySetId = newEntry.sets[0].id;
 
-    fetchLastSession(exercise.id, firstVariant.id).then((historySets) => {
+    fetchLastSession(exercise.id).then((historySets) => {
       draft.removeSet(entryId, emptySetId);
 
       if (historySets.length > 0) {
@@ -995,7 +995,7 @@ function SessionTimer({ startedAt }: { startedAt: number }) {
 /** Fetch all sets from the most recent session for a given exercise+variant. */
 async function fetchLastSession(
   exerciseId: string,
-  variantId: string,
+  variantId?: string,
 ): Promise<Array<{
   reps: number | null;
   holdSeconds: number | null;
@@ -1003,7 +1003,8 @@ async function fetchLastSession(
   rpe: number | null;
 }>> {
   try {
-    const params = new URLSearchParams({ exerciseId, variantId });
+    const params = new URLSearchParams({ exerciseId });
+    if (variantId) params.set("variantId", variantId);
     const data = await api.get<{
       sets: Array<{
         reps: number | null;
