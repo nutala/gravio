@@ -308,26 +308,20 @@ export function NewWorkoutView() {
       .sort((a, b) => a.difficultyLevel - b.difficultyLevel)[0];
     if (!firstVariant) return;
 
-    const entryId = newEntry.id;
-    const emptySetId = newEntry.sets[0].id;
-
     fetchLastSession(exercise.id).then((historySets) => {
-      draft.removeSet(entryId, emptySetId);
-
-      if (historySets.length > 0) {
-        for (const hs of historySets) {
-          draft.addSet(entryId, {
-            variantId: firstVariant.id,
-            mode: hs.reps != null ? "reps" : hs.holdSeconds != null ? "hold" : undefined,
-            reps: hs.reps ?? undefined,
-            holdSeconds: hs.holdSeconds ?? undefined,
-            weightKg: hs.weightKg ?? undefined,
-            rpe: hs.rpe ?? undefined,
-          });
-        }
-      } else {
-        draft.addSet(entryId, { variantId: firstVariant.id });
-      }
+      const historySet = historySets[0];
+      draft.updateSet(newEntry.id, newEntry.sets[0].id, {
+        variantId: firstVariant.id,
+        ...(historySet
+          ? {
+              mode: historySet.reps != null ? "reps" : historySet.holdSeconds != null ? "hold" : undefined,
+              reps: historySet.reps ?? undefined,
+              holdSeconds: historySet.holdSeconds ?? undefined,
+              weightKg: historySet.weightKg ?? undefined,
+              rpe: historySet.rpe ?? undefined,
+            }
+          : {}),
+      });
     });
   }
 
