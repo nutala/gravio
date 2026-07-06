@@ -336,6 +336,15 @@ export const useDraftStore = create<WorkoutDraftStore>()(
 
   resetDraft: () => set({ ...emptyDraft() }),
 
+  resetAllValidations: () =>
+    set((s) => ({
+      entries: s.entries.map((e) => ({
+        ...e,
+        sets: e.sets.map((st) => ({ ...st, validated: false })),
+        comboValidated: false,
+      })),
+    })),
+
   loadFromWorkout: (workout, exerciseMap) => {
     const entries: DraftEntry[] = [];
     for (const e of workout.entries) {

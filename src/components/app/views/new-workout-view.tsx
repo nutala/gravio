@@ -228,7 +228,9 @@ export function NewWorkoutView() {
     const workout = workoutsQ.data.find((w) => w.id === id);
     if (!workout) return;
     draft.loadFromWorkout(workout, exerciseMap);
-    toast.success(`Séance « ${workout.title || "session"} » chargée — ajuste puis enregistre.`);
+    draft.resetAllValidations();
+    draft.startSession();
+    toast.success(`Séance « ${workout.title || "session"} » chargée — prête pour ta séance.`);
   }, [repeatId, workoutsQ.data]);
 
   // ----- Consume "Edit workout" prefill on mount -----
