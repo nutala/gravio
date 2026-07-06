@@ -123,9 +123,6 @@ export const authOptions: NextAuthOptions = {
           try {
             const dbUser = await db.user.findUnique({ where: { email } });
             token.uid = dbUser?.id ?? user.id;
-            if (dbUser?.image?.startsWith("data:")) {
-              await db.user.update({ where: { id: dbUser.id }, data: { image: null } });
-            }
           } catch {
             token.uid = user.id;
           }
@@ -140,9 +137,6 @@ export const authOptions: NextAuthOptions = {
               token.image = dbUser.image;
             } else {
               delete token.image;
-              if (dbUser.image?.startsWith("data:")) {
-                await db.user.update({ where: { id: dbUser.id }, data: { image: null } });
-              }
             }
           }
         } catch {
