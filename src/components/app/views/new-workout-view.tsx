@@ -308,11 +308,26 @@ export function NewWorkoutView() {
       .sort((a, b) => a.difficultyLevel - b.difficultyLevel)[0];
     if (!firstVariant) return;
 
-    fetchLastSet(exercise.id, firstVariant.id).then((last) => {
-      draft.updateSet(newEntry.id, newEntry.sets[0].id, {
-        variantId: firstVariant.id,
-        ...(last ?? {}),
-      });
+    const entryId = newEntry.id;
+    const emptySetId = newEntry.sets[0].id;
+
+    fetchLastSession(exercise.id, firstVariant.id).then((historySets) => {
+      draft.removeSet(entryId, emptySetId);
+
+      if (historySets.length > 0) {
+        for (const hs of historySets) {
+          draft.addSet(entryId, {
+            variantId: firstVariant.id,
+            mode: hs.reps != null ? "reps" : hs.holdSeconds != null ? "hold" : undefined,
+            reps: hs.reps ?? undefined,
+            holdSeconds: hs.holdSeconds ?? undefined,
+            weightKg: hs.weightKg ?? undefined,
+            rpe: hs.rpe ?? undefined,
+          });
+        }
+      } else {
+        draft.addSet(entryId, { variantId: firstVariant.id });
+      }
     });
   }
 
@@ -977,6 +992,32 @@ function SessionTimer({ startedAt }: { startedAt: number }) {
   );
 }
 
+/** Fetch all sets from the most recent session for a given exercise+variant. */
+async function fetchLastSession(
+  exerciseId: string,
+  variantId: string,
+): Promise<Array<{
+  reps: number | null;
+  holdSeconds: number | null;
+  weightKg: number | null;
+  rpe: number | null;
+}>> {
+  try {
+    const params = new URLSearchParams({ exerciseId, variantId });
+    const data = await api.get<{
+      sets: Array<{
+        reps: number | null;
+        holdSeconds: number | null;
+        weightKg: number | null;
+        rpe: number | null;
+      }>;
+    }>(`/api/sets/last-session?${params}`);
+    return data?.sets ?? [];
+  } catch {
+    return [];
+  }
+}
+
 /** Fetch the last performed set values for a given exercise+variant. */
 async function fetchLastSet(
   exerciseId: string,
@@ -1100,17 +1141,21 @@ function EntryCard({
     // when handleVariantChange (async) hasn't resolved yet.
     const latest = useDraftStore.getState().entries.find((e) => e.id === entry.id);
     const latestSets = latest?.sets ?? sets;
+    const setIndex = latestSets.length;
     const lastSet = latestSets[latestSets.length - 1];
     const defaults: Partial<DraftSet> = {};
     const variantId = lastSet?.variantId ?? (sortedVariants.length > 0 ? sortedVariants[0].id : undefined);
     if (variantId) defaults.variantId = variantId;
     if (lastSet?.mode) defaults.mode = lastSet.mode;
-    const last = variantId ? await fetchLastSet(exercise.id, variantId) : null;
-    if (last) {
-      defaults.reps = last.reps;
-      defaults.holdSeconds = last.holdSeconds;
-      defaults.weightKg = last.weightKg;
-      defaults.rpe = last.rpe;
+    if (variantId) {
+      const historySets = await fetchLastSession(exercise.id, variantId);
+      const historySet = historySets[setIndex];
+      if (historySet) {
+        defaults.reps = historySet.reps ?? undefined;
+        defaults.holdSeconds = historySet.holdSeconds ?? undefined;
+        defaults.weightKg = historySet.weightKg ?? undefined;
+        defaults.rpe = historySet.rpe ?? undefined;
+      }
     }
     onAddSet(defaults);
   }
