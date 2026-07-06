@@ -68,7 +68,10 @@ export async function GET() {
       if (bestSet > existing.bestValue) {
         existing.bestValue = bestSet;
         existing.isStatic = bestIsStatic;
-        if (bestSetVariantName) existing.topVariantName = bestSetVariantName;
+        if (bestSetVariantName) {
+          existing.topVariantName = bestSetVariantName;
+          existing.topVariantDifficulty = bestSetVariantDifficulty;
+        }
       }
       if (!existing.lastDate || e.workout.date > existing.lastDate) {
         existing.lastDate = e.workout.date;
