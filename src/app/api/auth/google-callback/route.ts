@@ -63,12 +63,16 @@ export async function GET(req: Request) {
     return errorPage("Paramètres manquants");
   }
 
-  const { valid, source } = consumeOAuthState(stateParam);
+  const { valid, source, origin } = consumeOAuthState(stateParam);
   if (!valid) {
     return errorPage("État invalide ou expiré");
   }
 
-  const callbackUrl = `${url.origin}/api/auth/google-callback`;
+  // Use the origin stored in the OAuth state (set by google-start from
+  // the client-side origin) instead of url.origin, because on Render.com
+  // the request origin may be an internal proxy URL.
+  const callbackOrigin = origin || url.origin;
+  const callbackUrl = `${callbackOrigin}/api/auth/google-callback`;
 
   let googleUser: GoogleUser;
   try {
