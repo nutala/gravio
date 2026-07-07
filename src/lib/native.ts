@@ -217,22 +217,30 @@ export async function requestNativeNotificationPermission(): Promise<boolean> {
 
 // ── Local notifications ──
 
-export async function scheduleNativeNotification(
-  title: string,
-  body: string,
-  delayMs: number,
-): Promise<boolean> {
+const TIMER_ALARM_ID = 1001;
+const TIMER_COUNTDOWN_ID = 1002;
+
+let lastCountdownSec = -1;
+
+export async function scheduleNativeTimerAlarm(delayMs: number): Promise<boolean> {
   try {
     const ln = getLN();
     if (!ln) return false;
+    // Cancel any previous alarm to avoid duplicates
+    await ln.cancel({ notifications: [{ id: TIMER_ALARM_ID }] });
     await ln.schedule({
       notifications: [
         {
-          title,
-          body,
-          id: Math.floor(Math.random() * 2147483647),
-          schedule: { at: new Date(Date.now() + delayMs) },
+          id: TIMER_ALARM_ID,
+          title: "⏱ Repos terminé ! 💪",
+          body: "C'est reparti pour une série !",
+          schedule: { at: new Date(Date.now() + delayMs), allowWhileIdle: true },
           sound: "beep.wav",
+          attachments: undefined,
+          actionTypeId: "",
+          extra: null,
+          smallIcon: "ic_stat_icon",
+          iconColor: "#10b981",
         },
       ],
     });
@@ -242,14 +250,56 @@ export async function scheduleNativeNotification(
   }
 }
 
-export async function cancelAllNativeNotifications(): Promise<void> {
+export async function updateNativeTimerCountdown(remainingSec: number): Promise<void> {
+  // Throttle: only update every 5 seconds or when value changes significantly
+  if (remainingSec === lastCountdownSec) return;
+  if (remainingSec > 10 && Math.abs(remainingSec - lastCountdownSec) < 5) return;
+  lastCountdownSec = remainingSec;
+
   try {
     const ln = getLN();
     if (!ln) return;
-    const pending = await ln.getPending();
-    if (pending.notifications.length > 0) {
-      await ln.cancel({ notifications: pending.notifications });
+    const m = Math.floor(remainingSec / 60);
+    const s = remainingSec % 60;
+    const timeStr = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+
+    const existing = await ln.getPending();
+    const hasCountdown = existing.notifications.some((n: { id: number }) => n.id === TIMER_COUNTDOWN_ID);
+
+    if (hasCountdown) {
+      await ln.cancel({ notifications: [{ id: TIMER_COUNTDOWN_ID }] });
     }
+
+    await ln.schedule({
+      notifications: [
+        {
+          id: TIMER_COUNTDOWN_ID,
+          title: "⏱ Repos " + timeStr,
+          body: "Temps restant : " + timeStr,
+          schedule: { at: new Date(), allowWhileIdle: true },
+          sound: "",
+          attachments: undefined,
+          actionTypeId: "",
+          extra: null,
+          smallIcon: "ic_stat_icon",
+          iconColor: "#10b981",
+        },
+      ],
+    });
+  } catch { /* ignore */ }
+}
+
+export async function cancelAllNativeNotifications(): Promise<void> {
+  lastCountdownSec = -1;
+  try {
+    const ln = getLN();
+    if (!ln) return;
+    await ln.cancel({
+      notifications: [
+        { id: TIMER_ALARM_ID },
+        { id: TIMER_COUNTDOWN_ID },
+      ],
+    });
   } catch { /* ignore */ }
 }
 
@@ -267,4 +317,12 @@ export async function onNativeNotificationTap(cb: NativeNotificationCallback): P
   } catch {
     return () => {};
   }
+}
+
+export async function nativeVibrate(pattern: number[] | number): Promise<void> {
+  try {
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate(pattern);
+    }
+  } catch { /* no vibrate */ }
 }

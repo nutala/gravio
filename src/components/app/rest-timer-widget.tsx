@@ -9,6 +9,14 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  isNative,
+  scheduleNativeTimerAlarm,
+  updateNativeTimerCountdown,
+  cancelAllNativeNotifications,
+  nativeVibrate,
+  requestNativeNotificationPermission,
+} from "@/lib/native";
 
 let wakeLockRef: WakeLockSentinel | null = null;
 
@@ -35,14 +43,21 @@ export function RestTimerWidget() {
 
   React.useEffect(() => { endsAtRef.current = timer.endsAt; }, [timer.endsAt]);
 
-  // Wake lock + notification permission + absolute setTimeout for completion
+  // Wake lock + notification permission + native timer alarm
   React.useEffect(() => {
     if (timer.state !== "running" || timer.endsAt == null) {
       releaseWakeLock();
       return;
     }
     acquireWakeLock();
-    Notification.requestPermission().catch(() => {});
+    if (isNative()) {
+      requestNativeNotificationPermission().then(() => {
+        const delay = Math.max(0, (timer.endsAt ?? 0) - Date.now());
+        scheduleNativeTimerAlarm(delay);
+      });
+    } else {
+      Notification.requestPermission().catch(() => {});
+    }
   }, [timer.state]);
 
   // Tick every 250ms while running for the countdown UI.
@@ -92,22 +107,28 @@ export function RestTimerWidget() {
     }
   }, [timer.state]);
 
-  // Send periodic countdown updates to the service worker notification.
+  // Send periodic countdown updates to the service worker notification
+  // (web) or native notification (Android).
   React.useEffect(() => {
     if (timer.state !== "running") return;
     const sendUpdate = () => {
       const endsAt = endsAtRef.current;
       if (!endsAt) return;
-      if (!("serviceWorker" in navigator) || !navigator.serviceWorker.controller) return;
       const remainingMs = Math.max(0, endsAt - Date.now());
-      navigator.serviceWorker.controller.postMessage({
-        type: "UPDATE_REST_TIMER",
-        remainingSec: Math.ceil(remainingMs / 1000),
-        endsAt,
-      });
+      const remainingSec = Math.ceil(remainingMs / 1000);
+
+      if (isNative()) {
+        updateNativeTimerCountdown(remainingSec);
+      } else if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: "UPDATE_REST_TIMER",
+          remainingSec,
+          endsAt,
+        });
+      }
     };
     sendUpdate();
-    const id = setInterval(sendUpdate, 1000);
+    const id = setInterval(sendUpdate, isNative() ? 5000 : 1000);
     return () => clearInterval(id);
   }, [timer.state]);
 
@@ -122,7 +143,7 @@ export function RestTimerWidget() {
         if (st.state === "running" && st.endsAt != null && Date.now() >= st.endsAt && !doneHandled.current) {
           doneHandled.current = true;
           playBeep();
-          try { navigator.vibrate?.([200, 100, 200]); } catch { /* no vibrate */ }
+          nativeVibrate([200, 100, 200]);
           toast.success("Repos terminé — c'est reparti ! 💪", { duration: 4000 });
           st.complete();
         }
@@ -134,9 +155,12 @@ export function RestTimerWidget() {
     }
   }, []);
 
-  // Close SW notification when timer returns to idle (dismissed / skipped).
+  // Close notifications when timer returns to idle (dismissed / skipped).
   React.useEffect(() => {
-    if (timer.state === "idle" && "serviceWorker" in navigator && navigator.serviceWorker.controller) {
+    if (timer.state !== "idle") return;
+    if (isNative()) {
+      cancelAllNativeNotifications();
+    } else if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage({ type: "CLOSE_REST_TIMER" });
     }
   }, [timer.state]);
@@ -149,7 +173,7 @@ export function RestTimerWidget() {
     const schedule = (msBefore: number) => {
       const delay = Math.max(0, endsAt - t0 - msBefore);
       return setTimeout(() => {
-        try { navigator.vibrate?.(80); } catch { /* no vibrate */ }
+        nativeVibrate(80);
       }, delay);
     };
     const timers = [schedule(3000), schedule(2000), schedule(1000)];
@@ -158,8 +182,11 @@ export function RestTimerWidget() {
 
   function beepAndNotify() {
     playBeep();
-    try { navigator.vibrate?.([200, 100, 200]); } catch { /* no vibrate */ }
-    if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+    nativeVibrate([200, 100, 200]);
+
+    if (isNative()) {
+      cancelAllNativeNotifications();
+    } else if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage({ type: "SHOW_NOTIFICATION" });
     } else if (typeof Notification !== "undefined" && Notification.permission === "granted") {
       try {
