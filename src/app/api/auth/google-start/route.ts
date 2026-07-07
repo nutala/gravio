@@ -7,8 +7,12 @@ export async function GET(req: Request) {
   const source = reqUrl.searchParams.get("source") || "native";
   const { state } = createOAuthState(source);
 
-  // Always derive callback URL from request origin — NEXTAUTH_URL may be localhost
-  const CALLBACK_URL = `${reqUrl.origin}/api/auth/google-callback`;
+  // Use the origin explicitly passed by the client, falling back to the
+  // request origin.  On Render.com the request origin can be an internal
+  // proxy URL, so the client-side origin (window.location.origin) is
+  // authoritative.
+  const origin = reqUrl.searchParams.get("origin") || reqUrl.origin;
+  const CALLBACK_URL = `${origin}/api/auth/google-callback`;
 
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
