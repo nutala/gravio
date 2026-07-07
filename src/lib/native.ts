@@ -156,9 +156,10 @@ export async function signInWithGoogleNativePlugin(): Promise<{ success: boolean
 }
 
 export function getGoogleLoginUrl(): string {
-  // Always use the production URL — window.location.origin can be wrong
-  // in Capacitor WebView (localhost / ip mismatch).
-  return "https://gravio.onrender.com/api/auth/google-start";
+  // Use window.location.origin — in Capacitor this matches server.url
+  // from capacitor.config.ts (respects CAP_SERVER_URL for local dev).
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://gravio.onrender.com";
+  return `${origin}/api/auth/google-start`;
 }
 
 export async function signInWithGoogleNative(): Promise<boolean> {
