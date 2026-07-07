@@ -115,10 +115,12 @@ export async function GET(req: Request) {
       },
     });
 
+    const isSecure = callbackOrigin.startsWith("https");
+    const cookieName = isSecure ? "__Secure-next-auth.session-token" : "next-auth.session-token";
     const response = NextResponse.redirect(new URL("/", req.url));
-    response.cookies.set("next-auth.session-token", token, {
+    response.cookies.set(cookieName, token, {
       httpOnly: true,
-      secure: true,
+      secure: isSecure,
       sameSite: "lax",
       path: "/",
       maxAge: 30 * 24 * 3600,

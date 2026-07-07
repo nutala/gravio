@@ -87,7 +87,8 @@ export async function POST(req: NextRequest) {
     });
 
     const isSecure = req.url?.startsWith("https");
-    response.cookies.set("next-auth.session-token", token, {
+    const cookieName = isSecure ? "__Secure-next-auth.session-token" : "next-auth.session-token";
+    response.cookies.set(cookieName, token, {
       httpOnly: true,
       secure: isSecure,
       sameSite: "lax",

@@ -34,9 +34,13 @@ const token = await encode({
 
   const response = NextResponse.json({ success: true, email: entry.email, name: entry.name });
 
-  // Set the NextAuth session cookie
+  // Set the NextAuth session cookie — must match NextAuth's own cookie name.
+  // On HTTPS NextAuth uses __Secure-next-auth.session-token; on HTTP it uses
+  // next-auth.session-token.  Using the wrong name makes the session invisible
+  // on the next request.
   const isSecure = req.url?.startsWith("https");
-  response.cookies.set("next-auth.session-token", token, {
+  const cookieName = isSecure ? "__Secure-next-auth.session-token" : "next-auth.session-token";
+  response.cookies.set(cookieName, token, {
     httpOnly: true,
     secure: isSecure,
     sameSite: "lax",
