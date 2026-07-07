@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.calistrack.app',
+  appId: 'com.gravio.app',
   appName: 'Gravio',
   webDir: 'native-assets',
   server: {

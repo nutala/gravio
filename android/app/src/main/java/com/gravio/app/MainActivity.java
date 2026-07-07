@@ -1,4 +1,4 @@
-package com.calistrack.app;
+package com.gravio.app;
 
 import com.getcapacitor.BridgeActivity;
 
