@@ -2,17 +2,19 @@
  * Capacitor native helpers for Google sign-in via system browser
  * and deep link handling.
  *
- * Uses window.Capacitor.plugins directly instead of static imports
- * to avoid bundling native-only modules on web.
+ * Reads from window.Capacitor.Plugins directly instead of static
+ * imports to avoid bundling native-only modules on web.
  *
  * Static imports from @capgo/capacitor-social-login cause runtime
  * errors on web because registerPlugin() evaluates during module
- * init.  Reading from window.Capacitor.plugins.SocialLogin is the
+ * init.  Reading from window.Capacitor.Plugins.SocialLogin is the
  * safest pattern — it is only defined on native Capacitor builds.
+ *
+ * NOTE: Capacitor stores plugins under Plugins (capital P), not
+ * plugins.  window.Capacitor.Plugins is the correct key.
  */
 
 interface CapacitorPluginApp {
-  openUrl: (opts: { url: string }) => Promise<void>;
   addListener: (event: string, handler: (data: { url: string }) => void) => { remove: () => void };
 }
 
@@ -44,7 +46,7 @@ declare global {
   interface Window {
     Capacitor?: {
       isNativePlatform?: () => boolean;
-      plugins?: CapacitorPlugins;
+      Plugins?: CapacitorPlugins;
     };
   }
 }
@@ -54,21 +56,21 @@ export function isNative(): boolean {
 }
 
 function getApp(): CapacitorPluginApp | undefined {
-  return window.Capacitor?.plugins?.App;
+  return window.Capacitor?.Plugins?.App;
 }
 
 function getLN(): CapacitorPluginLocalNotifications | undefined {
-  return window.Capacitor?.plugins?.LocalNotifications;
+  return window.Capacitor?.Plugins?.LocalNotifications;
 }
 
-// ── Native Google sign-in (opens system browser) ──
+// ── Native Google sign-in (Chrome Custom Tab) ──
 //
 // Uses a completely server-side OAuth flow that bypasses NextAuth's
 // CSRF mechanism. The state parameter is stored server-side (no CSRF
 // cookie needed), so there is no cookie mismatch between WebView and
 // system browser.
 //
-// 1. App.openUrl() opens /api/auth/google-start in the system browser
+// 1. Browser.open() opens /api/auth/google-start in Chrome Custom Tab
 // 2. google-start generates a state, stores it server-side, 302-redirects
 //    to Google's OAuth URL
 // 3. Google OAuth → callback to /api/auth/google-callback
@@ -79,17 +81,17 @@ function getLN(): CapacitorPluginLocalNotifications | undefined {
 export function diagnoseCapacitor(): string {
   const parts: string[] = [];
   parts.push("Capacitor: " + (typeof window.Capacitor !== "undefined" ? "OK" : "MANQUANT"));
-  parts.push("Plugins: " + (window.Capacitor?.plugins ? "OK" : "MANQUANT"));
-  parts.push("App plugin: " + (window.Capacitor?.plugins?.App ? "OK" : "MANQUANT"));
-  parts.push("LN plugin: " + (window.Capacitor?.plugins?.LocalNotifications ? "OK" : "MANQUANT"));
-  parts.push("Browser plugin: " + (window.Capacitor?.plugins?.Browser ? "OK" : "MANQUANT"));
-  parts.push("SocialLogin plugin: " + (window.Capacitor?.plugins?.SocialLogin ? "OK" : "MANQUANT"));
+  parts.push("Plugins: " + (window.Capacitor?.Plugins ? "OK" : "MANQUANT"));
+  parts.push("App plugin: " + (window.Capacitor?.Plugins?.App ? "OK" : "MANQUANT"));
+  parts.push("LN plugin: " + (window.Capacitor?.Plugins?.LocalNotifications ? "OK" : "MANQUANT"));
+  parts.push("Browser plugin: " + (window.Capacitor?.Plugins?.Browser ? "OK" : "MANQUANT"));
+  parts.push("SocialLogin plugin: " + (window.Capacitor?.Plugins?.SocialLogin ? "OK" : "MANQUANT"));
   parts.push("Origin: " + window.location.origin);
   return parts.join(" | ");
 }
 
 function getSocialLogin(): CapacitorPluginSocialLogin {
-  const sl = window.Capacitor?.plugins?.SocialLogin;
+  const sl = window.Capacitor?.Plugins?.SocialLogin;
   if (!sl) {
     throw new Error("Plugin SocialLogin non disponible");
   }
@@ -165,19 +167,9 @@ export function getGoogleLoginUrl(): string {
 export async function signInWithGoogleNative(): Promise<boolean> {
   const url = getGoogleLoginUrl();
 
-  // Best-effort: try to open in system browser via App plugin
-  const app = getApp();
-  if (app) {
-    try {
-      await app.openUrl({ url });
-      return true;
-    } catch {
-      // ignore, fall through
-    }
-  }
-
-  // Best-effort: try Chrome Custom Tab
-  const browser = window.Capacitor?.plugins?.Browser;
+  // Open URL in system browser via @capacitor/browser (Chrome Custom Tab).
+  // This bypasses the Google OAuth WebView block (disallowed_useragent).
+  const browser = window.Capacitor?.Plugins?.Browser;
   if (browser?.open) {
     try {
       await browser.open({ url });
@@ -187,8 +179,7 @@ export async function signInWithGoogleNative(): Promise<boolean> {
     }
   }
 
-  // Unless a plugin successfully opened the browser, return false.
-  // The caller should show the URL for manual copy-paste in Chrome.
+  // Fallback: the caller should show the URL for manual copy-paste.
   return false;
 }
 
