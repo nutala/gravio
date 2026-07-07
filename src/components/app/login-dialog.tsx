@@ -4,6 +4,7 @@ import * as React from "react";
 import { signIn } from "next-auth/react";
 import { Loader2, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { isNative, signInWithGoogleNative } from "@/lib/native";
 import {
   Dialog,
   DialogContent,
@@ -162,7 +163,14 @@ export function LoginDialog({
 
   async function handleGoogle() {
     try {
-      await signIn("google", { callbackUrl: "/" });
+      if (isNative()) {
+        const opened = await signInWithGoogleNative();
+        if (!opened) {
+          toast.error("Impossible d'ouvrir le navigateur");
+        }
+      } else {
+        await signIn("google", { callbackUrl: "/" });
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Échec Google");
     }

@@ -5,6 +5,7 @@ import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Loader2, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { isNative, signInWithGoogleNative } from "@/lib/native";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -134,7 +135,18 @@ export default function LoginPage() {
   }
 
   async function handleGoogle() {
-    await signIn("google", { callbackUrl: "/" });
+    try {
+      if (isNative()) {
+        const opened = await signInWithGoogleNative();
+        if (!opened) {
+          toast.error("Impossible d'ouvrir le navigateur");
+        }
+      } else {
+        await signIn("google", { callbackUrl: "/" });
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Échec Google");
+    }
   }
 
   const redirectUri = typeof window !== "undefined"

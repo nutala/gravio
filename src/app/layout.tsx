@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { SessionProvider } from "@/components/providers/session-provider";
 import { AccentProvider } from "@/components/providers/accent-provider";
+import { NativeAuthHandler } from "@/components/app/native-auth-handler";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -73,6 +74,7 @@ export default function RootLayout({
                 {children}
                 <SonnerToaster position="top-center" richColors closeButton />
                 <SwRegister />
+                <NativeAuthHandler />
               </QueryProvider>
             </AccentProvider>
           </SessionProvider>
