@@ -17,6 +17,7 @@ import {
   cancelAllNativeNotifications,
   nativeVibrate,
   requestNativeNotificationPermission,
+  onNativeNotificationTap,
 } from "@/lib/native";
 
 let wakeLockRef: WakeLockSentinel | null = null;
@@ -111,27 +112,30 @@ export function RestTimerWidget() {
     }
   }, [timer.state]);
 
-  // Send periodic countdown updates to the service worker (web only).
+  // Periodic countdown notification updates (throttled).
+  const lastNotifUpdateRef = React.useRef(0);
   React.useEffect(() => {
     if (timer.state !== "running") return;
-    if (isNative()) return; // Native uses its own alarm notification
-    const sendUpdate = () => {
-      const endsAt = endsAtRef.current;
-      if (!endsAt) return;
-      const remainingMs = Math.max(0, endsAt - Date.now());
-      const remainingSec = Math.ceil(remainingMs / 1000);
-      if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({
-          type: "UPDATE_REST_TIMER",
-          remainingSec,
-          endsAt,
-        });
+    const endsAt = endsAtRef.current;
+    if (!endsAt) return;
+    const nowMs = Date.now();
+    const remainingMs = Math.max(0, endsAt - nowMs);
+    const remainingSec = Math.ceil(remainingMs / 1000);
+
+    if (isNative()) {
+      const throttle = remainingSec <= 10 ? 1000 : 5000;
+      if (nowMs - lastNotifUpdateRef.current >= throttle) {
+        lastNotifUpdateRef.current = nowMs;
+        scheduleNativeTimerCountdown(remainingSec);
       }
-    };
-    sendUpdate();
-    const id = setInterval(sendUpdate, 1000);
-    return () => clearInterval(id);
-  }, [timer.state]);
+    } else if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: "UPDATE_REST_TIMER",
+        remainingSec,
+        endsAt,
+      });
+    }
+  }, [timer.state, now]);
 
   // Listen for messages from the service worker.
   React.useEffect(() => {
@@ -154,6 +158,17 @@ export function RestTimerWidget() {
       navigator.serviceWorker.addEventListener("message", handler);
       return () => navigator.serviceWorker.removeEventListener("message", handler);
     }
+  }, []);
+
+  // Native notification tap → focus workout session.
+  React.useEffect(() => {
+    let cleanup: (() => void) | undefined;
+    if (isNative()) {
+      onNativeNotificationTap(() => {
+        useAppStore.getState().setView("new-workout");
+      }).then((fn) => { cleanup = fn; });
+    }
+    return () => { cleanup?.(); };
   }, []);
 
   // Close notifications when timer returns to idle (dismissed / skipped).

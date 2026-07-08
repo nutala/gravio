@@ -20,7 +20,7 @@ interface CapacitorPluginApp {
 
 interface CapacitorPluginLocalNotifications {
   requestPermissions: () => Promise<{ display: string }>;
-  schedule: (opts: { notifications: Array<{ title: string; body: string; id: number; schedule: { at: Date; allowWhileIdle?: boolean }; sound?: string; vibrate?: boolean; smallIcon?: string; iconColor?: string }> }) => Promise<void>;
+  schedule: (opts: { notifications: Array<{ title: string; body: string; id: number; schedule?: { at: Date; allowWhileIdle?: boolean }; sound?: string; vibrate?: boolean; ongoing?: boolean; smallIcon?: string; iconColor?: string }> }) => Promise<void>;
   getPending: () => Promise<{ notifications: Array<{ id: number }> }>;
   cancel: (opts: { notifications: Array<{ id: number }> }) => Promise<void>;
   addListener: (event: string, handler: () => void) => { remove: () => void };
@@ -251,6 +251,7 @@ export async function scheduleNativeTimerCountdown(remainingSec: number): Promis
     const s = remainingSec % 60;
     const timeStr = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 
+    await ln.cancel({ notifications: [{ id: TIMER_COUNTDOWN_ID }] });
     await ln.schedule({
       notifications: [
         {
@@ -276,6 +277,7 @@ export async function showNativeTimerEndNotification(): Promise<void> {
           title: "⏱ Repos terminé ! 💪",
           body: "C'est reparti pour une serie !",
           vibrate: true,
+          ongoing: false,
           smallIcon: "ic_stat_icon",
           iconColor: "#10b981",
         },
