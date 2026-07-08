@@ -12,7 +12,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   isNative,
   scheduleNativeTimerAlarm,
-  updateNativeTimerCountdown,
+  scheduleNativeTimerCountdown,
+  showNativeTimerEndNotification,
   cancelAllNativeNotifications,
   nativeVibrate,
   requestNativeNotificationPermission,
@@ -52,8 +53,11 @@ export function RestTimerWidget() {
     acquireWakeLock();
     if (isNative()) {
       requestNativeNotificationPermission().then(() => {
-        const delay = Math.max(0, (timer.endsAt ?? 0) - Date.now());
+        const endsAt = timer.endsAt!;
+        const delay = Math.max(0, endsAt - Date.now());
         scheduleNativeTimerAlarm(delay);
+        const remainingSec = Math.ceil(delay / 1000);
+        scheduleNativeTimerCountdown(remainingSec);
       });
     } else {
       Notification.requestPermission().catch(() => {});
@@ -107,19 +111,16 @@ export function RestTimerWidget() {
     }
   }, [timer.state]);
 
-  // Send periodic countdown updates to the service worker notification
-  // (web) or native notification (Android).
+  // Send periodic countdown updates to the service worker (web only).
   React.useEffect(() => {
     if (timer.state !== "running") return;
+    if (isNative()) return; // Native uses its own alarm notification
     const sendUpdate = () => {
       const endsAt = endsAtRef.current;
       if (!endsAt) return;
       const remainingMs = Math.max(0, endsAt - Date.now());
       const remainingSec = Math.ceil(remainingMs / 1000);
-
-      if (isNative()) {
-        updateNativeTimerCountdown(remainingSec);
-      } else if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+      if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({
           type: "UPDATE_REST_TIMER",
           remainingSec,
@@ -128,7 +129,7 @@ export function RestTimerWidget() {
       }
     };
     sendUpdate();
-    const id = setInterval(sendUpdate, isNative() ? 5000 : 1000);
+    const id = setInterval(sendUpdate, 1000);
     return () => clearInterval(id);
   }, [timer.state]);
 
@@ -185,7 +186,7 @@ export function RestTimerWidget() {
     nativeVibrate([200, 100, 200]);
 
     if (isNative()) {
-      cancelAllNativeNotifications();
+      showNativeTimerEndNotification();
     } else if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage({ type: "SHOW_NOTIFICATION" });
     } else if (typeof Notification !== "undefined" && Notification.permission === "granted") {

@@ -20,7 +20,7 @@ interface CapacitorPluginApp {
 
 interface CapacitorPluginLocalNotifications {
   requestPermissions: () => Promise<{ display: string }>;
-  schedule: (opts: { notifications: Array<{ title: string; body: string; id: number; schedule: { at: Date }; sound?: string }> }) => Promise<void>;
+  schedule: (opts: { notifications: Array<{ title: string; body: string; id: number; schedule: { at: Date; allowWhileIdle?: boolean }; sound?: string; vibrate?: boolean; smallIcon?: string; iconColor?: string }> }) => Promise<void>;
   getPending: () => Promise<{ notifications: Array<{ id: number }> }>;
   cancel: (opts: { notifications: Array<{ id: number }> }) => Promise<void>;
   addListener: (event: string, handler: () => void) => { remove: () => void };
@@ -220,20 +220,16 @@ export async function requestNativeNotificationPermission(): Promise<boolean> {
 const TIMER_ALARM_ID = 1001;
 const TIMER_COUNTDOWN_ID = 1002;
 
-let lastCountdownSec = -1;
-
 export async function scheduleNativeTimerAlarm(delayMs: number): Promise<boolean> {
   try {
     const ln = getLN();
     if (!ln) return false;
-    // Cancel any previous alarm to avoid duplicates
-    await ln.cancel({ notifications: [{ id: TIMER_ALARM_ID }] });
     await ln.schedule({
       notifications: [
         {
           id: TIMER_ALARM_ID,
           title: "⏱ Repos terminé ! 💪",
-          body: "C'est reparti pour une série !",
+          body: "C'est reparti pour une serie !",
           schedule: { at: new Date(Date.now() + delayMs), allowWhileIdle: true },
           vibrate: true,
           smallIcon: "ic_stat_icon",
@@ -247,12 +243,7 @@ export async function scheduleNativeTimerAlarm(delayMs: number): Promise<boolean
   }
 }
 
-export async function updateNativeTimerCountdown(remainingSec: number): Promise<void> {
-  // Throttle: only update every 5 seconds or when value changes significantly
-  if (remainingSec === lastCountdownSec) return;
-  if (remainingSec > 10 && Math.abs(remainingSec - lastCountdownSec) < 5) return;
-  lastCountdownSec = remainingSec;
-
+export async function scheduleNativeTimerCountdown(remainingSec: number): Promise<void> {
   try {
     const ln = getLN();
     if (!ln) return;
@@ -260,20 +251,31 @@ export async function updateNativeTimerCountdown(remainingSec: number): Promise<
     const s = remainingSec % 60;
     const timeStr = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 
-    const existing = await ln.getPending();
-    const hasCountdown = existing.notifications.some((n: { id: number }) => n.id === TIMER_COUNTDOWN_ID);
-
-    if (hasCountdown) {
-      await ln.cancel({ notifications: [{ id: TIMER_COUNTDOWN_ID }] });
-    }
-
     await ln.schedule({
       notifications: [
         {
           id: TIMER_COUNTDOWN_ID,
           title: "⏱ " + timeStr,
           body: "Temps restant : " + timeStr,
-          schedule: { at: new Date(Date.now() + 200), allowWhileIdle: true },
+          smallIcon: "ic_stat_icon",
+          iconColor: "#10b981",
+        },
+      ],
+    });
+  } catch { /* ignore */ }
+}
+
+export async function showNativeTimerEndNotification(): Promise<void> {
+  try {
+    const ln = getLN();
+    if (!ln) return;
+    await ln.schedule({
+      notifications: [
+        {
+          id: TIMER_COUNTDOWN_ID,
+          title: "⏱ Repos terminé ! 💪",
+          body: "C'est reparti pour une serie !",
+          vibrate: true,
           smallIcon: "ic_stat_icon",
           iconColor: "#10b981",
         },
@@ -283,7 +285,6 @@ export async function updateNativeTimerCountdown(remainingSec: number): Promise<
 }
 
 export async function cancelAllNativeNotifications(): Promise<void> {
-  lastCountdownSec = -1;
   try {
     const ln = getLN();
     if (!ln) return;
