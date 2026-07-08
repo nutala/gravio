@@ -134,6 +134,7 @@ export async function GET(req: Request) {
   const codeHtml = `<!DOCTYPE html>
 <html>
 <head>
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
   body{font-family:sans-serif;padding:2rem;text-align:center;background:#09090b;color:#e4e4e7;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100dvh;margin:0}
@@ -154,7 +155,7 @@ export async function GET(req: Request) {
 </html>`;
 
   return new Response(codeHtml, {
-    headers: { "content-type": "text/html" },
+    headers: { "Content-Type": "text/html; charset=utf-8" },
   });
 }
 
@@ -162,7 +163,9 @@ function errorPage(msg: string) {
   return new Response(
     `<!DOCTYPE html>
 <html>
-<head><meta name="viewport" content="width=device-width,initial-scale=1">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
   body{font-family:sans-serif;padding:2rem;text-align:center;background:#09090b;color:#e4e4e7;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100dvh;margin:0}
   h2{color:#ef4444}
@@ -175,6 +178,6 @@ function errorPage(msg: string) {
   <p>Retourne dans Gravio et réessaie.</p>
 </body>
 </html>`,
-    { headers: { "content-type": "text/html" } },
+    { headers: { "Content-Type": "text/html; charset=utf-8" } },
   );
 }

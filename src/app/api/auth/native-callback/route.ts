@@ -25,7 +25,9 @@ export async function GET() {
   return new Response(
     `<!DOCTYPE html>
 <html>
-<head><meta name="viewport" content="width=device-width,initial-scale=1">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
   body{font-family:sans-serif;padding:2rem;text-align:center;background:#09090b;color:#e4e4e7;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100dvh;margin:0}
   .code{font-size:3rem;font-weight:bold;letter-spacing:0.5rem;background:#27272a;padding:1rem 2rem;border-radius:1rem;margin:1.5rem 0;color:#10b981;font-family:monospace}
@@ -39,11 +41,10 @@ export async function GET() {
   <div class="code">${code}</div>
   <p class="hint">Ce code expire dans 5 minutes</p>
   <script>
-    // Tentative d'ouverture auto via deep link
     setTimeout(function(){ window.location.href = "calistrack://login?code=${code}"; }, 2000);
   </script>
 </body>
 </html>`,
-    { headers: { "content-type": "text/html" } },
+    { headers: { "Content-Type": "text/html; charset=utf-8" } },
   );
 }
