@@ -258,6 +258,7 @@ export async function scheduleNativeTimerCountdown(remainingSec: number): Promis
           id: TIMER_COUNTDOWN_ID,
           title: "⏱ " + timeStr,
           body: "Temps restant : " + timeStr,
+          vibrate: false,
           smallIcon: "ic_stat_icon",
           iconColor: "#10b981",
         },
