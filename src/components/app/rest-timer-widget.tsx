@@ -86,7 +86,7 @@ export function RestTimerWidget() {
       timer.complete();
     }, delay);
     return () => clearTimeout(id);
-  }, [timer.state, timer.endsAt, timer]);
+  }, [timer.state, timer.endsAt]);
 
   // Visibility change: when user returns, check if timer expired and beep.
   React.useEffect(() => {
@@ -141,6 +141,7 @@ export function RestTimerWidget() {
   React.useEffect(() => {
     const handler = (e: MessageEvent) => {
       if (e.data?.type === "FOCUS_WORKOUT") {
+        useAppStore.getState().triggerScrollToFirstUnvalidated();
         useAppStore.getState().setView("new-workout");
       }
       if (e.data?.type === "REST_TIMER_ENDED") {
@@ -165,6 +166,7 @@ export function RestTimerWidget() {
     let cleanup: (() => void) | undefined;
     if (isNative()) {
       onNativeNotificationTap(() => {
+        useAppStore.getState().triggerScrollToFirstUnvalidated();
         useAppStore.getState().setView("new-workout");
       }).then((fn) => { cleanup = fn; });
     }

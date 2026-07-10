@@ -261,6 +261,21 @@ export function NewWorkoutView() {
     return entries[firstUnvalidatedEntryIndex].sets.findIndex((s) => !s.validated);
   }, [entries, firstUnvalidatedEntryIndex]);
 
+  // ----- Scroll to first unvalidated set when returning from notification or manual nav -----
+  const scrollToFirstUnvalidated = useAppStore((s) => s.scrollToFirstUnvalidated);
+  const resetScrollToFirstUnvalidated = useAppStore((s) => s.resetScrollToFirstUnvalidated);
+  React.useEffect(() => {
+    if (!scrollToFirstUnvalidated) return;
+    const entryIdx = entries.findIndex((e) => e.sets.some((s) => !s.validated));
+    if (entryIdx === -1) { resetScrollToFirstUnvalidated(); return; }
+    const entryId = entries[entryIdx].id;
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-entry-id="${entryId}"]`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      resetScrollToFirstUnvalidated();
+    });
+  }, [scrollToFirstUnvalidated, entries]);
+
   const { showCheatsheet, setShowCheatsheet } = useWorkoutShortcuts({
     onValidateCurrentSet: () => {
       if (firstUnvalidatedEntryIndex === -1 || firstUnvalidatedSetIndex === -1) return;
@@ -1156,6 +1171,7 @@ function EntryCard({
 
   return (
     <Card
+      data-entry-id={entry.id}
       className={cn(
         "overflow-hidden transition-shadow",
         inSuperset && "shadow-sm",
@@ -1810,10 +1826,11 @@ function SetRowMobile({
             value={mode === "reps" ? (set.reps ?? "") : (set.holdSeconds ?? "")}
             onChange={(e) => {
               const v = e.target.value;
+              const n = v === "" ? undefined : Number(v);
               onUpdate(
                 mode === "reps"
-                  ? { reps: v === "" ? undefined : Number(v) || undefined }
-                  : { holdSeconds: v === "" ? undefined : Number(v) || undefined },
+                  ? { reps: n }
+                  : { holdSeconds: n },
               );
             }}
             className="h-9 tabular-nums"

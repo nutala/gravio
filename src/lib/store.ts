@@ -32,6 +32,10 @@ interface AppState {
   templateEditorId: string | null;
   viewTemplateEditor: (id?: string) => void;
   closeTemplateEditor: () => void;
+
+  scrollToFirstUnvalidated: boolean;
+  triggerScrollToFirstUnvalidated: () => void;
+  resetScrollToFirstUnvalidated: () => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -66,4 +70,8 @@ export const useAppStore = create<AppState>((set) => ({
     set({ templateEditorId: id ?? null, view: "template-editor" }),
   closeTemplateEditor: () =>
     set({ templateEditorId: null, view: "templates" }),
+
+  scrollToFirstUnvalidated: false,
+  triggerScrollToFirstUnvalidated: () => set({ scrollToFirstUnvalidated: true }),
+  resetScrollToFirstUnvalidated: () => set({ scrollToFirstUnvalidated: false }),
 }));
