@@ -13,6 +13,7 @@ import {
   isNative,
   scheduleNativeTimerAlarm,
   scheduleNativeTimerCountdown,
+  scheduleCountdownMilestones,
   showNativeTimerEndNotification,
   cancelAllNativeNotifications,
   nativeVibrate,
@@ -59,6 +60,7 @@ export function RestTimerWidget() {
         scheduleNativeTimerAlarm(delay);
         const remainingSec = Math.ceil(delay / 1000);
         scheduleNativeTimerCountdown(remainingSec);
+        scheduleCountdownMilestones(endsAt);
       });
     } else {
       Notification.requestPermission().catch(() => {});

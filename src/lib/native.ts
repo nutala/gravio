@@ -20,7 +20,12 @@ interface CapacitorPluginApp {
 
 interface CapacitorPluginLocalNotifications {
   requestPermissions: () => Promise<{ display: string }>;
-  schedule: (opts: { notifications: Array<{ title: string; body: string; id: number; schedule?: { at: Date; allowWhileIdle?: boolean }; sound?: string; vibrate?: boolean; ongoing?: boolean; smallIcon?: string; iconColor?: string }> }) => Promise<void>;
+  schedule: (opts: { notifications: Array<{
+    title: string; body: string; id: number;
+    schedule?: { at: Date; allowWhileIdle?: boolean };
+    sound?: string; vibrate?: boolean; ongoing?: boolean;
+    smallIcon?: string; iconColor?: string; channelId?: string;
+  }> }) => Promise<void>;
   getPending: () => Promise<{ notifications: Array<{ id: number }> }>;
   cancel: (opts: { notifications: Array<{ id: number }> }) => Promise<void>;
   addListener: (event: string, handler: () => void) => { remove: () => void };
@@ -231,6 +236,7 @@ export async function scheduleNativeTimerAlarm(delayMs: number): Promise<boolean
           title: "⏱ Repos terminé ! 💪",
           body: "C'est reparti pour une serie !",
           schedule: { at: new Date(Date.now() + delayMs), allowWhileIdle: true },
+          channelId: "rest-alarm",
           vibrate: true,
           smallIcon: "ic_stat_icon",
           iconColor: "#10b981",
@@ -251,7 +257,6 @@ export async function scheduleNativeTimerCountdown(remainingSec: number): Promis
     const s = remainingSec % 60;
     const timeStr = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 
-    await ln.cancel({ notifications: [{ id: TIMER_COUNTDOWN_ID }] });
     await ln.schedule({
       notifications: [
         {
@@ -264,6 +269,58 @@ export async function scheduleNativeTimerCountdown(remainingSec: number): Promis
         },
       ],
     });
+  } catch { /* ignore */ }
+}
+
+/**
+ * Pre-schedule countdown notifications at key remaining-seconds so the
+ * user sees updates even when the app is backgrounded.  Each key is
+ * scheduled via Android AlarmManager ({ schedule: { at: ... } }) and
+ * does NOT call cancel() first, avoiding notification flicker.
+ */
+export async function scheduleCountdownMilestones(endsAt: number): Promise<void> {
+  try {
+    const ln = getLN();
+    if (!ln) return;
+    const nowMs = Date.now();
+    const totalRemaining = Math.max(0, endsAt - nowMs);
+    const totalSec = Math.ceil(totalRemaining / 1000);
+
+    // Key moments (seconds remaining) at which to show an update.
+    // We include the most important milestones + the last few seconds.
+    const keys = new Set<number>();
+    // Halves
+    if (totalSec > 10) {
+      keys.add(Math.ceil(totalSec / 2));
+      keys.add(Math.ceil(totalSec / 4));
+    }
+    // Last 10 seconds: every second
+    for (let s = 1; s <= 10; s++) keys.add(s);
+    // Make sure we don't schedule in the past
+    const filtered = [...keys].filter((s) => s < totalSec);
+
+    for (const secLeft of filtered) {
+      const fireAt = new Date(endsAt - secLeft * 1000);
+      if (fireAt.getTime() <= nowMs + 500) continue; // too soon, skip
+      const m = Math.floor(secLeft / 60);
+      const s = secLeft % 60;
+      const timeStr = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+      // Use unique IDs so they don't overwrite each other
+      const milestoneId = TIMER_COUNTDOWN_ID + secLeft; // 1002 + sec
+      await ln.schedule({
+        notifications: [
+          {
+            id: milestoneId,
+            title: "⏱ " + timeStr,
+            body: "Temps restant : " + timeStr,
+            schedule: { at: fireAt, allowWhileIdle: true },
+            channelId: "rest-countdown",
+            smallIcon: "ic_stat_icon",
+            iconColor: "#10b981",
+          },
+        ],
+      });
+    }
   } catch { /* ignore */ }
 }
 
@@ -291,12 +348,15 @@ export async function cancelAllNativeNotifications(): Promise<void> {
   try {
     const ln = getLN();
     if (!ln) return;
-    await ln.cancel({
-      notifications: [
-        { id: TIMER_ALARM_ID },
-        { id: TIMER_COUNTDOWN_ID },
-      ],
-    });
+    const ids = [
+      { id: TIMER_ALARM_ID },
+      { id: TIMER_COUNTDOWN_ID },
+    ];
+    // Also cancel milestone IDs (TIMER_COUNTDOWN_ID + secLeft, from 1 to 600)
+    for (let i = 1; i <= 600; i++) {
+      ids.push({ id: TIMER_COUNTDOWN_ID + i });
+    }
+    await ln.cancel({ notifications: ids });
   } catch { /* ignore */ }
 }
 
