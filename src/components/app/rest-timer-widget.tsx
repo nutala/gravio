@@ -19,6 +19,8 @@ import {
   nativeVibrate,
   requestNativeNotificationPermission,
   onNativeNotificationTap,
+  scheduleRestTimerAlarm,
+  cancelRestTimerAlarm,
 } from "@/lib/native";
 
 let wakeLockRef: WakeLockSentinel | null = null;
@@ -66,6 +68,17 @@ export function RestTimerWidget() {
       Notification.requestPermission().catch(() => {});
     }
   }, [timer.state]);
+
+  // Reliable native alarm using AlarmManager.setAlarmClock()
+  // Works in Doze mode and on Android 14+ without SCHEDULE_EXACT_ALARM
+  React.useEffect(() => {
+    if (timer.state === "running" && timer.endsAt != null) {
+      const delay = Math.max(0, timer.endsAt - Date.now());
+      scheduleRestTimerAlarm(delay);
+    } else {
+      cancelRestTimerAlarm();
+    }
+  }, [timer.state, timer.endsAt]);
 
   // Tick every 250ms while running for the countdown UI.
   React.useEffect(() => {

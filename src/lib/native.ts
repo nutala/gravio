@@ -360,6 +360,39 @@ export async function cancelAllNativeNotifications(): Promise<void> {
   } catch { /* ignore */ }
 }
 
+// ── Custom RestTimer Plugin (reliable background alarm via AlarmClock) ──
+
+interface CapacitorPluginRestTimer {
+  scheduleAlarm: (opts: { delayMs: number }) => Promise<void>;
+  cancelAlarm: () => Promise<void>;
+}
+
+function getRestTimer(): CapacitorPluginRestTimer | undefined {
+  return window.Capacitor?.Plugins?.RestTimer as CapacitorPluginRestTimer | undefined;
+}
+
+export async function scheduleRestTimerAlarm(delayMs: number): Promise<boolean> {
+  try {
+    const rt = getRestTimer();
+    if (!rt) return false;
+    await rt.scheduleAlarm({ delayMs });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function cancelRestTimerAlarm(): Promise<boolean> {
+  try {
+    const rt = getRestTimer();
+    if (!rt) return false;
+    await rt.cancelAlarm();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export type NativeNotificationCallback = () => void;
 
 export async function onNativeNotificationTap(cb: NativeNotificationCallback): Promise<() => void> {
