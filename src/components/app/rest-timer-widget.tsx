@@ -11,16 +11,14 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   isNative,
-  scheduleNativeTimerAlarm,
+  scheduleRestTimerAlarm,
+  cancelRestTimerAlarm,
   scheduleNativeTimerCountdown,
   scheduleCountdownMilestones,
-  showNativeTimerEndNotification,
   cancelAllNativeNotifications,
   nativeVibrate,
   requestNativeNotificationPermission,
   onNativeNotificationTap,
-  scheduleRestTimerAlarm,
-  cancelRestTimerAlarm,
 } from "@/lib/native";
 
 let wakeLockRef: WakeLockSentinel | null = null;
@@ -48,7 +46,7 @@ export function RestTimerWidget() {
 
   React.useEffect(() => { endsAtRef.current = timer.endsAt; }, [timer.endsAt]);
 
-  // Wake lock + notification permission + native timer alarm
+  // Wake lock + notification permission + countdown display + milestone schedule
   React.useEffect(() => {
     if (timer.state !== "running" || timer.endsAt == null) {
       releaseWakeLock();
@@ -59,7 +57,6 @@ export function RestTimerWidget() {
       requestNativeNotificationPermission().then(() => {
         const endsAt = timer.endsAt!;
         const delay = Math.max(0, endsAt - Date.now());
-        scheduleNativeTimerAlarm(delay);
         const remainingSec = Math.ceil(delay / 1000);
         scheduleNativeTimerCountdown(remainingSec);
         scheduleCountdownMilestones(endsAt);
@@ -99,6 +96,7 @@ export function RestTimerWidget() {
       doneHandled.current = true;
       beepAndNotify();
       timer.complete();
+      useAppStore.getState().triggerScrollToFirstUnvalidated();
     }, delay);
     return () => clearTimeout(id);
   }, [timer.state, timer.endsAt]);
@@ -113,6 +111,7 @@ export function RestTimerWidget() {
         doneHandled.current = true;
         beepAndNotify();
         st.complete();
+        useAppStore.getState().triggerScrollToFirstUnvalidated();
       }
     };
     document.addEventListener("visibilitychange", onVisible);
@@ -217,9 +216,7 @@ export function RestTimerWidget() {
     playBeep();
     nativeVibrate([200, 100, 200]);
 
-    if (isNative()) {
-      showNativeTimerEndNotification();
-    } else if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+    if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage({ type: "SHOW_NOTIFICATION" });
     } else if (typeof Notification !== "undefined" && Notification.permission === "granted") {
       try {

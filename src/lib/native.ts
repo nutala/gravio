@@ -45,6 +45,7 @@ interface CapacitorPlugins {
   LocalNotifications?: CapacitorPluginLocalNotifications;
   Browser?: CapacitorPluginBrowser;
   SocialLogin?: CapacitorPluginSocialLogin;
+  RestTimer?: CapacitorPluginRestTimer;
 }
 
 declare global {
@@ -286,17 +287,17 @@ export async function scheduleCountdownMilestones(endsAt: number): Promise<void>
     const totalRemaining = Math.max(0, endsAt - nowMs);
     const totalSec = Math.ceil(totalRemaining / 1000);
 
-    // Key moments (seconds remaining) at which to show an update.
-    // We include the most important milestones + the last few seconds.
+    // Key moments (seconds remaining) — keep it sparse.
     const keys = new Set<number>();
-    // Halves
     if (totalSec > 10) {
       keys.add(Math.ceil(totalSec / 2));
       keys.add(Math.ceil(totalSec / 4));
     }
-    // Last 10 seconds: every second
-    for (let s = 1; s <= 10; s++) keys.add(s);
-    // Make sure we don't schedule in the past
+    // Only a few key instants near the end
+    if (totalSec > 5) keys.add(10);
+    keys.add(5);
+    keys.add(3);
+    keys.add(1);
     const filtered = [...keys].filter((s) => s < totalSec);
 
     for (const secLeft of filtered) {
