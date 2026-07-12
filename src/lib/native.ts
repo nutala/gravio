@@ -347,13 +347,14 @@ export async function showNativeTimerEndNotification(): Promise<void> {
 
 export async function cancelAllNativeNotifications(): Promise<void> {
   try {
+    stopForegroundTimer();
+    cancelRestTimerAlarm();
     const ln = getLN();
     if (!ln) return;
     const ids = [
       { id: TIMER_ALARM_ID },
       { id: TIMER_COUNTDOWN_ID },
     ];
-    // Also cancel milestone IDs (TIMER_COUNTDOWN_ID + secLeft, from 1 to 600)
     for (let i = 1; i <= 600; i++) {
       ids.push({ id: TIMER_COUNTDOWN_ID + i });
     }
@@ -364,6 +365,8 @@ export async function cancelAllNativeNotifications(): Promise<void> {
 // ── Custom RestTimer Plugin (reliable background alarm via AlarmClock) ──
 
 interface CapacitorPluginRestTimer {
+  startForegroundTimer: (opts: { delayMs: number }) => Promise<void>;
+  stopForegroundTimer: () => Promise<void>;
   scheduleAlarm: (opts: { delayMs: number }) => Promise<void>;
   cancelAlarm: () => Promise<void>;
 }
@@ -372,6 +375,31 @@ function getRestTimer(): CapacitorPluginRestTimer | undefined {
   return window.Capacitor?.Plugins?.RestTimer as CapacitorPluginRestTimer | undefined;
 }
 
+/** Start the native foreground service with CountDownTimer — most reliable. */
+export async function startForegroundTimer(delayMs: number): Promise<boolean> {
+  try {
+    const rt = getRestTimer();
+    if (!rt) return false;
+    await rt.startForegroundTimer({ delayMs });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Stop the foreground service (timer dismissed / skipped). */
+export async function stopForegroundTimer(): Promise<boolean> {
+  try {
+    const rt = getRestTimer();
+    if (!rt) return false;
+    await rt.stopForegroundTimer();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Fallback alarm using AlarmManager.setAlarmClock(). */
 export async function scheduleRestTimerAlarm(delayMs: number): Promise<boolean> {
   try {
     const rt = getRestTimer();

@@ -11,10 +11,11 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   isNative,
+  startForegroundTimer,
+  stopForegroundTimer,
   scheduleRestTimerAlarm,
   cancelRestTimerAlarm,
   scheduleNativeTimerCountdown,
-  scheduleCountdownMilestones,
   cancelAllNativeNotifications,
   nativeVibrate,
   requestNativeNotificationPermission,
@@ -46,10 +47,11 @@ export function RestTimerWidget() {
 
   React.useEffect(() => { endsAtRef.current = timer.endsAt; }, [timer.endsAt]);
 
-  // Wake lock + notification permission + countdown display + milestone schedule
+  // Native foreground service (primary) + AlarmManager backup
   React.useEffect(() => {
     if (timer.state !== "running" || timer.endsAt == null) {
       releaseWakeLock();
+      if (isNative()) stopForegroundTimer();
       return;
     }
     acquireWakeLock();
@@ -57,25 +59,24 @@ export function RestTimerWidget() {
       requestNativeNotificationPermission().then(() => {
         const endsAt = timer.endsAt!;
         const delay = Math.max(0, endsAt - Date.now());
-        const remainingSec = Math.ceil(delay / 1000);
-        scheduleNativeTimerCountdown(remainingSec);
-        scheduleCountdownMilestones(endsAt);
+        startForegroundTimer(delay);
+        scheduleNativeTimerCountdown(Math.ceil(delay / 1000));
+        // Backup: AlarmManager.setAlarmClock() in case service is killed
+        scheduleRestTimerAlarm(delay);
       });
     } else {
       Notification.requestPermission().catch(() => {});
     }
   }, [timer.state]);
 
-  // Reliable native alarm using AlarmManager.setAlarmClock()
-  // Works in Doze mode and on Android 14+ without SCHEDULE_EXACT_ALARM
+  // Cancel foreground + alarm when timer leaves "running"
   React.useEffect(() => {
-    if (timer.state === "running" && timer.endsAt != null) {
-      const delay = Math.max(0, timer.endsAt - Date.now());
-      scheduleRestTimerAlarm(delay);
-    } else {
+    if (timer.state === "running") return;
+    if (isNative()) {
+      stopForegroundTimer();
       cancelRestTimerAlarm();
     }
-  }, [timer.state, timer.endsAt]);
+  }, [timer.state]);
 
   // Tick every 250ms while running for the countdown UI.
   React.useEffect(() => {
