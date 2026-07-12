@@ -108,32 +108,43 @@ public class RestTimerPlugin extends Plugin {
             return;
         }
 
-        Context context = getContext();
-        RestTimerAlarmReceiver.ensureChannel(context);
+        try {
+            Context context = getContext();
+            RestTimerAlarmReceiver.ensureChannel(context);
 
-        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
 
-        Intent intent = new Intent(context, RestTimerAlarmReceiver.class);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(
-            context,
-            ALARM_REQUEST_CODE,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
-
-        long triggerTime = System.currentTimeMillis() + delayMs.longValue();
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            AlarmManager.AlarmClockInfo alarmClock = new AlarmManager.AlarmClockInfo(
-                triggerTime,
-                pendingIntent
+            Intent intent = new Intent(context, RestTimerAlarmReceiver.class);
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                context,
+                ALARM_REQUEST_CODE,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
             );
-            alarmManager.setAlarmClock(alarmClock, pendingIntent);
-        } else {
-            alarmManager.set(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
-        }
 
-        call.resolve();
+            long triggerTime = System.currentTimeMillis() + delayMs.longValue();
+
+            boolean canExact = true;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                canExact = alarmManager.canScheduleExactAlarms();
+            }
+
+            if (canExact) {
+                // Exact, Doze-proof alarm (requires USE_EXACT_ALARM, granted at install).
+                AlarmManager.AlarmClockInfo alarmClock = new AlarmManager.AlarmClockInfo(
+                    triggerTime,
+                    pendingIntent
+                );
+                alarmManager.setAlarmClock(alarmClock, pendingIntent);
+            } else {
+                // Fallback: inexact but crash-free if exact-alarm perm is missing.
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
+            }
+
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("scheduleAlarm failed: " + e.getMessage());
+        }
     }
 
     @PluginMethod
