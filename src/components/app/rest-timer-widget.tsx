@@ -11,13 +11,8 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   isNative,
-  stopForegroundTimer,
-  scheduleRestTimerAlarm,
-  cancelRestTimerAlarm,
-  scheduleNativeTimerCountdown,
   cancelAllNativeNotifications,
   nativeVibrate,
-  requestNativeNotificationPermission,
   onNativeNotificationTap,
 } from "@/lib/native";
 
@@ -46,12 +41,9 @@ export function RestTimerWidget() {
 
   React.useEffect(() => { endsAtRef.current = timer.endsAt; }, [timer.endsAt]);
 
-  // Native alarm via AlarmManager.setAlarmClock() — the most reliable
-  // Android primitive: Doze-proof, already exempt from battery optimization
-  // (same mechanism as the Clock app alarm), and fires even if the app is
-  // backgrounded or killed (Samsung-safe). No foreground service (dataSync
-  // FGS crashes on Android 14+/16), no battery-optimization Activity launch
-  // (it disrupted the WebView session).
+  // DIAGNOSTIC BUILD v8 — all native timer calls are disabled to isolate
+  // the crash. The pure-JS timer below still runs. A toast confirms which
+  // build is actually loaded on the device.
   React.useEffect(() => {
     if (timer.state !== "running" || timer.endsAt == null) {
       releaseWakeLock();
@@ -59,27 +51,10 @@ export function RestTimerWidget() {
     }
     acquireWakeLock();
     if (isNative()) {
-      const endsAt = timer.endsAt;
-      const delay = Math.max(0, endsAt - Date.now());
-      requestNativeNotificationPermission()
-        .then(() => {
-          scheduleRestTimerAlarm(delay);
-          scheduleNativeTimerCountdown(Math.ceil(delay / 1000));
-        })
-        .catch(() => {
-          scheduleRestTimerAlarm(delay);
-        });
+      toast.info("Chrono DIAG v8 (natif OFF)", { duration: 4000 });
+      // Native calls intentionally disabled for crash isolation.
     } else {
       Notification.requestPermission().catch(() => {});
-    }
-  }, [timer.state]);
-
-  // Cancel the native alarm when the timer leaves "running".
-  React.useEffect(() => {
-    if (timer.state === "running") return;
-    if (isNative()) {
-      stopForegroundTimer(); // safe cleanup of any legacy service
-      cancelRestTimerAlarm();
     }
   }, [timer.state]);
 
@@ -143,11 +118,8 @@ export function RestTimerWidget() {
     const remainingSec = Math.ceil(remainingMs / 1000);
 
     if (isNative()) {
-      const throttle = remainingSec <= 10 ? 1000 : 5000;
-      if (nowMs - lastNotifUpdateRef.current >= throttle) {
-        lastNotifUpdateRef.current = nowMs;
-        scheduleNativeTimerCountdown(remainingSec);
-      }
+      // DIAG v8: native countdown notification disabled.
+      void remainingSec;
     } else if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage({
         type: "UPDATE_REST_TIMER",
