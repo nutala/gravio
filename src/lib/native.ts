@@ -453,6 +453,36 @@ export async function requestIgnoreBatteryOptimizations(): Promise<boolean> {
   }
 }
 
+/**
+ * On-device diagnostic: reports the actual state of the RestTimer native
+ * plugin so we can see what's really available on the phone.  Returns a
+ * short human-readable string suitable for a toast.
+ */
+export async function diagnoseBatteryOptimization(): Promise<string> {
+  if (!isNative()) return "Web (pas natif)";
+  const rt = getRestTimer();
+  if (!rt) return "❌ Plugin RestTimer ABSENT";
+
+  let ignoring: boolean;
+  try {
+    const chk = await rt.isIgnoringBatteryOptimizations();
+    ignoring = chk.ignoring;
+  } catch (e) {
+    const msg = (e as { message?: string })?.message || String(e);
+    return "❌ APK ANCIEN (méthode batterie manquante): " + msg;
+  }
+
+  if (ignoring) return "✅ Déjà exempté batterie";
+
+  try {
+    await rt.requestIgnoreBatteryOptimizations();
+    return "📋 Dialogue batterie ouvert — accepte-le";
+  } catch (e) {
+    const msg = (e as { message?: string })?.message || String(e);
+    return "⚠️ request a échoué: " + msg;
+  }
+}
+
 export type NativeNotificationCallback = () => void;
 
 export async function onNativeNotificationTap(cb: NativeNotificationCallback): Promise<() => void> {
