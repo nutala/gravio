@@ -133,8 +133,8 @@ export function RestTimerWidget() {
     }
   }, [timer.state]);
 
-  // Periodic countdown notification updates (throttled).
-  const lastNotifUpdateRef = React.useRef(0);
+  // Periodic countdown notification updates (web PWA only; on native the
+  // foreground service owns the live notification).
   React.useEffect(() => {
     if (timer.state !== "running") return;
     const endsAt = endsAtRef.current;
@@ -144,11 +144,11 @@ export function RestTimerWidget() {
     const remainingSec = Math.ceil(remainingMs / 1000);
 
     if (isNative()) {
-      const last = lastNotifUpdateRef.current;
-      if (nowMs - last >= 1000) {
-        lastNotifUpdateRef.current = nowMs;
-        scheduleNativeTimerCountdown(remainingSec);
-      }
+      // The native foreground service already shows the single, live,
+      // lock-screen countdown notification. Do NOT also post a per-second
+      // LocalNotifications countdown here — that would be a second, frozen
+      // notification when the WebView is suspended with the screen locked.
+      void remainingSec;
     } else if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage({
         type: "UPDATE_REST_TIMER",
