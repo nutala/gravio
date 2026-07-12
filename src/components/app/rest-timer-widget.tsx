@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   isNative,
-  startForegroundTimer,
   stopForegroundTimer,
   scheduleRestTimerAlarm,
   cancelRestTimerAlarm,
@@ -36,10 +35,11 @@ async function ensureBatteryExemption() {
   batteryOptPrompted = true;
   try {
     const result = await diagnoseBatteryOptimization();
-    toast.info("Diag batterie: " + result, { duration: 10000 });
-  } catch (e) {
-    toast.error("Diag batterie erreur: " + String(e), { duration: 10000 });
-  }
+    // Only nag if the native plugin is missing or the request failed.
+    if (result.startsWith("❌") || result.startsWith("⚠️")) {
+      toast.error(result, { duration: 8000 });
+    }
+  } catch { /* ignore */ }
 }
 
 async function acquireWakeLock() {
@@ -65,11 +65,13 @@ export function RestTimerWidget() {
 
   React.useEffect(() => { endsAtRef.current = timer.endsAt; }, [timer.endsAt]);
 
-  // Native foreground service (primary) + AlarmManager backup
+  // Native alarm via AlarmManager.setAlarmClock() — the most reliable
+  // Android primitive: Doze-proof, exempt from battery optimization, and
+  // fires even if the app is backgrounded or killed (Samsung-safe).
+  // No foreground service: dataSync FGS crashes on Android 14+/16.
   React.useEffect(() => {
     if (timer.state !== "running" || timer.endsAt == null) {
       releaseWakeLock();
-      if (isNative()) stopForegroundTimer();
       return;
     }
     acquireWakeLock();
@@ -78,21 +80,19 @@ export function RestTimerWidget() {
         ensureBatteryExemption();
         const endsAt = timer.endsAt!;
         const delay = Math.max(0, endsAt - Date.now());
-        startForegroundTimer(delay);
-        scheduleNativeTimerCountdown(Math.ceil(delay / 1000));
-        // Backup: AlarmManager.setAlarmClock() in case service is killed
         scheduleRestTimerAlarm(delay);
+        scheduleNativeTimerCountdown(Math.ceil(delay / 1000));
       });
     } else {
       Notification.requestPermission().catch(() => {});
     }
   }, [timer.state]);
 
-  // Cancel foreground + alarm when timer leaves "running"
+  // Cancel the native alarm when the timer leaves "running".
   React.useEffect(() => {
     if (timer.state === "running") return;
     if (isNative()) {
-      stopForegroundTimer();
+      stopForegroundTimer(); // safe cleanup of any legacy service
       cancelRestTimerAlarm();
     }
   }, [timer.state]);
