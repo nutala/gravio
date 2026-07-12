@@ -369,6 +369,8 @@ interface CapacitorPluginRestTimer {
   stopForegroundTimer: () => Promise<void>;
   scheduleAlarm: (opts: { delayMs: number }) => Promise<void>;
   cancelAlarm: () => Promise<void>;
+  isIgnoringBatteryOptimizations: () => Promise<{ ignoring: boolean }>;
+  requestIgnoreBatteryOptimizations: () => Promise<{ ignoring: boolean }>;
 }
 
 function getRestTimer(): CapacitorPluginRestTimer | undefined {
@@ -417,6 +419,35 @@ export async function cancelRestTimerAlarm(): Promise<boolean> {
     if (!rt) return false;
     await rt.cancelAlarm();
     return true;
+  } catch {
+    return false;
+  }
+}
+
+/** True if the app is already exempt from battery optimization. */
+export async function isIgnoringBatteryOptimizations(): Promise<boolean> {
+  try {
+    const rt = getRestTimer();
+    if (!rt) return true;
+    const res = await rt.isIgnoringBatteryOptimizations();
+    return res.ignoring;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Prompt the user to exempt the app from battery optimization.
+ * Critical on Samsung / Xiaomi / Oppo where aggressive "sleeping apps"
+ * management kills foreground services and blocks alarms in background.
+ * Returns true if already exempt (no prompt shown).
+ */
+export async function requestIgnoreBatteryOptimizations(): Promise<boolean> {
+  try {
+    const rt = getRestTimer();
+    if (!rt) return true;
+    const res = await rt.requestIgnoreBatteryOptimizations();
+    return res.ignoring;
   } catch {
     return false;
   }

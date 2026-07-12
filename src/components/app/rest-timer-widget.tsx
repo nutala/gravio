@@ -20,9 +20,28 @@ import {
   nativeVibrate,
   requestNativeNotificationPermission,
   onNativeNotificationTap,
+  isIgnoringBatteryOptimizations,
+  requestIgnoreBatteryOptimizations,
 } from "@/lib/native";
 
 let wakeLockRef: WakeLockSentinel | null = null;
+let batteryOptPrompted = false;
+
+// On Samsung/Xiaomi/etc. the OS puts the app to sleep in background,
+// killing the foreground service and blocking alarms. Ask the user once
+// per app launch to exempt the app from battery optimization.
+async function ensureBatteryExemption() {
+  if (batteryOptPrompted) return;
+  batteryOptPrompted = true;
+  try {
+    const alreadyOk = await isIgnoringBatteryOptimizations();
+    if (alreadyOk) return;
+    toast.info("Autorise Gravio à fonctionner en arrière-plan pour que le chrono sonne écran verrouillé.", {
+      duration: 6000,
+    });
+    await requestIgnoreBatteryOptimizations();
+  } catch { /* ignore */ }
+}
 
 async function acquireWakeLock() {
   try {
@@ -57,6 +76,7 @@ export function RestTimerWidget() {
     acquireWakeLock();
     if (isNative()) {
       requestNativeNotificationPermission().then(() => {
+        ensureBatteryExemption();
         const endsAt = timer.endsAt!;
         const delay = Math.max(0, endsAt - Date.now());
         startForegroundTimer(delay);

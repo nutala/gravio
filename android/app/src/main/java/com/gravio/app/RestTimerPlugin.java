@@ -4,8 +4,12 @@ import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
+import android.os.PowerManager;
+import android.provider.Settings;
 
+import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
@@ -15,6 +19,55 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 public class RestTimerPlugin extends Plugin {
 
     private static final int ALARM_REQUEST_CODE = 3001;
+
+    // ── Battery optimization exemption (critical on Samsung / Xiaomi / etc.) ──
+
+    @PluginMethod
+    public void isIgnoringBatteryOptimizations(PluginCall call) {
+        Context context = getContext();
+        boolean ignoring = true;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+            ignoring = pm != null && pm.isIgnoringBatteryOptimizations(context.getPackageName());
+        }
+        JSObject ret = new JSObject();
+        ret.put("ignoring", ignoring);
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void requestIgnoreBatteryOptimizations(PluginCall call) {
+        Context context = getContext();
+        JSObject ret = new JSObject();
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            ret.put("ignoring", true);
+            call.resolve(ret);
+            return;
+        }
+
+        PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+        boolean ignoring = pm != null && pm.isIgnoringBatteryOptimizations(context.getPackageName());
+        ret.put("ignoring", ignoring);
+
+        if (!ignoring) {
+            try {
+                Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                intent.setData(Uri.parse("package:" + context.getPackageName()));
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(intent);
+            } catch (Exception e) {
+                // Fallback: open the generic battery optimization settings list.
+                try {
+                    Intent intent = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(intent);
+                } catch (Exception ignored) { }
+            }
+        }
+
+        call.resolve(ret);
+    }
 
     // ── Foreground service (primary, most reliable) ──
 
