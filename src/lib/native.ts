@@ -424,6 +424,14 @@ export async function cancelRestTimerAlarm(): Promise<boolean> {
   }
 }
 
+/** Stop the foreground service AND cancel the backup alarm. */
+export async function stopNativeTimer(): Promise<void> {
+  try {
+    stopForegroundTimer();
+    cancelRestTimerAlarm();
+  } catch { /* ignore */ }
+}
+
 /** True if the app is already exempt from battery optimization. */
 export async function isIgnoringBatteryOptimizations(): Promise<boolean> {
   try {

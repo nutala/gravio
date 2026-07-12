@@ -7,11 +7,19 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ServiceInfo;
 import android.os.Build;
 import android.os.CountDownTimer;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
+import android.util.Log;
+import android.widget.Toast;
+
+import java.io.FileWriter;
+import java.io.PrintWriter;
 
 public class RestTimerForegroundService extends Service {
 
@@ -19,6 +27,7 @@ public class RestTimerForegroundService extends Service {
     private static final String CHANNEL_ALARM = "rest-alarm-plugin";
     private static final int NOTIF_COUNTDOWN = 2002;
     private static final int NOTIF_ALARM = 2003;
+    private static final String TAG = "RestTimerFGS";
 
     private CountDownTimer timer;
 
@@ -30,34 +39,51 @@ public class RestTimerForegroundService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        long totalMs = intent.getLongExtra("totalMs", 0);
-        if (totalMs <= 0) {
-            stopSelf();
-            return START_NOT_STICKY;
-        }
-
-        NotificationManager nm = getSystemService(NotificationManager.class);
-        nm.cancel(NOTIF_ALARM);
-
-        startForeground(NOTIF_COUNTDOWN, buildCountdownNotification(this, totalMs));
-
-        timer = new CountDownTimer(totalMs, 1000L) {
-            @Override
-            public void onTick(long millisUntilFinished) {
-                NotificationManager nm = getSystemService(NotificationManager.class);
-                nm.notify(NOTIF_COUNTDOWN, buildCountdownNotification(
-                    RestTimerForegroundService.this, millisUntilFinished
-                ));
-            }
-
-            @Override
-            public void onFinish() {
-                onTimerFinished(RestTimerForegroundService.this);
+        try {
+            long totalMs = intent != null ? intent.getLongExtra("totalMs", 0) : 0;
+            if (totalMs <= 0) {
                 stopSelf();
+                return START_NOT_STICKY;
             }
-        }.start();
 
-        return START_NOT_STICKY;
+            NotificationManager nm = getSystemService(NotificationManager.class);
+            if (nm != null) nm.cancel(NOTIF_ALARM);
+
+            // Promote to a foreground service IMMEDIATELY (before anything that
+            // could throw) so the system never raises
+            // ForegroundServiceDidNotStartInTimeException.
+            startForegroundSafe(NOTIF_COUNTDOWN, buildCountdownNotification(this, totalMs));
+
+            if (timer != null) timer.cancel();
+            timer = new CountDownTimer(totalMs, 1000L) {
+                @Override
+                public void onTick(long millisUntilFinished) {
+                    try {
+                        NotificationManager n = getSystemService(NotificationManager.class);
+                        if (n != null) {
+                            n.notify(NOTIF_COUNTDOWN, buildCountdownNotification(
+                                RestTimerForegroundService.this, millisUntilFinished));
+                        }
+                    } catch (Throwable t) {
+                        logError("onTick", t);
+                    }
+                }
+
+                @Override
+                public void onFinish() {
+                    onTimerFinished(RestTimerForegroundService.this);
+                    stopSelf();
+                }
+            }.start();
+        } catch (Throwable t) {
+            logError("onStartCommand", t);
+            showToast("FGS err: " + t.getClass().getSimpleName() + " " + t.getMessage());
+            // Fallback: guarantee the timer still rings even if the service fails.
+            long totalMs = intent != null ? intent.getLongExtra("totalMs", 0) : 0;
+            if (totalMs > 0) RestTimerAlarmReceiver.scheduleExact(this, totalMs);
+            stopSelf();
+        }
+        return START_STICKY;
     }
 
     @Override
@@ -69,11 +95,20 @@ public class RestTimerForegroundService extends Service {
     @Override
     public IBinder onBind(Intent intent) { return null; }
 
+    private void startForegroundSafe(int id, Notification notif) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(id, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
+        } else {
+            startForeground(id, notif);
+        }
+    }
+
     // ── helpers ──
 
     private static void createChannels(Context ctx) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
         NotificationManager nm = ctx.getSystemService(NotificationManager.class);
+        if (nm == null) return;
 
         NotificationChannel countdown = new NotificationChannel(
             CHANNEL_COUNTDOWN, "Rest Timer",
@@ -81,6 +116,7 @@ public class RestTimerForegroundService extends Service {
         );
         countdown.setDescription("Compte à rebours du repos");
         countdown.setShowBadge(false);
+        countdown.setSound(null, null);
         nm.createNotificationChannel(countdown);
 
         NotificationChannel alarm = new NotificationChannel(
@@ -100,69 +136,101 @@ public class RestTimerForegroundService extends Service {
         return String.format("%02d:%02d", m, s);
     }
 
-    private static Notification buildCountdownNotification(Context ctx, long ms) {
-        String time = formatTime(ms);
-
-        Intent tapIntent = ctx.getPackageManager().getLaunchIntentForPackage(ctx.getPackageName());
-        PendingIntent pi = PendingIntent.getActivity(
-            ctx, 0, tapIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
-
-        Notification.Builder b = new Notification.Builder(ctx, CHANNEL_COUNTDOWN)
-            .setSmallIcon(getIconRes(ctx))
-            .setContentTitle("⏱ " + time)
-            .setContentText("Temps restant : " + time)
-            .setContentIntent(pi)
-            .setOngoing(true);
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            b.setChannelId(CHANNEL_COUNTDOWN);
-        }
-        return b.build();
-    }
-
-    private static void onTimerFinished(Context ctx) {
-        NotificationManager nm = ctx.getSystemService(NotificationManager.class);
-        nm.cancel(NOTIF_COUNTDOWN);
-
-        Intent tapIntent = ctx.getPackageManager().getLaunchIntentForPackage(ctx.getPackageName());
-        PendingIntent pi = PendingIntent.getActivity(
-            ctx, 0, tapIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
-
-        Notification.Builder b = new Notification.Builder(ctx, CHANNEL_ALARM)
-            .setSmallIcon(getIconRes(ctx))
-            .setContentTitle("⏱ Repos terminé !")
-            .setContentText("C'est reparti pour une série !")
-            .setContentIntent(pi)
-            .setAutoCancel(true)
-            .setVibrate(new long[]{400, 150, 400, 150, 200, 150, 600, 200, 600})
-            .setCategory(Notification.CATEGORY_ALARM)
-            .setVisibility(Notification.VISIBILITY_PUBLIC)
-            .setPriority(Notification.PRIORITY_HIGH);
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            b.setChannelId(CHANNEL_ALARM);
-        } else {
-            b.setDefaults(Notification.DEFAULT_SOUND | Notification.DEFAULT_VIBRATE);
-        }
-
-        nm.notify(NOTIF_ALARM, b.build());
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Vibrator v = ctx.getSystemService(Vibrator.class);
-            if (v != null) v.vibrate(VibrationEffect.createWaveform(
-                new long[]{0, 400, 150, 400, 150, 200, 150, 600, 200, 600}, -1
-            ));
-        }
-    }
-
     private static int getIconRes(Context ctx) {
         int icon = ctx.getResources().getIdentifier(
             "ic_stat_icon", "drawable", ctx.getPackageName()
         );
         return icon != 0 ? icon : android.R.drawable.ic_lock_idle_alarm;
+    }
+
+    private static PendingIntent buildTapIntent(Context ctx) {
+        Intent tapIntent = ctx.getPackageManager().getLaunchIntentForPackage(ctx.getPackageName());
+        if (tapIntent == null) {
+            // Fallback: a no-op intent so PendingIntent.getActivity never gets null.
+            tapIntent = new Intent(ctx, MainActivity.class);
+            tapIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        }
+        return PendingIntent.getActivity(
+            ctx, 0, tapIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+    }
+
+    private static Notification buildCountdownNotification(Context ctx, long ms) {
+        String time = formatTime(ms);
+
+        Notification.Builder b = new Notification.Builder(ctx, CHANNEL_COUNTDOWN)
+            .setSmallIcon(getIconRes(ctx))
+            .setContentTitle("⏱ " + time)
+            .setContentText("Temps restant : " + time)
+            .setContentIntent(buildTapIntent(ctx))
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setCategory(Notification.CATEGORY_PROGRESS)
+            .setVisibility(Notification.VISIBILITY_PUBLIC);
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            // pre-O: channel id is ignored
+        }
+        return b.build();
+    }
+
+    private static void onTimerFinished(Context ctx) {
+        try {
+            NotificationManager nm = ctx.getSystemService(NotificationManager.class);
+            if (nm != null) nm.cancel(NOTIF_COUNTDOWN);
+
+            Notification.Builder b = new Notification.Builder(ctx, CHANNEL_ALARM)
+                .setSmallIcon(getIconRes(ctx))
+                .setContentTitle("⏱ Repos terminé !")
+                .setContentText("C'est reparti pour une série !")
+                .setContentIntent(buildTapIntent(ctx))
+                .setAutoCancel(true)
+                .setOngoing(false)
+                .setCategory(Notification.CATEGORY_ALARM)
+                .setVisibility(Notification.VISIBILITY_PUBLIC)
+                .setPriority(Notification.PRIORITY_MAX);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                b.setVibrate(new long[]{400, 150, 400, 150, 200, 150, 600, 200, 600});
+            } else {
+                b.setDefaults(Notification.DEFAULT_SOUND | Notification.DEFAULT_VIBRATE);
+            }
+
+            if (nm != null) nm.notify(NOTIF_ALARM, b.build());
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Vibrator v = ctx.getSystemService(Vibrator.class);
+                if (v != null) v.vibrate(VibrationEffect.createWaveform(
+                    new long[]{0, 400, 150, 400, 150, 200, 150, 600, 200, 600}, -1
+                ));
+            }
+        } catch (Throwable t) {
+            Log.e(TAG, "onTimerFinished failed", t);
+        }
+    }
+
+    // ── diagnostics ──
+
+    private void showToast(final String msg) {
+        try {
+            new Handler(Looper.getMainLooper()).post(() ->
+                Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+            );
+        } catch (Throwable ignored) { }
+    }
+
+    private static void logError(String where, Throwable t) {
+        Log.e(TAG, where + " failed", t);
+        try {
+            java.io.File f = new java.io.File(
+                "/sdcard/Android/data/com.gravio.app/files/resttimer_fgs_crash.txt"
+            );
+            FileWriter fw = new FileWriter(f, true);
+            PrintWriter pw = new PrintWriter(fw);
+            pw.println("[" + where + "] " + t.getClass().getName() + ": " + t.getMessage());
+            t.printStackTrace(pw);
+            pw.close();
+        } catch (Throwable ignored) { }
     }
 }

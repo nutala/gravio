@@ -8,6 +8,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
+import android.util.Log;
 
 public class RestTimerAlarmReceiver extends BroadcastReceiver {
     static final String CHANNEL_ID = "rest-alarm-plugin";
@@ -41,6 +42,37 @@ public class RestTimerAlarmReceiver extends BroadcastReceiver {
             if (existing == null) {
                 createChannel(context);
             }
+        }
+    }
+
+    /**
+     * Schedule the reliable, Doze-proof wake-up alarm even when called from a
+     * non-Activity context (e.g. the foreground service fallback). Used as a
+     * backup if the foreground service itself fails to start.
+     */
+    static void scheduleExact(Context context, long delayMs) {
+        try {
+            ensureChannel(context);
+            AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            if (am == null) return;
+            Intent intent = new Intent(context, RestTimerAlarmReceiver.class);
+            PendingIntent pi = PendingIntent.getBroadcast(
+                context, 3001, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+            long trigger = System.currentTimeMillis() + Math.max(0, delayMs);
+            boolean canExact = true;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                canExact = am.canScheduleExactAlarms();
+            }
+            if (canExact) {
+                AlarmManager.AlarmClockInfo info = new AlarmManager.AlarmClockInfo(trigger, pi);
+                am.setAlarmClock(info, pi);
+            } else {
+                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, pi);
+            }
+        } catch (Throwable t) {
+            Log.e("RestTimerAlarm", "scheduleExact failed", t);
         }
     }
 

@@ -79,15 +79,20 @@ public class RestTimerPlugin extends Plugin {
             return;
         }
 
-        Context context = getContext();
-        Intent intent = new Intent(context, RestTimerForegroundService.class);
-        intent.putExtra("totalMs", delayMs.longValue());
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(intent);
-        } else {
-            context.startService(intent);
+        try {
+            Context context = getContext();
+            Intent intent = new Intent(context, RestTimerForegroundService.class);
+            intent.putExtra("totalMs", delayMs.longValue());
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent);
+            } else {
+                context.startService(intent);
+            }
+            call.resolve();
+        } catch (Throwable t) {
+            // Surface the real cause so we can diagnose remote crashes.
+            call.reject("startForegroundTimer failed: " + t.getMessage());
         }
-        call.resolve();
     }
 
     @PluginMethod

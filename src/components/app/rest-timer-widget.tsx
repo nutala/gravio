@@ -11,8 +11,9 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   isNative,
+  startForegroundTimer,
+  stopNativeTimer,
   scheduleRestTimerAlarm,
-  cancelRestTimerAlarm,
   scheduleNativeTimerCountdown,
   scheduleCountdownMilestones,
   cancelAllNativeNotifications,
@@ -60,18 +61,27 @@ export function RestTimerWidget() {
     const delay = Math.max(0, endsAt - Date.now());
     if (isNative()) {
       requestNativeNotificationPermission().catch(() => {});
-      scheduleNativeTimerCountdown(Math.ceil(delay / 1000));
-      scheduleCountdownMilestones(endsAt);
-      scheduleRestTimerAlarm(delay);
+      // Primary: a native foreground service showing a live, lock-screen
+      // countdown (Strong-app style). If it fails to start, fall back to a
+      // Doze-proof setAlarmClock() + LocalNotifications countdown.
+      startForegroundTimer(delay).then((started) => {
+        if (useTimerStore.getState().state !== "running") return;
+        if (!started) {
+          scheduleRestTimerAlarm(delay);
+          scheduleNativeTimerCountdown(Math.ceil(delay / 1000));
+          scheduleCountdownMilestones(endsAt);
+        }
+      });
     } else {
       Notification.requestPermission().catch(() => {});
     }
   }, [timer.state, timer.endsAt]);
 
-  // Cancel the native alarm when the timer leaves "running".
+  // Cancel the native timer (foreground service + backup alarm) when the
+  // timer leaves "running".
   React.useEffect(() => {
     if (timer.state === "running") return;
-    if (isNative()) cancelRestTimerAlarm();
+    if (isNative()) stopNativeTimer();
   }, [timer.state]);
 
   // Tick every 250ms while running for the countdown UI.
