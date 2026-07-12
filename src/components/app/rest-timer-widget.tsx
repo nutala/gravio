@@ -13,8 +13,11 @@ import {
   isNative,
   scheduleRestTimerAlarm,
   cancelRestTimerAlarm,
+  scheduleNativeTimerCountdown,
+  scheduleCountdownMilestones,
   cancelAllNativeNotifications,
   nativeVibrate,
+  requestNativeNotificationPermission,
   onNativeNotificationTap,
 } from "@/lib/native";
 
@@ -43,24 +46,27 @@ export function RestTimerWidget() {
 
   React.useEffect(() => { endsAtRef.current = timer.endsAt; }, [timer.endsAt]);
 
-  // DIAGNOSTIC BUILD v9 — re-enable ONLY the AlarmManager.setAlarmClock()
-  // call to confirm it is safe. Countdown notification + permission request
-  // stay disabled.
+  // Schedule the reliable native alarms whenever the timer starts or its
+  // target time changes (addTime / resume). A single setAlarmClock() is the
+  // primary, Doze-proof wake-up; countdown notifications keep the UI visible
+  // when the app is backgrounded or closed.
   React.useEffect(() => {
     if (timer.state !== "running" || timer.endsAt == null) {
       releaseWakeLock();
       return;
     }
     acquireWakeLock();
+    const endsAt = timer.endsAt;
+    const delay = Math.max(0, endsAt - Date.now());
     if (isNative()) {
-      toast.info("Chrono DIAG v9 (alarme ON)", { duration: 3000 });
-      const endsAt = timer.endsAt;
-      const delay = Math.max(0, endsAt - Date.now());
+      requestNativeNotificationPermission().catch(() => {});
+      scheduleNativeTimerCountdown(Math.ceil(delay / 1000));
+      scheduleCountdownMilestones(endsAt);
       scheduleRestTimerAlarm(delay);
     } else {
       Notification.requestPermission().catch(() => {});
     }
-  }, [timer.state]);
+  }, [timer.state, timer.endsAt]);
 
   // Cancel the native alarm when the timer leaves "running".
   React.useEffect(() => {
@@ -128,8 +134,11 @@ export function RestTimerWidget() {
     const remainingSec = Math.ceil(remainingMs / 1000);
 
     if (isNative()) {
-      // DIAG v8: native countdown notification disabled.
-      void remainingSec;
+      const last = lastNotifUpdateRef.current;
+      if (nowMs - last >= 1000) {
+        lastNotifUpdateRef.current = nowMs;
+        scheduleNativeTimerCountdown(remainingSec);
+      }
     } else if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage({
         type: "UPDATE_REST_TIMER",
