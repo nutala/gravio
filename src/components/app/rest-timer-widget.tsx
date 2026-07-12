@@ -19,28 +19,9 @@ import {
   nativeVibrate,
   requestNativeNotificationPermission,
   onNativeNotificationTap,
-  diagnoseBatteryOptimization,
 } from "@/lib/native";
 
 let wakeLockRef: WakeLockSentinel | null = null;
-let batteryOptPrompted = false;
-
-// On Samsung/Xiaomi/etc. the OS puts the app to sleep in background,
-// killing the foreground service and blocking alarms in background.
-// Ask the user once per app launch to exempt the app from battery
-// optimization, and surface the actual native state as a toast so we
-// can diagnose what's really running on the device.
-async function ensureBatteryExemption() {
-  if (batteryOptPrompted) return;
-  batteryOptPrompted = true;
-  try {
-    const result = await diagnoseBatteryOptimization();
-    // Only nag if the native plugin is missing or the request failed.
-    if (result.startsWith("❌") || result.startsWith("⚠️")) {
-      toast.error(result, { duration: 8000 });
-    }
-  } catch { /* ignore */ }
-}
 
 async function acquireWakeLock() {
   try {
@@ -66,9 +47,11 @@ export function RestTimerWidget() {
   React.useEffect(() => { endsAtRef.current = timer.endsAt; }, [timer.endsAt]);
 
   // Native alarm via AlarmManager.setAlarmClock() — the most reliable
-  // Android primitive: Doze-proof, exempt from battery optimization, and
-  // fires even if the app is backgrounded or killed (Samsung-safe).
-  // No foreground service: dataSync FGS crashes on Android 14+/16.
+  // Android primitive: Doze-proof, already exempt from battery optimization
+  // (same mechanism as the Clock app alarm), and fires even if the app is
+  // backgrounded or killed (Samsung-safe). No foreground service (dataSync
+  // FGS crashes on Android 14+/16), no battery-optimization Activity launch
+  // (it disrupted the WebView session).
   React.useEffect(() => {
     if (timer.state !== "running" || timer.endsAt == null) {
       releaseWakeLock();
@@ -76,13 +59,16 @@ export function RestTimerWidget() {
     }
     acquireWakeLock();
     if (isNative()) {
-      requestNativeNotificationPermission().then(() => {
-        ensureBatteryExemption();
-        const endsAt = timer.endsAt!;
-        const delay = Math.max(0, endsAt - Date.now());
-        scheduleRestTimerAlarm(delay);
-        scheduleNativeTimerCountdown(Math.ceil(delay / 1000));
-      });
+      const endsAt = timer.endsAt;
+      const delay = Math.max(0, endsAt - Date.now());
+      requestNativeNotificationPermission()
+        .then(() => {
+          scheduleRestTimerAlarm(delay);
+          scheduleNativeTimerCountdown(Math.ceil(delay / 1000));
+        })
+        .catch(() => {
+          scheduleRestTimerAlarm(delay);
+        });
     } else {
       Notification.requestPermission().catch(() => {});
     }
