@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   isNative,
+  scheduleRestTimerAlarm,
+  cancelRestTimerAlarm,
   cancelAllNativeNotifications,
   nativeVibrate,
   onNativeNotificationTap,
@@ -41,9 +43,9 @@ export function RestTimerWidget() {
 
   React.useEffect(() => { endsAtRef.current = timer.endsAt; }, [timer.endsAt]);
 
-  // DIAGNOSTIC BUILD v8 — all native timer calls are disabled to isolate
-  // the crash. The pure-JS timer below still runs. A toast confirms which
-  // build is actually loaded on the device.
+  // DIAGNOSTIC BUILD v9 — re-enable ONLY the AlarmManager.setAlarmClock()
+  // call to confirm it is safe. Countdown notification + permission request
+  // stay disabled.
   React.useEffect(() => {
     if (timer.state !== "running" || timer.endsAt == null) {
       releaseWakeLock();
@@ -51,11 +53,19 @@ export function RestTimerWidget() {
     }
     acquireWakeLock();
     if (isNative()) {
-      toast.info("Chrono DIAG v8 (natif OFF)", { duration: 4000 });
-      // Native calls intentionally disabled for crash isolation.
+      toast.info("Chrono DIAG v9 (alarme ON)", { duration: 3000 });
+      const endsAt = timer.endsAt;
+      const delay = Math.max(0, endsAt - Date.now());
+      scheduleRestTimerAlarm(delay);
     } else {
       Notification.requestPermission().catch(() => {});
     }
+  }, [timer.state]);
+
+  // Cancel the native alarm when the timer leaves "running".
+  React.useEffect(() => {
+    if (timer.state === "running") return;
+    if (isNative()) cancelRestTimerAlarm();
   }, [timer.state]);
 
   // Tick every 250ms while running for the countdown UI.
