@@ -8,6 +8,9 @@ import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioAttributes;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Build;
 import android.util.Log;
 
@@ -31,6 +34,17 @@ public class RestTimerAlarmReceiver extends BroadcastReceiver {
             channel.setDescription("Timer de repos terminé");
             channel.enableVibration(true);
             channel.setBypassDnd(true);
+            // Route through the ALARM stream so the sound is audible even when
+            // the screen is locked / the device is in Doze.
+            Uri sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+            if (sound == null) {
+                sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            }
+            AudioAttributes attrs = new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build();
+            channel.setSound(sound, attrs);
             NotificationManager nm = context.getSystemService(NotificationManager.class);
             nm.createNotificationChannel(channel);
         }

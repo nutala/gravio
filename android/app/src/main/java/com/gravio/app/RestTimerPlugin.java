@@ -6,8 +6,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.PowerManager;
 import android.provider.Settings;
+import android.util.Log;
+import android.widget.Toast;
+
+import java.io.FileWriter;
+import java.io.PrintWriter;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -159,15 +166,39 @@ public class RestTimerPlugin extends Plugin {
 
         Intent intent = new Intent(context, RestTimerAlarmReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
-            context,
-            ALARM_REQUEST_CODE,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+                context,
+                ALARM_REQUEST_CODE,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
         alarmManager.cancel(pendingIntent);
         pendingIntent.cancel();
 
+        call.resolve();
+    }
+
+    // ── JS error capture (diagnostics) ──
+
+    @PluginMethod
+    public void logError(PluginCall call) {
+        String message = call.getString("message", "");
+        Log.e("RestTimerJS", message);
+        try {
+            java.io.File f = new java.io.File(
+                "/sdcard/Android/data/com.gravio.app/files/resttimer_js_crash.txt"
+            );
+            FileWriter fw = new FileWriter(f, true);
+            PrintWriter pw = new PrintWriter(fw);
+            pw.println(message);
+            pw.close();
+        } catch (Throwable ignored) { }
+        try {
+            final String msg = message;
+            new Handler(Looper.getMainLooper()).post(() ->
+                Toast.makeText(getContext(), "JS err: " + msg, Toast.LENGTH_LONG).show()
+            );
+        } catch (Throwable ignored) { }
         call.resolve();
     }
 }

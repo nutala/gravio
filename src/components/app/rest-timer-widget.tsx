@@ -19,6 +19,7 @@ import {
   cancelAllNativeNotifications,
   nativeVibrate,
   requestNativeNotificationPermission,
+  reportJsError,
   onNativeNotificationTap,
 } from "@/lib/native";
 
@@ -47,6 +48,28 @@ export function RestTimerWidget() {
 
   React.useEffect(() => { endsAtRef.current = timer.endsAt; }, [timer.endsAt]);
 
+  // Capture any uncaught JS error so a launch-time crash can be diagnosed
+  // (toast + crash file) instead of failing silently in a loop.
+  React.useEffect(() => {
+    const handler = (e: Event) => {
+      let msg: string;
+      if (e instanceof ErrorEvent) {
+        msg = `${e.message} @ ${e.filename}:${e.lineno}:${e.colno}`;
+      } else if (e instanceof PromiseRejectionEvent) {
+        msg = "unhandledrejection: " + String((e as PromiseRejectionEvent).reason);
+      } else {
+        msg = String(e);
+      }
+      reportJsError("JS: " + msg);
+    };
+    window.addEventListener("error", handler);
+    window.addEventListener("unhandledrejection", handler);
+    return () => {
+      window.removeEventListener("error", handler);
+      window.removeEventListener("unhandledrejection", handler);
+    };
+  }, []);
+
   // Schedule the reliable native alarms whenever the timer starts or its
   // target time changes (addTime / resume). A single setAlarmClock() is the
   // primary, Doze-proof wake-up; countdown notifications keep the UI visible
@@ -59,6 +82,21 @@ export function RestTimerWidget() {
     acquireWakeLock();
     const endsAt = timer.endsAt;
     const delay = Math.max(0, endsAt - Date.now());
+
+    if (delay <= 0) {
+      // Timer already expired (e.g. app was force-closed then reopened):
+      // complete it now without (re)starting the foreground service, which
+      // would otherwise spin up a crash loop on every launch.
+      if (!doneHandled.current) {
+        doneHandled.current = true;
+        beepAndNotify();
+        timer.complete();
+        useAppStore.getState().triggerScrollToFirstUnvalidated();
+      }
+      releaseWakeLock();
+      return;
+    }
+
     if (isNative()) {
       requestNativeNotificationPermission().catch(() => {});
       // Primary: a native foreground service showing a live, lock-screen

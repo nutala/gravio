@@ -514,3 +514,12 @@ export async function nativeVibrate(pattern: number[] | number): Promise<void> {
     }
   } catch { /* no vibrate */ }
 }
+
+/** Surface a JS error to the native side (toast + crash file) for diagnostics. */
+export async function reportJsError(message: string): Promise<void> {
+  try {
+    const rt = getRestTimer() as unknown as { logError: (opts: { message: string }) => Promise<void> } | undefined;
+    if (!rt || typeof rt.logError !== "function") return;
+    await rt.logError({ message });
+  } catch { /* ignore */ }
+}

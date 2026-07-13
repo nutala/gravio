@@ -8,6 +8,9 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ServiceInfo;
+import android.media.AudioAttributes;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.CountDownTimer;
 import android.os.Handler;
@@ -83,7 +86,7 @@ public class RestTimerForegroundService extends Service {
             if (totalMs > 0) RestTimerAlarmReceiver.scheduleExact(this, totalMs);
             stopSelf();
         }
-        return START_STICKY;
+        return START_NOT_STICKY;
     }
 
     @Override
@@ -126,6 +129,17 @@ public class RestTimerForegroundService extends Service {
         alarm.setDescription("Alarme de fin de repos");
         alarm.enableVibration(true);
         alarm.setBypassDnd(true);
+        // Route through the ALARM stream so the sound is audible even when the
+        // screen is locked / the device is in Doze.
+        Uri sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+        if (sound == null) {
+            sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        }
+        AudioAttributes attrs = new AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_ALARM)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build();
+        alarm.setSound(sound, attrs);
         nm.createNotificationChannel(alarm);
     }
 
@@ -180,6 +194,15 @@ public class RestTimerForegroundService extends Service {
             NotificationManager nm = ctx.getSystemService(NotificationManager.class);
             if (nm != null) nm.cancel(NOTIF_COUNTDOWN);
 
+            Uri sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+            if (sound == null) {
+                sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            }
+            AudioAttributes attrs = new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build();
+
             Notification.Builder b = new Notification.Builder(ctx, CHANNEL_ALARM)
                 .setSmallIcon(getIconRes(ctx))
                 .setContentTitle("⏱ Repos terminé !")
@@ -189,7 +212,8 @@ public class RestTimerForegroundService extends Service {
                 .setOngoing(false)
                 .setCategory(Notification.CATEGORY_ALARM)
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
-                .setPriority(Notification.PRIORITY_MAX);
+                .setPriority(Notification.PRIORITY_MAX)
+                .setSound(sound, attrs);
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 b.setVibrate(new long[]{400, 150, 400, 150, 200, 150, 600, 200, 600});
