@@ -9,6 +9,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.media.AudioAttributes;
+import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
@@ -34,17 +35,9 @@ public class RestTimerAlarmReceiver extends BroadcastReceiver {
             channel.setDescription("Timer de repos terminé");
             channel.enableVibration(true);
             channel.setBypassDnd(true);
-            // Route through the ALARM stream so the sound is audible even when
-            // the screen is locked / the device is in Doze.
-            Uri sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-            if (sound == null) {
-                sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-            }
-            AudioAttributes attrs = new AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_ALARM)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .build();
-            channel.setSound(sound, attrs);
+            // The actual audible alarm is played explicitly via Ringtone (see
+            // playAlarmRingtone); keep the channel itself silent to avoid a
+            // doubled sound.
             NotificationManager nm = context.getSystemService(NotificationManager.class);
             nm.createNotificationChannel(channel);
         }
@@ -127,5 +120,34 @@ public class RestTimerAlarmReceiver extends BroadcastReceiver {
 
         NotificationManager nm = context.getSystemService(NotificationManager.class);
         nm.notify(NOTIFICATION_ID, builder.build());
+
+        // Audible alarm through the ALARM stream (notification channel is silent).
+        playAlarmRingtone(context);
+
+        // Notify the WebView so the in-app UI completes even if JS was frozen.
+        try {
+            context.sendBroadcast(new Intent(RestTimerPlugin.ACTION_FINISHED));
+        } catch (Throwable ignored) { }
+    }
+
+    private static void playAlarmRingtone(Context context) {
+        try {
+            Uri ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+            if (ringtoneUri == null) {
+                ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            }
+            Ringtone ringtone = RingtoneManager.getRingtone(context, ringtoneUri);
+            if (ringtone != null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    ringtone.setAudioAttributes(new AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build());
+                }
+                ringtone.play();
+            }
+        } catch (Throwable t) {
+            Log.e("RestTimerAlarm", "playAlarmRingtone failed", t);
+        }
     }
 }

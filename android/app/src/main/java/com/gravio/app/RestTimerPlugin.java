@@ -2,8 +2,10 @@ package com.gravio.app;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
@@ -25,7 +27,35 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 @CapacitorPlugin(name = "RestTimer")
 public class RestTimerPlugin extends Plugin {
 
+    static final String ACTION_FINISHED = "com.gravio.app.REST_TIMER_FINISHED";
+
     private static final int ALARM_REQUEST_CODE = 3001;
+
+    private BroadcastReceiver finishReceiver;
+
+    @Override
+    public void load() {
+        super.load();
+        try {
+            finishReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    notifyListeners("restTimerFinished", new JSObject());
+                }
+            };
+            getContext().registerReceiver(finishReceiver, new IntentFilter(ACTION_FINISHED));
+        } catch (Throwable t) {
+            Log.e("RestTimer", "register finishReceiver failed", t);
+        }
+    }
+
+    @Override
+    protected void handleOnDestroy() {
+        try {
+            if (finishReceiver != null) getContext().unregisterReceiver(finishReceiver);
+        } catch (Throwable ignored) { }
+        super.handleOnDestroy();
+    }
 
     // ── Battery optimization exemption (critical on Samsung / Xiaomi / etc.) ──
 

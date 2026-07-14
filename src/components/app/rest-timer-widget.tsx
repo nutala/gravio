@@ -20,6 +20,7 @@ import {
   nativeVibrate,
   requestNativeNotificationPermission,
   reportJsError,
+  onRestTimerFinished,
   onNativeNotificationTap,
 } from "@/lib/native";
 
@@ -246,6 +247,25 @@ export function RestTimerWidget() {
       onNativeNotificationTap(() => {
         useAppStore.getState().triggerScrollToFirstUnvalidated();
         useAppStore.getState().setView("new-workout");
+      }).then((fn) => { cleanup = fn; });
+    }
+    return () => { cleanup?.(); };
+  }, []);
+
+  // Native "timer finished" event: the foreground service / AlarmManager backup
+  // fired the alarm. Complete the in-app timer immediately, even if its JS
+  // timers were frozen while the app was backgrounded (long rests).
+  React.useEffect(() => {
+    let cleanup: (() => void) | undefined;
+    if (isNative()) {
+      onRestTimerFinished(() => {
+        const st = useTimerStore.getState();
+        if (st.state === "running" && !doneHandled.current) {
+          doneHandled.current = true;
+          beepAndNotify();
+          st.complete();
+          useAppStore.getState().triggerScrollToFirstUnvalidated();
+        }
       }).then((fn) => { cleanup = fn; });
     }
     return () => { cleanup?.(); };

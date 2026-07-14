@@ -371,6 +371,10 @@ interface CapacitorPluginRestTimer {
   cancelAlarm: () => Promise<void>;
   isIgnoringBatteryOptimizations: () => Promise<{ ignoring: boolean }>;
   requestIgnoreBatteryOptimizations: () => Promise<{ ignoring: boolean }>;
+  addListener: (
+    event: string,
+    cb: (data: unknown) => void,
+  ) => Promise<{ remove: () => void }>;
 }
 
 function getRestTimer(): CapacitorPluginRestTimer | undefined {
@@ -522,4 +526,21 @@ export async function reportJsError(message: string): Promise<void> {
     if (!rt || typeof rt.logError !== "function") return;
     await rt.logError({ message });
   } catch { /* ignore */ }
+}
+
+/**
+ * Subscribe to the native "timer finished" event. The native side (foreground
+ * service or the AlarmManager backup) fires this when the rest timer ends, so
+ * the in-app UI can complete even if its JS timers were frozen while the app
+ * was backgrounded. Returns an unsubscribe function.
+ */
+export async function onRestTimerFinished(cb: () => void): Promise<() => void> {
+  try {
+    const rt = getRestTimer();
+    if (!rt || typeof rt.addListener !== "function") return () => {};
+    const handle = await rt.addListener("restTimerFinished", () => cb());
+    return () => { try { handle.remove(); } catch { /* ignore */ } };
+  } catch {
+    return () => {};
+  }
 }
