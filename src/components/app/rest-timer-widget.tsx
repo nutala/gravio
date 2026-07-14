@@ -18,6 +18,7 @@ import {
   scheduleCountdownMilestones,
   cancelAllNativeNotifications,
   nativeVibrate,
+  stopNativeAlarm,
   requestNativeNotificationPermission,
   reportJsError,
   onRestTimerFinished,
@@ -245,6 +246,7 @@ export function RestTimerWidget() {
     let cleanup: (() => void) | undefined;
     if (isNative()) {
       onNativeNotificationTap(() => {
+        stopNativeAlarm();
         useAppStore.getState().triggerScrollToFirstUnvalidated();
         useAppStore.getState().setView("new-workout");
       }).then((fn) => { cleanup = fn; });
@@ -297,19 +299,26 @@ export function RestTimerWidget() {
   }, [timer.state, timer.endsAt]);
 
   function beepAndNotify() {
-    playBeep();
-    nativeVibrate([200, 100, 200]);
+    if (isNative()) {
+      // On native the foreground service / AlarmManager already produced the
+      // alarm sound, vibration and notification. The JS side must NOT also
+      // beep/vibrate (would double), and must NOT stop the alarm — it keeps
+      // ringing until the user dismisses it (OK / skip / tap on notif).
+    } else {
+      playBeep();
+      nativeVibrate([200, 100, 200]);
 
-    if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({ type: "SHOW_NOTIFICATION" });
-    } else if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-      try {
-        const n = new Notification("Repos terminé ! 💪", {
-          body: "C'est reparti pour une série !",
-          tag: "rest-timer",
-        });
-        setTimeout(() => n.close(), 5000);
-      } catch { /* fallback */ }
+      if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: "SHOW_NOTIFICATION" });
+      } else if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+        try {
+          const n = new Notification("Repos terminé ! 💪", {
+            body: "C'est reparti pour une série !",
+            tag: "rest-timer",
+          });
+          setTimeout(() => n.close(), 5000);
+        } catch { /* fallback */ }
+      }
     }
     toast.success("Repos terminé — c'est reparti ! 💪", { duration: 4000 });
   }
@@ -408,7 +417,7 @@ export function RestTimerWidget() {
                   size="sm"
                   variant="default"
                   className="h-8 gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
-                  onClick={timer.dismiss}
+                  onClick={() => { stopNativeAlarm(); timer.dismiss(); }}
                 >
                   <X className="h-3.5 w-3.5" />
                   OK
@@ -460,7 +469,7 @@ export function RestTimerWidget() {
                     size="icon"
                     variant="outline"
                     className="h-8 w-8"
-                    onClick={timer.skip}
+                    onClick={() => { stopNativeAlarm(); timer.skip(); }}
                     aria-label="Passer le repos"
                     title="Passer"
                   >

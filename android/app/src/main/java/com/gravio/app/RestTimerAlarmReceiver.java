@@ -8,10 +8,6 @@ import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.media.AudioAttributes;
-import android.media.Ringtone;
-import android.media.RingtoneManager;
-import android.net.Uri;
 import android.os.Build;
 import android.util.Log;
 
@@ -122,32 +118,11 @@ public class RestTimerAlarmReceiver extends BroadcastReceiver {
         nm.notify(NOTIFICATION_ID, builder.build());
 
         // Audible alarm through the ALARM stream (notification channel is silent).
-        playAlarmRingtone(context);
+        RestTimerAlarmSound.play(context);
 
         // Notify the WebView so the in-app UI completes even if JS was frozen.
         try {
             context.sendBroadcast(new Intent(RestTimerPlugin.ACTION_FINISHED));
         } catch (Throwable ignored) { }
-    }
-
-    private static void playAlarmRingtone(Context context) {
-        try {
-            Uri ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-            if (ringtoneUri == null) {
-                ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-            }
-            Ringtone ringtone = RingtoneManager.getRingtone(context, ringtoneUri);
-            if (ringtone != null) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    ringtone.setAudioAttributes(new AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build());
-                }
-                ringtone.play();
-            }
-        } catch (Throwable t) {
-            Log.e("RestTimerAlarm", "playAlarmRingtone failed", t);
-        }
     }
 }

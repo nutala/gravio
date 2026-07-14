@@ -8,9 +8,6 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ServiceInfo;
-import android.media.AudioAttributes;
-import android.media.Ringtone;
-import android.media.RingtoneManager;
 import android.os.Build;
 import android.os.CountDownTimer;
 import android.os.Handler;
@@ -92,6 +89,7 @@ public class RestTimerForegroundService extends Service {
     @Override
     public void onDestroy() {
         if (timer != null) timer.cancel();
+        RestTimerAlarmSound.stop();
         super.onDestroy();
     }
 
@@ -215,7 +213,7 @@ public class RestTimerForegroundService extends Service {
             // audible even when the device is locked / in Doze (notification
             // channel sound is unreliable across OEMs). This is the actual
             // audible alarm; the notification above is the visual + vibration.
-            playAlarmRingtone(ctx);
+            RestTimerAlarmSound.play(ctx);
 
             // Tell the WebView the timer ended so the in-app UI completes even
             // if its JS timers were frozen while backgrounded.
@@ -226,28 +224,6 @@ public class RestTimerForegroundService extends Service {
             Log.e(TAG, "onTimerFinished failed", t);
         }
     }
-
-    private static void playAlarmRingtone(Context ctx) {
-        try {
-            Uri ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-            if (ringtoneUri == null) {
-                ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-            }
-            Ringtone ringtone = RingtoneManager.getRingtone(ctx, ringtoneUri);
-            if (ringtone != null) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    ringtone.setAudioAttributes(new AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build());
-                }
-                ringtone.play();
-            }
-        } catch (Throwable t) {
-            Log.e(TAG, "playAlarmRingtone failed", t);
-        }
-    }
-
     // ── diagnostics ──
 
     private void showToast(final String msg) {

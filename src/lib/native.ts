@@ -371,6 +371,7 @@ interface CapacitorPluginRestTimer {
   cancelAlarm: () => Promise<void>;
   isIgnoringBatteryOptimizations: () => Promise<{ ignoring: boolean }>;
   requestIgnoreBatteryOptimizations: () => Promise<{ ignoring: boolean }>;
+  stopAlarmSound: () => Promise<void>;
   addListener: (
     event: string,
     cb: (data: unknown) => void,
@@ -426,6 +427,15 @@ export async function cancelRestTimerAlarm(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/** Stop the currently playing native alarm ringtone (e.g. on dismiss/tap). */
+export async function stopNativeAlarm(): Promise<void> {
+  try {
+    const rt = getRestTimer();
+    if (!rt || typeof rt.stopAlarmSound !== "function") return;
+    await rt.stopAlarmSound();
+  } catch { /* ignore */ }
 }
 
 /** Stop the foreground service AND cancel the backup alarm. */

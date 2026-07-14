@@ -137,6 +137,13 @@ public class RestTimerPlugin extends Plugin {
         Context context = getContext();
         Intent intent = new Intent(context, RestTimerForegroundService.class);
         context.stopService(intent);
+        RestTimerAlarmSound.stop();
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void stopAlarmSound(PluginCall call) {
+        RestTimerAlarmSound.stop();
         call.resolve();
     }
 
@@ -204,6 +211,7 @@ public class RestTimerPlugin extends Plugin {
 
         alarmManager.cancel(pendingIntent);
         pendingIntent.cancel();
+        RestTimerAlarmSound.stop();
 
         call.resolve();
     }
