@@ -130,6 +130,25 @@ export function RestTimerWidget() {
     return () => clearInterval(id);
   }, [timer.state]);
 
+  // Complete the timer as soon as the clock passes endsAt. The absolute
+  // setTimeout above can be throttled/delayed when the WebView is backgrounded
+  // for a long time, so this guarantees the in-app UI reaches "done" (and the
+  // beep fires) on the next tick after the target time — covering long rests
+  // where the tab was frozen.
+  React.useEffect(() => {
+    if (
+      timer.state === "running" &&
+      timer.endsAt != null &&
+      now >= timer.endsAt &&
+      !doneHandled.current
+    ) {
+      doneHandled.current = true;
+      beepAndNotify();
+      timer.complete();
+      useAppStore.getState().triggerScrollToFirstUnvalidated();
+    }
+  }, [timer.state, now]);
+
   // Absolute setTimeout: schedules the beep exactly at endsAt.
   // This is more reliable than setInterval because it fires once at the
   // precise target time, even if the tab is backgrounded (browsers throttle

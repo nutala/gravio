@@ -27,7 +27,7 @@ import java.io.PrintWriter;
 public class RestTimerForegroundService extends Service {
 
     private static final String CHANNEL_COUNTDOWN = "rest-fg-countdown";
-    private static final String CHANNEL_ALARM = "rest-alarm-plugin";
+    private static final String CHANNEL_ALARM = "rest-alarm-v2";
     private static final int NOTIF_COUNTDOWN = 2002;
     private static final int NOTIF_ALARM = 2003;
     private static final String TAG = "RestTimerFGS";

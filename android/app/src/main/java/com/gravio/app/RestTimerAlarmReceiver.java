@@ -15,7 +15,7 @@ import android.os.Build;
 import android.util.Log;
 
 public class RestTimerAlarmReceiver extends BroadcastReceiver {
-    static final String CHANNEL_ID = "rest-alarm-plugin";
+    static final String CHANNEL_ID = "rest-alarm-v2";
     private static final int NOTIFICATION_ID = 2001;
 
     @Override
