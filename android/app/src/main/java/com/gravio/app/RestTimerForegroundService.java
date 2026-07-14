@@ -89,7 +89,10 @@ public class RestTimerForegroundService extends Service {
     @Override
     public void onDestroy() {
         if (timer != null) timer.cancel();
-        RestTimerAlarmSound.stop();
+        // NOTE: do NOT stop the alarm sound here — the ringtone is meant to
+        // keep playing (until the user dismisses it) even after this service
+        // stops. stopSelf() is called right after the ringtone starts, so
+        // stopping here would cut the alarm instantly.
         super.onDestroy();
     }
 
@@ -180,6 +183,11 @@ public class RestTimerForegroundService extends Service {
 
     private static void onTimerFinished(Context ctx) {
         try {
+            // Cancel the Doze-proof backup alarm: the foreground service is
+            // handling the end itself, so we don't want the AlarmManager
+            // backup to also fire (would double the notification/sound).
+            RestTimerAlarmReceiver.cancelExact(ctx);
+
             NotificationManager nm = ctx.getSystemService(NotificationManager.class);
             if (nm != null) nm.cancel(NOTIF_COUNTDOWN);
 

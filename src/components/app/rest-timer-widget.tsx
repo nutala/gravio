@@ -102,25 +102,30 @@ export function RestTimerWidget() {
     if (isNative()) {
       requestNativeNotificationPermission().catch(() => {});
       // Primary: a native foreground service showing a live, lock-screen
-      // countdown (Strong-app style). If it fails to start, fall back to a
-      // Doze-proof setAlarmClock() + LocalNotifications countdown.
+      // countdown (Strong-app style). If it fails to start, fall back to
+      // LocalNotifications for the visual.
       startForegroundTimer(delay).then((started) => {
         if (useTimerStore.getState().state !== "running") return;
         if (!started) {
-          scheduleRestTimerAlarm(delay);
           scheduleNativeTimerCountdown(Math.ceil(delay / 1000));
           scheduleCountdownMilestones(endsAt);
         }
       });
+      // Always schedule the Doze-proof backup alarm. The foreground service
+      // cancels it on finish, so no double; but if the system kills the
+      // service (long rests / memory pressure), this still rings at the end.
+      scheduleRestTimerAlarm(delay);
     } else {
       Notification.requestPermission().catch(() => {});
     }
   }, [timer.state, timer.endsAt]);
 
   // Cancel the native timer (foreground service + backup alarm) when the
-  // timer leaves "running".
+  // timer leaves "running" (pause / skip / dismiss). On "done" we do NOT stop
+  // it: the alarm must keep ringing until the user dismisses it.
   React.useEffect(() => {
     if (timer.state === "running") return;
+    if (timer.state === "done") return;
     if (isNative()) stopNativeTimer();
   }, [timer.state]);
 

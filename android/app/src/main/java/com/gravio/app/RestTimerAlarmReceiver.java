@@ -80,6 +80,21 @@ public class RestTimerAlarmReceiver extends BroadcastReceiver {
         }
     }
 
+    /** Cancel the backup alarm (e.g. when the foreground service finishes first). */
+    static void cancelExact(Context context) {
+        try {
+            AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            if (am == null) return;
+            Intent intent = new Intent(context, RestTimerAlarmReceiver.class);
+            PendingIntent pi = PendingIntent.getBroadcast(
+                context, 3001, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+            );
+            am.cancel(pi);
+            pi.cancel();
+        } catch (Throwable ignored) { }
+    }
+
     private void showNotification(Context context) {
         Intent launchIntent = context.getPackageManager().getLaunchIntentForPackage(
             context.getPackageName()
