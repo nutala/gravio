@@ -228,6 +228,7 @@ export function NewWorkoutView() {
     const workout = workoutsQ.data.find((w) => w.id === id);
     if (!workout) return;
     draft.loadFromWorkout(workout, exerciseMap, false);
+    draft.setMeta("date", format(new Date(), "yyyy-MM-dd"));
     draft.resetAllValidations();
     draft.startSession();
     toast.success(`Séance « ${workout.title || "session"} » chargée — prête pour ta séance.`);

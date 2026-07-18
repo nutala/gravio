@@ -444,7 +444,6 @@ export const useDraftStore = create<WorkoutDraftStore>()(
       name: "calitrack-workout-draft",
       partialize: (state) => ({
         title: state.title,
-        date: state.date,
         durationMin: state.durationMin,
         exertion: state.exertion,
         bodyweight: state.bodyweight,

@@ -1,11 +1,13 @@
 package com.gravio.app;
 
 import android.app.AlarmManager;
+import android.app.Application;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
@@ -30,6 +32,8 @@ public class RestTimerPlugin extends Plugin {
     static final String ACTION_FINISHED = "com.gravio.app.REST_TIMER_FINISHED";
 
     private static final int ALARM_REQUEST_CODE = 3001;
+    private static final String PREFS = "rest-timer";
+    private static final String KEY_ENDS_AT = "endsAt";
 
     private BroadcastReceiver finishReceiver;
 
@@ -47,6 +51,49 @@ public class RestTimerPlugin extends Plugin {
         } catch (Throwable t) {
             Log.e("RestTimer", "register finishReceiver failed", t);
         }
+
+        // When the app returns to the foreground, if a rest timer has already
+        // ended (its WebView JS was frozen / the app was killed while in the
+        // background), force the completion so the in-app UI never stays stuck
+        // on 0s. The native alarm (sound + notification) still fired on time.
+        try {
+            final Application app = (Application) getContext().getApplicationContext();
+            app.registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {
+                @Override public void onActivityResumed(android.app.Activity a) {
+                    try {
+                        SharedPreferences sp = getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+                        long endsAt = sp.getLong(KEY_ENDS_AT, 0);
+                        if (endsAt > 0 && System.currentTimeMillis() >= endsAt) {
+                            notifyListeners("restTimerFinished", new JSObject());
+                        }
+                    } catch (Throwable ignored) { }
+                }
+                @Override public void onActivityCreated(android.app.Activity a, android.os.Bundle b) { }
+                @Override public void onActivityStarted(android.app.Activity a) { }
+                @Override public void onActivityPaused(android.app.Activity a) { }
+                @Override public void onActivityStopped(android.app.Activity a) { }
+                @Override public void onActivitySaveInstanceState(android.app.Activity a, android.os.Bundle b) { }
+                @Override public void onActivityDestroyed(android.app.Activity a) { }
+            });
+        } catch (Throwable t) {
+            Log.e("RestTimer", "register lifecycle callback failed", t);
+        }
+    }
+
+    private static void storeEndsAt(Context ctx, long delayMs) {
+        try {
+            SharedPreferences sp = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+            long ends = System.currentTimeMillis() + Math.max(0, delayMs);
+            long existing = sp.getLong(KEY_ENDS_AT, 0);
+            // Keep the latest (largest) end time if several timers overlap.
+            if (ends > existing) sp.edit().putLong(KEY_ENDS_AT, ends).apply();
+        } catch (Throwable ignored) { }
+    }
+
+    private static void clearEndsAt(Context ctx) {
+        try {
+            ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(KEY_ENDS_AT).apply();
+        } catch (Throwable ignored) { }
     }
 
     @Override
@@ -118,6 +165,7 @@ public class RestTimerPlugin extends Plugin {
 
         try {
             Context context = getContext();
+            storeEndsAt(context, delayMs.longValue());
             Intent intent = new Intent(context, RestTimerForegroundService.class);
             intent.putExtra("totalMs", delayMs.longValue());
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -138,12 +186,14 @@ public class RestTimerPlugin extends Plugin {
         Intent intent = new Intent(context, RestTimerForegroundService.class);
         context.stopService(intent);
         RestTimerAlarmSound.stop();
+        clearEndsAt(context);
         call.resolve();
     }
 
     @PluginMethod
     public void stopAlarmSound(PluginCall call) {
         RestTimerAlarmSound.stop();
+        clearEndsAt(getContext());
         call.resolve();
     }
 
@@ -160,6 +210,7 @@ public class RestTimerPlugin extends Plugin {
         try {
             Context context = getContext();
             RestTimerAlarmReceiver.ensureChannel(context);
+            storeEndsAt(context, delayMs.longValue());
 
             AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
 
@@ -212,6 +263,7 @@ public class RestTimerPlugin extends Plugin {
         alarmManager.cancel(pendingIntent);
         pendingIntent.cancel();
         RestTimerAlarmSound.stop();
+        clearEndsAt(context);
 
         call.resolve();
     }
