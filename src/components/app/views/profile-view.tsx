@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAppStore } from "@/lib/store";
+import { toast } from "sonner";
 
 export function ProfileView() {
   const { data: session, update } = useSession();
@@ -55,10 +56,8 @@ export function ProfileView() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) {
-      return;
-    }
-    if (file.size > 2 * 1024 * 1024) {
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Image trop volumineuse (max 8 Mo).");
       return;
     }
 
@@ -71,6 +70,12 @@ export function ProfileView() {
       setPreview(result.image);
       await update();
       router.refresh();
+    } catch (err) {
+      toast.error(
+        (err as { message?: string })?.message ??
+          "Format d'image non supporté. Utilise JPEG, PNG, WebP, GIF, AVIF ou HEIC.",
+      );
+      setPreview("");
     } finally {
       URL.revokeObjectURL(localUrl);
     }
@@ -139,7 +144,7 @@ export function ProfileView() {
               <input
                 ref={fileRef}
                 type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
+                accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/heic,image/heif,image/bmp"
                 className="hidden"
                 onChange={handleFileChange}
               />

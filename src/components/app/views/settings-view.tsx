@@ -10,6 +10,8 @@ import { useSettingsStore, type SoundProfile, type AccentTheme, type WeightUnit 
 import { ACCENT_THEMES } from "@/components/providers/accent-provider";
 import { useAppStore } from "@/lib/store";
 import { playChime, playFail, playBeep } from "@/lib/sound";
+import { isNative, pickRestTimerRingtone, getRestTimerRingtone, clearRestTimerRingtone } from "@/lib/native";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const profiles: { id: SoundProfile; label: string; desc: string }[] = [
@@ -27,6 +29,41 @@ export function SettingsView() {
   const weightUnit = useSettingsStore((s) => s.weightUnit);
   const setWeightUnit = useSettingsStore((s) => s.setWeightUnit);
   const setView = useAppStore((s) => s.setView);
+
+  const native = isNative();
+  const [ringtoneName, setRingtoneName] = React.useState<string>("Bip court (par défaut)");
+  const [ringtoneLoading, setRingtoneLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!native) return;
+    getRestTimerRingtone()
+      .then((r) => { if (r) setRingtoneName(r.name); })
+      .catch(() => {});
+  }, [native]);
+
+  async function handlePickRingtone() {
+    setRingtoneLoading(true);
+    try {
+      const res = await pickRestTimerRingtone();
+      if (res && res.uri && res.uri !== "default") {
+        setRingtoneName(res.name);
+        toast.success("Son de fin de repos mis à jour");
+      } else {
+        setRingtoneName("Bip court (par défaut)");
+      }
+    } catch (e) {
+      toast.error("Impossible d'ouvrir le sélecteur de son");
+    } finally {
+      setRingtoneLoading(false);
+    }
+  }
+
+  async function handleResetRingtone() {
+    await clearRestTimerRingtone();
+    setRingtoneName("Bip court (par défaut)");
+    toast.success("Son réinitialisé au bip par défaut");
+  }
+
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
@@ -197,6 +234,47 @@ export function SettingsView() {
           ))}
         </CardContent>
       </Card>
+
+      {/* Native rest-timer end sound (Android only) */}
+      {native && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Volume2 className="h-5 w-5 text-muted-foreground" />
+              <CardTitle className="text-base">Son de fin de repos</CardTitle>
+            </div>
+            <CardDescription>
+              Choisis la sonnerie du minuteur de repos sur ton téléphone (écrasée par le profil sonore web).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
+              <div className="min-w-0">
+                <div className="text-sm font-medium">Sonnerie actuelle</div>
+                <div className="truncate text-xs text-muted-foreground">{ringtoneName}</div>
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePickRingtone}
+                  disabled={ringtoneLoading}
+                >
+                  Choisir…
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleResetRingtone}
+                  disabled={ringtoneLoading}
+                >
+                  Réinit.
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

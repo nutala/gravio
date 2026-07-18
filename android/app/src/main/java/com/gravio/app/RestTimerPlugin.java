@@ -14,8 +14,14 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.PowerManager;
 import android.provider.Settings;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
 import android.util.Log;
 import android.widget.Toast;
+import androidx.activity.ComponentActivity;
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 
 import java.io.FileWriter;
 import java.io.PrintWriter;
@@ -34,12 +40,50 @@ public class RestTimerPlugin extends Plugin {
     private static final int ALARM_REQUEST_CODE = 3001;
     private static final String PREFS = "rest-timer";
     private static final String KEY_ENDS_AT = "endsAt";
+    private static final String KEY_RINGTONE_URI = "ringtoneUri";
 
     private BroadcastReceiver finishReceiver;
+    private PluginCall pendingRingtoneCall;
+    private ActivityResultLauncher<Intent> ringtoneLauncher;
 
     @Override
     public void load() {
         super.load();
+        try {
+            ringtoneLauncher = ((ComponentActivity) getActivity()).registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                (ActivityResult result) -> {
+                    if (pendingRingtoneCall == null) return;
+                    PluginCall call = pendingRingtoneCall;
+                    pendingRingtoneCall = null;
+                    if (result.getResultCode() == android.app.Activity.RESULT_OK && result.getData() != null) {
+                        Uri uri = result.getData().getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
+                        Context context = getContext();
+                        String uriStr = (uri != null) ? uri.toString() : "default";
+                        try {
+                            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                                .edit().putString(KEY_RINGTONE_URI, uriStr).apply();
+                        } catch (Throwable ignored) { }
+                        String name = "Son personnalisé";
+                        try {
+                            if (uri != null) {
+                                Ringtone r = RingtoneManager.getRingtone(context, uri);
+                                if (r != null) name = r.getTitle(context);
+                            } else {
+                                name = "Bip court (par défaut)";
+                            }
+                        } catch (Throwable ignored) { }
+                        JSObject ret = new JSObject();
+                        ret.put("uri", uriStr);
+                        ret.put("name", name);
+                        call.resolve(ret);
+                    } else {
+                        call.resolve(new JSObject());
+                    }
+                });
+        } catch (Throwable t) {
+            Log.e("RestTimer", "register ringtone launcher failed", t);
+        }
         try {
             finishReceiver = new BroadcastReceiver() {
                 @Override
@@ -288,6 +332,73 @@ public class RestTimerPlugin extends Plugin {
             new Handler(Looper.getMainLooper()).post(() ->
                 Toast.makeText(getContext(), "JS err: " + msg, Toast.LENGTH_LONG).show()
             );
+        } catch (Throwable ignored) { }
+        call.resolve();
+    }
+
+    // ── Ringtone picker (native rest-timer end sound) ──
+
+    @PluginMethod
+    public void pickRingtone(PluginCall call) {
+        Context context = getContext();
+        Intent intent = new Intent(RingtoneManager.ACTION_RINGTONE_PICKER);
+        intent.putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM);
+        intent.putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Son de fin de repos");
+        intent.putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false);
+        intent.putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true);
+        // Pre-select the currently chosen ringtone, if any.
+        try {
+            SharedPreferences sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+            String uriStr = sp.getString(KEY_RINGTONE_URI, null);
+            if (uriStr != null && !uriStr.isEmpty() && !"default".equals(uriStr)) {
+                intent.putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI,
+                    Uri.parse(uriStr));
+            }
+        } catch (Throwable ignored) { }
+
+        if (ringtoneLauncher == null) {
+            call.reject("Sélecteur de son indisponible");
+            return;
+        }
+        pendingRingtoneCall = call;
+        try {
+            ringtoneLauncher.launch(intent);
+        } catch (Throwable t) {
+            pendingRingtoneCall = null;
+            call.reject("pickRingtone failed: " + t.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void getRingtone(PluginCall call) {
+        Context context = getContext();
+        JSObject ret = new JSObject();
+        String uriStr = null;
+        try {
+            SharedPreferences sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+            uriStr = sp.getString(KEY_RINGTONE_URI, null);
+        } catch (Throwable ignored) { }
+        if (uriStr == null || uriStr.isEmpty() || "default".equals(uriStr)) {
+            ret.put("uri", "default");
+            ret.put("name", "Bip court (par défaut)");
+        } else {
+            String name = "Son personnalisé";
+            try {
+                Ringtone r = RingtoneManager.getRingtone(context, Uri.parse(uriStr));
+                if (r != null) name = r.getTitle(context);
+            } catch (Throwable ignored) { }
+            ret.put("uri", uriStr);
+            ret.put("name", name);
+        }
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void clearRingtone(PluginCall call) {
+        try {
+            Context context = getContext();
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .edit().remove(KEY_RINGTONE_URI).apply();
         } catch (Throwable ignored) { }
         call.resolve();
     }

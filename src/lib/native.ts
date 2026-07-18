@@ -372,6 +372,9 @@ interface CapacitorPluginRestTimer {
   isIgnoringBatteryOptimizations: () => Promise<{ ignoring: boolean }>;
   requestIgnoreBatteryOptimizations: () => Promise<{ ignoring: boolean }>;
   stopAlarmSound: () => Promise<void>;
+  pickRingtone: () => Promise<{ uri: string; name: string }>;
+  getRingtone: () => Promise<{ uri: string; name: string }>;
+  clearRingtone: () => Promise<void>;
   addListener: (
     event: string,
     cb: (data: unknown) => void,
@@ -435,6 +438,33 @@ export async function stopNativeAlarm(): Promise<void> {
     const rt = getRestTimer();
     if (!rt || typeof rt.stopAlarmSound !== "function") return;
     await rt.stopAlarmSound();
+  } catch { /* ignore */ }
+}
+
+/** Open the system ringtone picker and persist the chosen rest-timer end sound. */
+export async function pickRestTimerRingtone(): Promise<{ uri: string; name: string } | null> {
+  try {
+    const rt = getRestTimer();
+    if (!rt || typeof rt.pickRingtone !== "function") return null;
+    return await rt.pickRingtone();
+  } catch { return null; }
+}
+
+/** Get the currently chosen rest-timer end sound (uri + human name). */
+export async function getRestTimerRingtone(): Promise<{ uri: string; name: string } | null> {
+  try {
+    const rt = getRestTimer();
+    if (!rt || typeof rt.getRingtone !== "function") return null;
+    return await rt.getRingtone();
+  } catch { return null; }
+}
+
+/** Reset the rest-timer end sound to the default short chime. */
+export async function clearRestTimerRingtone(): Promise<void> {
+  try {
+    const rt = getRestTimer();
+    if (!rt || typeof rt.clearRingtone !== "function") return;
+    await rt.clearRingtone();
   } catch { /* ignore */ }
 }
 

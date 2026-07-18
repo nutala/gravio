@@ -156,13 +156,51 @@ public final class RestTimerAlarmSound {
                     new long[]{0, 400, 150, 400, 150, 200, 150}, -1));
             }
 
-            playShortBeep(ctx);
+            playChosenOrBeep(ctx);
 
             try {
                 ctx.sendBroadcast(new Intent(RestTimerPlugin.ACTION_FINISHED));
             } catch (Throwable ignored) { }
         } catch (Throwable t) {
             Log.e("RestTimerAlarm", "fireEndAlarm failed", t);
+        }
+    }
+
+    /**
+     * Play the user-chosen ringtone if one is set (persisted in the
+     * "rest-timer" SharedPreferences under KEY_RINGTONE_URI), otherwise fall
+     * back to the short synthesised chime. The chosen ringtone is played on the
+     * ALARM stream so it is audible when locked / in Doze.
+     */
+    static void playChosenOrBeep(Context ctx) {
+        String uriStr = null;
+        try {
+            android.content.SharedPreferences sp =
+                ctx.getSharedPreferences("rest-timer", Context.MODE_PRIVATE);
+            uriStr = sp.getString("ringtoneUri", null);
+        } catch (Throwable ignored) { }
+        if (uriStr == null || uriStr.isEmpty() || "default".equals(uriStr)) {
+            playShortBeep(ctx);
+            return;
+        }
+        try {
+            android.net.Uri uri = android.net.Uri.parse(uriStr);
+            Ringtone r = RingtoneManager.getRingtone(ctx, uri);
+            if (r == null) {
+                playShortBeep(ctx);
+                return;
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                r.setAudioAttributes(new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build());
+            }
+            current = r;
+            r.play();
+        } catch (Throwable t) {
+            Log.e("RestTimerAlarm", "playChosen failed, fallback beep", t);
+            playShortBeep(ctx);
         }
     }
 }
