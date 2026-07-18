@@ -244,7 +244,7 @@ export function SettingsView() {
               <CardTitle className="text-base">Son de fin de repos</CardTitle>
             </div>
             <CardDescription>
-              Choisis la sonnerie du minuteur de repos sur ton téléphone (écrasée par le profil sonore web).
+              Choisis la sonnerie du minuteur de repos sur ton téléphone.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
