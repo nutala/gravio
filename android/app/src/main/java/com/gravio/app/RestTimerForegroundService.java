@@ -49,6 +49,9 @@ public class RestTimerForegroundService extends Service {
             NotificationManager nm = getSystemService(NotificationManager.class);
             if (nm != null) nm.cancel(NOTIF_ALARM);
 
+            // Reset the "end already fired" guard so a fresh rest can ring.
+            RestTimerAlarmSound.resetEnd();
+
             // Promote to a foreground service IMMEDIATELY (before anything that
             // could throw) so the system never raises
             // ForegroundServiceDidNotStartInTimeException.
@@ -183,51 +186,14 @@ public class RestTimerForegroundService extends Service {
 
     private static void onTimerFinished(Context ctx) {
         try {
-            // Cancel the Doze-proof backup alarm: the foreground service is
-            // handling the end itself, so we don't want the AlarmManager
-            // backup to also fire (would double the notification/sound).
+            // Cancel the Doze-proof backup alarm so it won't fire later (the
+            // static endHandled guard in RestTimerAlarmSound already prevents a
+            // duplicate notification even if this races with the receiver).
             RestTimerAlarmReceiver.cancelExact(ctx);
 
-            NotificationManager nm = ctx.getSystemService(NotificationManager.class);
-            if (nm != null) nm.cancel(NOTIF_COUNTDOWN);
-
-            Notification.Builder b = new Notification.Builder(ctx, CHANNEL_ALARM)
-                .setSmallIcon(getIconRes(ctx))
-                .setContentTitle("⏱ Repos terminé !")
-                .setContentText("C'est reparti pour une série !")
-                .setContentIntent(buildTapIntent(ctx))
-                .setAutoCancel(true)
-                .setOngoing(false)
-                .setCategory(Notification.CATEGORY_ALARM)
-                .setVisibility(Notification.VISIBILITY_PUBLIC)
-                .setPriority(Notification.PRIORITY_MAX);
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                b.setVibrate(new long[]{400, 150, 400, 150, 200, 150, 600, 200, 600});
-            } else {
-                b.setDefaults(Notification.DEFAULT_SOUND | Notification.DEFAULT_VIBRATE);
-            }
-
-            if (nm != null) nm.notify(NOTIF_ALARM, b.build());
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                Vibrator v = ctx.getSystemService(Vibrator.class);
-                if (v != null) v.vibrate(VibrationEffect.createWaveform(
-                    new long[]{0, 400, 150, 400, 150, 200, 150, 600, 200, 600}, -1
-                ));
-            }
-
-            // Play the alarm sound explicitly through the ALARM stream so it is
-            // audible even when the device is locked / in Doze (notification
-            // channel sound is unreliable across OEMs). This is the actual
-            // audible alarm; the notification above is the visual + vibration.
-            RestTimerAlarmSound.play(ctx);
-
-            // Tell the WebView the timer ended so the in-app UI completes even
-            // if its JS timers were frozen while backgrounded.
-            try {
-                ctx.sendBroadcast(new Intent(RestTimerPlugin.ACTION_FINISHED));
-            } catch (Throwable ignored) { }
+            // Single source of the end alarm (notification + short beep +
+            // vibration + WebView completion), guarded against duplicates.
+            RestTimerAlarmSound.fireEndAlarm(ctx);
         } catch (Throwable t) {
             Log.e(TAG, "onTimerFinished failed", t);
         }

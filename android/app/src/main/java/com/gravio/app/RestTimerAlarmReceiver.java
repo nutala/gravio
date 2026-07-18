@@ -13,12 +13,13 @@ import android.util.Log;
 
 public class RestTimerAlarmReceiver extends BroadcastReceiver {
     static final String CHANNEL_ID = "rest-alarm-v2";
-    private static final int NOTIFICATION_ID = 2001;
 
     @Override
     public void onReceive(Context context, Intent intent) {
         createChannel(context);
-        showNotification(context);
+        // Single end emitter shared with the foreground service (guarded
+        // against duplicates by RestTimerAlarmSound.endHandled).
+        RestTimerAlarmSound.fireEndAlarm(context);
     }
 
     private static void createChannel(Context context) {
@@ -96,48 +97,8 @@ public class RestTimerAlarmReceiver extends BroadcastReceiver {
     }
 
     private void showNotification(Context context) {
-        Intent launchIntent = context.getPackageManager().getLaunchIntentForPackage(
-            context.getPackageName()
-        );
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-            context, 0, launchIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
-
-        int iconRes = context.getResources().getIdentifier(
-            "ic_stat_icon", "drawable", context.getPackageName()
-        );
-        if (iconRes == 0) {
-            iconRes = android.R.drawable.ic_lock_idle_alarm;
-        }
-
-        Notification.Builder builder;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            builder = new Notification.Builder(context, CHANNEL_ID);
-        } else {
-            builder = new Notification.Builder(context);
-            builder.setDefaults(Notification.DEFAULT_SOUND | Notification.DEFAULT_VIBRATE);
-        }
-
-        builder.setSmallIcon(iconRes)
-            .setContentTitle("⏱ Repos terminé !")
-            .setContentText("C'est reparti pour une série !")
-            .setAutoCancel(true)
-            .setContentIntent(pendingIntent)
-            .setPriority(Notification.PRIORITY_HIGH)
-            .setVibrate(new long[]{400, 150, 400, 150, 200, 150, 600, 200, 600})
-            .setCategory(Notification.CATEGORY_ALARM)
-            .setVisibility(Notification.VISIBILITY_PUBLIC);
-
-        NotificationManager nm = context.getSystemService(NotificationManager.class);
-        nm.notify(NOTIFICATION_ID, builder.build());
-
-        // Audible alarm through the ALARM stream (notification channel is silent).
-        RestTimerAlarmSound.play(context);
-
-        // Notify the WebView so the in-app UI completes even if JS was frozen.
-        try {
-            context.sendBroadcast(new Intent(RestTimerPlugin.ACTION_FINISHED));
-        } catch (Throwable ignored) { }
+        // Retained for API compatibility; the actual end alarm is emitted via
+        // RestTimerAlarmSound.fireEndAlarm (called from onReceive) so it stays
+        // a single, duplicate-free source shared with the foreground service.
     }
 }

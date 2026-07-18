@@ -227,7 +227,7 @@ export function NewWorkoutView() {
     if (!id) return;
     const workout = workoutsQ.data.find((w) => w.id === id);
     if (!workout) return;
-    draft.loadFromWorkout(workout, exerciseMap);
+    draft.loadFromWorkout(workout, exerciseMap, false);
     draft.resetAllValidations();
     draft.startSession();
     toast.success(`Séance « ${workout.title || "session"} » chargée — prête pour ta séance.`);
@@ -243,7 +243,7 @@ export function NewWorkoutView() {
     if (!id) return;
     const workout = workoutsQ.data.find((w) => w.id === id);
     if (!workout) return;
-    draft.loadFromWorkout(workout, exerciseMap);
+    draft.loadFromWorkout(workout, exerciseMap, true);
     setEditingWorkoutId(id);
     toast.success(`Séance « ${workout.title || "session"} » chargée pour édition.`);
   }, [editId, workoutsQ.data]);

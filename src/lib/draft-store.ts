@@ -121,11 +121,13 @@ interface WorkoutDraftStore extends WorkoutDraft {
 
   resetDraft: () => void;
 
-  /// Load draft from a past workout (Repeat feature). Resolves exercise
-  /// objects via the provided lookup map.
+  /// Load draft from a past workout. `keepDate` keeps the original session
+  /// date (edit mode); when false the date is reset to today (repeat mode),
+  /// so re-doing a session is recorded on the current day.
   loadFromWorkout: (
     workout: WorkoutFull,
     exerciseMap: Map<string, ExerciseWithVariants>,
+    keepDate?: boolean,
   ) => void;
 
   /// Append entries from a template to the current draft. Skips exercises
@@ -345,7 +347,7 @@ export const useDraftStore = create<WorkoutDraftStore>()(
       })),
     })),
 
-  loadFromWorkout: (workout, exerciseMap) => {
+  loadFromWorkout: (workout, exerciseMap, keepDate = false) => {
     const entries: DraftEntry[] = [];
     for (const e of workout.entries) {
       const ex = exerciseMap.get(e.exerciseId);
@@ -378,7 +380,11 @@ export const useDraftStore = create<WorkoutDraftStore>()(
     }
       set({
         title: workout.title ?? "",
-        date: typeof workout.date === "string" ? workout.date.slice(0, 10) : workout.date.toISOString().slice(0, 10),
+        date: keepDate
+          ? (workout.date instanceof Date
+              ? workout.date.toISOString().slice(0, 10)
+              : String(workout.date).slice(0, 10))
+          : format(new Date(), "yyyy-MM-dd"),
         durationMin: workout.durationMin ?? "",
         exertion: workout.perceivedExertion ?? 5,
         bodyweight: workout.bodyweightKg ?? "",
