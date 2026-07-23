@@ -16,6 +16,10 @@ const config: CapacitorConfig = {
     ],
   },
   plugins: {
+    Keyboard: {
+      resize: "body",
+      style: "DARK",
+    },
     LocalNotifications: {
       smallIcon: 'ic_stat_icon',
       iconColor: '#10b981',

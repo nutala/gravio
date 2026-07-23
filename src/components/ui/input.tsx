@@ -8,7 +8,12 @@ function Input({ className, type, onFocus, ...props }: React.ComponentProps<"inp
       type={type}
       data-slot="input"
       onFocus={(e) => {
-        if (type === "number") e.target.select();
+        if (type === "number") {
+          e.target.select();
+          // Re-center the input after the browser's default keyboard-scroll,
+          // so it stays visible above the keyboard.
+          setTimeout(() => e.target.scrollIntoView({ block: "center", behavior: "smooth" }), 350);
+        }
         onFocus?.(e);
       }}  // select-all on number inputs so typing replaces, not appends
       className={cn(
