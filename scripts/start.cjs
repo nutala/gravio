@@ -30,6 +30,12 @@ patchProcessResponse();
 
 const port = process.env.PORT || 3000;
 
+const dbUrl = process.env.DATABASE_URL || '(not set)';
+const masked = dbUrl.startsWith('postgresql://')
+  ? 'postgresql://***:***@' + dbUrl.split('@')[1]
+  : dbUrl;
+console.log('[start] DATABASE_URL: ' + masked);
+
 try {
   execSync('prisma db push --skip-generate --accept-data-loss', { stdio: 'inherit', env: { ...process.env } });
 } catch (e) {
