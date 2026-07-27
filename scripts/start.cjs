@@ -33,8 +33,7 @@ const port = process.env.PORT || 3000;
 try {
   execSync('prisma db push --skip-generate --accept-data-loss', { stdio: 'inherit', env: { ...process.env } });
 } catch (e) {
-  console.error('[start] prisma db push failed:', e.message);
-  process.exit(1);
+  console.error('[start] prisma db push failed (non-fatal): ' + (e.stderr || e.message).substring(0, 500));
 }
 
 try {
