@@ -28,18 +28,7 @@ export async function PATCH(req: Request, { params }: Params) {
           where: { category: oldName, userId: session.user.id },
           data: { category: newName },
         });
-        // Replace old name in tags array
-        await tx.$executeRawUnsafe(
-          `UPDATE "Exercise" SET tags = (
-            SELECT COALESCE(json_agg(
-              CASE WHEN elem::text = $1 THEN to_json($3::text) ELSE elem END
-            ), '[]'::json)
-            FROM json_array_elements(COALESCE(tags, '[]'::json)) AS elem
-          )::json WHERE tags::jsonb ? $2`,
-          `"${oldName}"`,
-          oldName,
-          newName,
-        );
+        await tx.$rpc('replace_tag', { old_name: oldName, new_name: newName });
       }
       return tx.category.update({
         where: { id },
@@ -76,16 +65,7 @@ export async function DELETE(req: Request, { params }: Params) {
         where: { category: existing.name, userId: session.user.id },
         data: { category: reassignTo },
       });
-      // Remove the deleted category from exercises' tags array
-      await tx.$executeRawUnsafe(
-        `UPDATE "Exercise" SET tags = (
-          SELECT COALESCE(json_agg(elem), '[]'::json)
-          FROM json_array_elements(COALESCE(tags, '[]'::json)) AS elem
-          WHERE elem::text != $1
-        )::json WHERE tags::jsonb ? $2`,
-        `"${existing.name}"`,
-        existing.name,
-      );
+      await tx.$rpc('remove_tag', { tag_name: existing.name });
       await tx.category.delete({ where: { id } });
     });
     return NextResponse.json({ ok: true });
