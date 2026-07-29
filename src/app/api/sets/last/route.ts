@@ -24,13 +24,25 @@ export async function GET(req: Request) {
     );
   }
 
+  // Resolve the user's workout IDs (Supabase can't filter by nested relations)
+  let workoutEntryIds: string[] = [];
+  if (userId) {
+    const userWorkouts = await db.workout.findMany({ where: { userId }, select: { id: true } });
+    const wids = (userWorkouts || []).map((w: any) => w.id);
+    if (wids.length > 0) {
+      const entries = await db.workoutEntry.findMany({
+        where: { exerciseId, workoutId: { in: wids } },
+        select: { id: true },
+      });
+      workoutEntryIds = (entries || []).map((e: any) => e.id);
+    }
+  }
+  if (workoutEntryIds.length === 0) return NextResponse.json(null);
+
   const set = await db.workoutSet.findFirst({
     where: {
       variantId: variantId || null,
-      workoutEntry: {
-        exerciseId,
-        workout: userId ? { userId } : { userId: null },
-      },
+      workoutEntryId: { in: workoutEntryIds },
     },
     orderBy: { createdAt: "desc" },
     select: {

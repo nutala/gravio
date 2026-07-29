@@ -43,7 +43,7 @@ export async function GET() {
     : null;
 
   const distinctExercises = new Set(workouts.flatMap((w) => w.entries.map((e) => e.exerciseId))).size;
-  const weekStart = subDays(new Date(), 6);
+  const weekStart = subDays(new Date(), 6).toISOString();
   const thisWeekCount = workouts.filter((w) => w.date >= weekStart).length;
   let weeklyReps = 0;
   let weeklyHoldSeconds = 0;
@@ -56,9 +56,9 @@ export async function GET() {
       }
     }
   }
-  const lastWorkoutDate = workouts[0]?.date.toISOString() ?? null;
+  const lastWorkoutDate = workouts[0]?.date ?? null;
 
-  const thirtyDaysAgo = subDays(new Date(), 30);
+  const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
   const recentWorkouts = workouts.filter((w) => w.date >= thirtyDaysAgo);
   const catMap = new Map<string, { volume: number; sessions: Set<string> }>();
   for (const w of recentWorkouts) {
@@ -80,7 +80,7 @@ export async function GET() {
     activityMap.set(format(subDays(new Date(), i), "yyyy-MM-dd"), { count: 0, volume: 0 });
   }
   for (const w of workouts) {
-    const key = w.date.toISOString().slice(0, 10);
+    const key = (w.date as string || '').slice(0, 10);
     const entry = activityMap.get(key);
     if (entry) {
       entry.count += 1;

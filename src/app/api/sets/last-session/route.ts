@@ -18,33 +18,32 @@ export async function GET(req: Request) {
     );
   }
 
-  const entry = await db.workoutEntry.findFirst({
-    where: {
-      exerciseId,
-      workout: userId ? { userId } : { userId: null },
-      ...(variantId
-        ? { sets: { some: { variantId } } }
-        : {}),
-    },
+  // Resolve workout IDs for this user (Supabase can't filter by nested relations)
+  let workoutIds: string[] = [];
+  if (userId) {
+    const userWorkouts = await db.workout.findMany({ where: { userId }, select: { id: true } });
+    workoutIds = (userWorkouts || []).map((w: any) => w.id);
+  }
+  if (workoutIds.length === 0) return NextResponse.json({ sets: [] });
+
+  // Find matching workout entries
+  const entries = await db.workoutEntry.findMany({
+    where: { exerciseId, workoutId: { in: workoutIds } },
+    select: { id: true },
     orderBy: { createdAt: "desc" },
-    include: {
-      sets: {
-        where: variantId ? { variantId } : {},
-        orderBy: { createdAt: "asc" },
-        select: {
-          reps: true,
-          holdSeconds: true,
-          weightKg: true,
-          rpe: true,
-          variantId: true,
-        },
-      },
-    },
+  });
+  const entryIds = (entries || []).map((e: any) => e.id);
+  if (entryIds.length === 0) return NextResponse.json({ sets: [] });
+
+  // Find the matching sets
+  const setsQuery: any = { workoutEntryId: { in: entryIds } };
+  if (variantId) setsQuery.variantId = variantId;
+
+  const sets = await db.workoutSet.findMany({
+    where: setsQuery,
+    orderBy: { createdAt: "asc" },
+    select: { reps: true, holdSeconds: true, weightKg: true, rpe: true, variantId: true },
   });
 
-  if (!entry) {
-    return NextResponse.json({ sets: [] });
-  }
-
-  return NextResponse.json({ sets: entry.sets });
+  return NextResponse.json({ sets });
 }

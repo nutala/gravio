@@ -63,29 +63,47 @@ export async function GET(_req: Request, { params }: Params) {
     orderBy: { difficultyLevel: "asc" },
   });
 
-  const entries = await db.workoutEntry.findMany({
-    where: {
-      exerciseId: id,
-      workout: userId ? { userId } : { userId: null },
-    },
-    include: {
-      workout: true,
-      variant: true,
-      sets: { orderBy: { setNumber: "asc" } },
-    },
-    orderBy: { workout: { date: "desc" } },
-  });
+  // Resolve workout IDs for this user (Supabase can't filter by nested relations)
+  let workoutIds: string[] = [];
+  if (userId) {
+    const userWorkouts = await db.workout.findMany({ where: { userId }, select: { id: true } });
+    workoutIds = (userWorkouts || []).map((w: any) => w.id);
+  }
+
+  let entries: any[] = [];
+  if (workoutIds.length > 0) {
+    const raw = await db.workoutEntry.findMany({
+      where: { exerciseId: id, workoutId: { in: workoutIds } },
+      include: {
+        workout: true,
+        variant: true,
+        sets: { orderBy: { setNumber: "asc" } },
+      },
+    });
+    entries = (raw || []).sort((a: any, b: any) => {
+      const da = a.workout?.date || '';
+      const db2 = b.workout?.date || '';
+      return da > db2 ? -1 : da < db2 ? 1 : 0;
+    });
+  }
 
   // Also fetch combo entries and inject synthetic entries for steps
   // matching this exercise, so PRs are computed from combos too.
-  const comboEntries = await db.workoutEntry.findMany({
-    where: {
-      exercise: { name: "Combos" },
-      workout: userId ? { userId } : { userId: null },
-    },
-    include: { workout: true },
-    orderBy: { workout: { date: "desc" } },
-  });
+  let comboEntries: any[] = [];
+  if (workoutIds.length > 0) {
+    const comboEx = await db.exercise.findFirst({ where: { name: "Combos" }, select: { id: true } });
+    if (comboEx) {
+      const raw = await db.workoutEntry.findMany({
+        where: { exerciseId: comboEx.id, workoutId: { in: workoutIds } },
+        include: { workout: true },
+      });
+      comboEntries = (raw || []).sort((a: any, b: any) => {
+        const da = a.workout?.date || '';
+        const db2 = b.workout?.date || '';
+        return da > db2 ? -1 : da < db2 ? 1 : 0;
+      });
+    }
+  }
   for (const ce of comboEntries) {
     const rawSteps = (ce as unknown as { comboSteps: unknown }).comboSteps;
     if (!Array.isArray(rawSteps)) continue;
@@ -202,7 +220,11 @@ export async function GET(_req: Request, { params }: Params) {
     /* PR history: walk entries chronologically, record every new best */
     const entriesAsc = [...relevantEntries]
       .filter((e) => e.sets.some((s) => s.variantId === v.id))
-      .sort((a, b) => a.workout.date.getTime() - b.workout.date.getTime());
+      .sort((a, b) => {
+        const da = a.workout?.date || '';
+        const db2 = b.workout?.date || '';
+        return da < db2 ? -1 : da > db2 ? 1 : 0;
+      });
 
     let previousBest = -1;
     const prHistory: typeof recentPerfs = [];
@@ -286,7 +308,11 @@ export async function GET(_req: Request, { params }: Params) {
         };
       });
 
-      const entriesAsc = [...entries].sort((a, b) => a.workout.date.getTime() - b.workout.date.getTime());
+      const entriesAsc = [...entries].sort((a, b) => {
+        const da = a.workout?.date || '';
+        const db2 = b.workout?.date || '';
+        return da < db2 ? -1 : da > db2 ? 1 : 0;
+      });
       let previousBest = -1;
       const prHistory: typeof recentPerfs = [];
       for (const e of entriesAsc) {

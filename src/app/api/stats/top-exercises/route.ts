@@ -8,26 +8,33 @@ export async function GET() {
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id ?? null;
 
+  // Step 1: get workout IDs for this user (Supabase can't filter by nested relation)
+  let workoutIds: string[] = [];
+  if (userId) {
+    const userWorkouts = await db.workout.findMany({ where: { userId }, select: { id: true } });
+    workoutIds = (userWorkouts || []).map((w: any) => w.id);
+  }
+  if (workoutIds.length === 0) return NextResponse.json([]);
+
   const entries = await db.workoutEntry.findMany({
-    where: { workout: userId ? { userId } : { userId: null } },
+    where: { workoutId: { in: workoutIds } },
     include: {
       exercise: { include: { variants: true } },
       variant: true,
       sets: { include: { variant: true } },
       workout: { select: { date: true } },
     },
-    orderBy: { workout: { date: "desc" } },
   });
 
-  const map = new Map<string, TopExercise & { lastDate: Date | null; seenWorkouts: Set<string> }>();
+  const map = new Map<string, TopExercise & { lastDate: string | null; seenWorkouts: Set<string> }>();
   for (const e of entries) {
     if (e.exercise.name === "Combos") continue;
     const existing = map.get(e.exerciseId);
     const metric = e.sets.reduce((s, set) => s + (set.reps ?? set.holdSeconds ?? 0), 0);
     const bestSet = Math.max(...e.sets.map((s) => s.reps ?? s.holdSeconds ?? 0), 0);
     const wid = e.workoutId;
+    const wDate = e.workout?.date as string | undefined;
 
-    // Determine whether the best set used hold (static) or reps
     let bestIsStatic = e.exercise.isStatic;
     if (bestSet > 0) {
       const bestSetObj = e.sets.find((s) => (s.reps ?? s.holdSeconds ?? 0) === bestSet);
@@ -36,7 +43,6 @@ export async function GET() {
       }
     }
 
-    // Find the variant that produced bestSet (first matching set wins)
     let bestSetVariantName: string | null = null;
     let bestSetVariantDifficulty = 1;
     if (bestSet > 0) {
@@ -55,7 +61,7 @@ export async function GET() {
         category: e.exercise.category, isStatic: bestIsStatic,
         sessions: 1, totalSets: e.sets.length, totalVolume: metric,
         bestValue: bestSet, topVariantName: bestSetVariantName, topVariantDifficulty: bestSetVariantDifficulty,
-        lastPerformed: e.workout.date.toISOString(), lastDate: e.workout.date,
+        lastPerformed: wDate || null, lastDate: wDate || null,
         seenWorkouts: new Set([wid]),
       });
     } else {
@@ -73,9 +79,9 @@ export async function GET() {
           existing.topVariantDifficulty = bestSetVariantDifficulty;
         }
       }
-      if (!existing.lastDate || e.workout.date > existing.lastDate) {
-        existing.lastDate = e.workout.date;
-        existing.lastPerformed = e.workout.date.toISOString();
+      if (wDate && (!existing.lastDate || wDate > existing.lastDate)) {
+        existing.lastDate = wDate;
+        existing.lastPerformed = wDate;
       }
     }
   }
