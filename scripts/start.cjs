@@ -1,7 +1,7 @@
-const { execSync } = require('child_process');
+const { execSync, spawn } = require('child_process');
+const path = require('path');
 
 // Intercept https.request to log non-200 responses from Google's OAuth endpoints
-// This works because https is a native Node.js module (not bundled by Next.js)
 const https = require('https');
 const originalHttpsRequest = https.request;
 https.request = function patchedHttpsRequest(...args) {
@@ -24,67 +24,60 @@ https.request = function patchedHttpsRequest(...args) {
   return req;
 };
 
-// Patch is applied at build time (scripts/build.js), runtime patch is a safety net
 const patchProcessResponse = require('./patch-openid-client.cjs');
 patchProcessResponse();
 
 const port = process.env.PORT || 3000;
-
-// ── IPv4→IPv6 TCP proxy (Render cannot reach Supabase's IPv6-only hostname) ──
-const net = require('net');
-const PROXY_PORT = 5555;
 const SUPABASE_HOST = 'db.arxxskchdxswntqkdspy.supabase.co';
-const SUPABASE_PORT = 5432; // direct connection (no pooler)
+const PROXY_PORT = 5555;
 
-let proxyActive = false;
-const proxy = net.createServer((client) => {
-  const target = net.createConnection({ host: SUPABASE_HOST, port: SUPABASE_PORT }, () => {
-    client.pipe(target);
-    target.pipe(client);
+// Helper: rewrite DATABASE_URL to use local IPv4 proxy
+function rewriteDbUrl(host, port) {
+  const orig = process.env.DATABASE_URL;
+  if (orig && orig.includes(host)) {
+    process.env.DATABASE_URL = orig
+      .replace(new RegExp(host.replace(/\./g, '\\.') + ':\\d+'), '127.0.0.1:' + port)
+      .replace(/[?&]pgbouncer=true/g, '');
+    console.log('[start] DATABASE_URL rewritten to local proxy');
+  }
+}
+
+(async () => {
+  // ── 1. Start IPv4→IPv6 TCP proxy in a child process ──
+  const proxyScript = path.join(__dirname, 'db-proxy.cjs');
+  const proxy = spawn('node', [proxyScript], { stdio: ['ignore', 'pipe', 'inherit'] });
+  proxy.on('error', (e) => console.error('[proxy] spawn error:', e.message));
+
+  // Wait for proxy to signal readiness
+  await new Promise((resolve) => {
+    proxy.stdout.once('data', () => { console.log('[proxy] OK → 127.0.0.1:' + PROXY_PORT + ' → ' + SUPABASE_HOST + ':5432'); resolve(); });
+    proxy.on('exit', (code) => { if (code !== 0) console.error('[proxy] exited with code', code); resolve(); });
   });
-  target.on('error', (err) => { console.error('[proxy] target error:', err.message); client.destroy(); });
-  client.on('error', () => {});
-  client.on('close', () => { if (!target.destroyed) target.destroy(); });
-  target.on('close', () => { if (!client.destroyed) client.destroy(); });
+
+  // Rewrite DATABASE_URL
+  rewriteDbUrl(SUPABASE_HOST, PROXY_PORT);
+
+  const dbUrl = process.env.DATABASE_URL || '(not set)';
+  const masked = dbUrl.startsWith('postgresql://')
+    ? 'postgresql://***:***@' + dbUrl.split('@')[1]
+    : dbUrl;
+  console.log('[start] DATABASE_URL: ' + masked);
+
+  // ── 2. Prisma db push ──
+  try {
+    execSync('prisma db push --skip-generate --accept-data-loss', { stdio: 'inherit', env: { ...process.env } });
+  } catch (e) {
+    console.error('[start] prisma db push failed (non-fatal): ' + (e.stderr || e.message).substring(0, 500));
+  }
+
+  // ── 3. Start Next.js (foreground; proxy runs as child) ──
+  const next = spawn('next', ['start', '-p', port], { stdio: 'inherit', env: { ...process.env } });
+  next.on('error', (e) => { console.error('[start] next start failed:', e.message); process.exit(1); });
+  next.on('exit', (code) => { proxy.kill(); process.exit(code || 0); });
+})().catch((e) => {
+  console.error('[start] Fatal error:', e.message);
+  process.exit(1);
 });
 
-try {
-  proxy.listen(PROXY_PORT, '127.0.0.1', () => {
-    proxyActive = true;
-    console.log('[proxy] OK – forwarding 127.0.0.1:' + PROXY_PORT + ' → ' + SUPABASE_HOST + ':' + SUPABASE_PORT);
-    // Rewrite DATABASE_URL to point at the local proxy
-    const orig = process.env.DATABASE_URL;
-    if (orig && orig.includes(SUPABASE_HOST)) {
-      process.env.DATABASE_URL = orig
-        .replace(new RegExp(SUPABASE_HOST.replace(/\./g,'\\.') + ':\\d+'), '127.0.0.1:' + PROXY_PORT)
-        .replace(/[?&]pgbouncer=true/, '');
-      console.log('[proxy] DATABASE_URL rewritten to local proxy');
-    }
-  });
-} catch (e) {
-  console.error('[proxy] FAILED to start:', e.message);
-}
-
-const dbUrl = process.env.DATABASE_URL || '(not set)';
-const masked = dbUrl.startsWith('postgresql://')
-  ? 'postgresql://***:***@' + dbUrl.split('@')[1]
-  : dbUrl;
-console.log('[start] DATABASE_URL: ' + masked);
-
-try {
-  execSync('prisma db push --skip-generate --accept-data-loss', { stdio: 'inherit', env: { ...process.env } });
-} catch (e) {
-  console.error('[start] prisma db push failed (non-fatal): ' + (e.stderr || e.message).substring(0, 500));
-}
-
-try {
-  execSync('next start -p ' + port, { stdio: 'inherit', env: { ...process.env } });
-} catch (e) {
-  console.error('[start] next start failed:', e.message);
-  process.exit(1);
-}
-
-// Cleanup proxy on exit
-process.on('exit', () => { if (proxyActive) proxy.close(); });
-process.on('SIGINT', () => { if (proxyActive) proxy.close(); process.exit(0); });
-process.on('SIGTERM', () => { if (proxyActive) proxy.close(); process.exit(0); });
+process.on('SIGINT', () => process.exit(0));
+process.on('SIGTERM', () => process.exit(0));
