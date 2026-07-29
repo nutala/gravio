@@ -1,11 +1,15 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = process.env.SUPABASE_URL!
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: { persistSession: false },
-})
+let _supabase: SupabaseClient | null = null;
+function getSupabase(): SupabaseClient {
+  if (!_supabase) {
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set');
+    _supabase = createClient(url, key, { auth: { persistSession: false } });
+  }
+  return _supabase;
+}
 
 const REL_TABLE: Record<string, string> = {
   user: 'User', entries: 'WorkoutEntry', entry: 'WorkoutTemplateEntry',
@@ -106,7 +110,7 @@ function buildModel(table: string) {
   return {
     findUnique: async (args: { where?: any; include?: any; select?: any }) => {
       const sel = buildSelect(args.include, args.select);
-      let q = supabase.from(table).select(sel);
+      let q = getSupabase().from(table).select(sel);
       q = applyFilters(q, args.where);
       const { data, error } = await q.maybeSingle();
       if (error) throw new Error(error.message);
@@ -115,7 +119,7 @@ function buildModel(table: string) {
 
     findMany: async (args: { where?: any; include?: any; select?: any; orderBy?: any; take?: number }) => {
       const sel = buildSelect(args.include, args.select);
-      let q = supabase.from(table).select(sel);
+      let q = getSupabase().from(table).select(sel);
       q = applyFilters(q, args.where);
       q = applyOrder(q, args.orderBy);
       if (args.take) q = q.limit(args.take);
@@ -126,7 +130,7 @@ function buildModel(table: string) {
 
     findFirst: async (args: { where?: any; include?: any; select?: any; orderBy?: any }) => {
       const sel = buildSelect(args.include, args.select);
-      let q = supabase.from(table).select(sel);
+      let q = getSupabase().from(table).select(sel);
       q = applyFilters(q, args.where);
       q = applyOrder(q, args.orderBy);
       q = q.limit(1);
@@ -137,20 +141,20 @@ function buildModel(table: string) {
 
     create: async (args: { data: any; include?: any; select?: any }) => {
       const sel = buildSelect(args.include, args.select) || '*';
-      const { data, error } = await supabase.from(table).insert(args.data).select(sel).single();
+      const { data, error } = await getSupabase().from(table).insert(args.data).select(sel).single();
       if (error) throw new Error(error.message);
       return data;
     },
 
     createMany: async (args: { data: any[] }) => {
-      const { data, error } = await supabase.from(table).insert(args.data).select();
+      const { data, error } = await getSupabase().from(table).insert(args.data).select();
       if (error) throw new Error(error.message);
       return data;
     },
 
     update: async (args: { where: any; data: any; include?: any }) => {
       const sel = buildSelect(args.include) || '*';
-      let q = supabase.from(table).update(args.data).select(sel).single();
+      let q = getSupabase().from(table).update(args.data).select(sel).single();
       q = applyFilters(q, args.where);
       const { data, error } = await q;
       if (error && error.code === 'PGRST116') return null;
@@ -159,7 +163,7 @@ function buildModel(table: string) {
     },
 
     updateMany: async (args: { where: any; data: any }) => {
-      let q = supabase.from(table).update(args.data).select();
+      let q = getSupabase().from(table).update(args.data).select();
       q = applyFilters(q, args.where);
       const { data, error } = await q;
       if (error) throw new Error(error.message);
@@ -167,7 +171,7 @@ function buildModel(table: string) {
     },
 
     delete: async (args: { where: any }) => {
-      let q = supabase.from(table).delete().select();
+      let q = getSupabase().from(table).delete().select();
       q = applyFilters(q, args.where);
       const { data, error } = await q;
       if (error) throw new Error(error.message);
@@ -175,14 +179,14 @@ function buildModel(table: string) {
     },
 
     deleteMany: async (args: { where: any }) => {
-      let q = supabase.from(table).delete();
+      let q = getSupabase().from(table).delete();
       q = applyFilters(q, args.where);
       const { error } = await q;
       if (error) throw new Error(error.message);
     },
 
     count: async (args: { where?: any }) => {
-      let q = supabase.from(table).select('*', { count: 'exact', head: true });
+      let q = getSupabase().from(table).select('*', { count: 'exact', head: true });
       q = applyFilters(q, args.where);
       const { count, error } = await q;
       if (error) throw new Error(error.message);
@@ -206,7 +210,7 @@ db.$transaction = async (fn: (tx: any) => Promise<any>) => {
     tx[key] = buildModel(name);
   }
   tx.$rpc = async (fnName: string, args: Record<string, any>) => {
-    const { data, error } = await supabase.rpc(fnName, args);
+    const { data, error } = await getSupabase().rpc(fnName, args);
     if (error) throw new Error(error.message);
     return data;
   };
@@ -218,7 +222,7 @@ db.$executeRawUnsafe = async (query: string, ...params: any[]) => {
 };
 
 db.$rpc = async (fn: string, args: Record<string, any>) => {
-  const { data, error } = await supabase.rpc(fn, args);
+  const { data, error } = await getSupabase().rpc(fn, args);
   if (error) throw new Error(error.message);
   return data;
 };
