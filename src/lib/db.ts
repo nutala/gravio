@@ -15,36 +15,45 @@ const REL_TABLE: Record<string, string> = {
   user: 'User', entries: 'WorkoutEntry', entry: 'WorkoutTemplateEntry',
   exercise: 'Exercise', variant: 'ExerciseVariant', sets: 'WorkoutSet',
   workout: 'Workout', template: 'WorkoutTemplate', category: 'Category',
+  variants: 'ExerciseVariant', // Exercise.variants → ExerciseVariant
+}
+
+function resolveInclude(cfg: any): string {
+  if (cfg === true || cfg === undefined) return '*';
+  if (typeof cfg !== 'object') return '*';
+  return buildSelect(cfg.include, cfg.select);
 }
 
 function buildSelect(include?: any, select?: any): string {
+  const cols: string[] = [];
   if (select) {
-    const cols = Object.keys(select).filter(k => select[k]).map(k => {
-      const v = select[k];
-      if (typeof v === 'object' && (v.select || v.include)) {
-        const nested = buildSelect(v.include || v.select);
-        return `${k}:${REL_TABLE[k] || k}(${nested})`;
+    for (const [key, val] of Object.entries(select)) {
+      if (!val) continue;
+      if (typeof val === 'object' && (val.select || val.include)) {
+        const inner = resolveInclude(val);
+        const table = REL_TABLE[key];
+        cols.push(`${key}:${table || key}(${inner})`);
+      } else {
+        cols.push(key);
       }
-      return k;
-    });
-    return cols.join(',');
+    }
   }
-  if (!include) return '*';
-  const parts: string[] = ['*'];
-  for (const [rel, cfg] of Object.entries(include)) {
-    const table = REL_TABLE[rel];
-    if (!table) continue;
-    const inner = typeof cfg === 'object' ? buildSelect(cfg.include || cfg.select) : '*';
-    parts.push(`${rel}:${table}(${inner})`);
+  if (include) {
+    if (cols.length === 0) cols.push('*');
+    for (const [rel, cfg] of Object.entries(include)) {
+      const table = REL_TABLE[rel];
+      if (!table) continue;
+      cols.push(`${rel}:${table}(${resolveInclude(cfg)})`);
+    }
   }
-  return parts.join(',');
+  return cols.length ? cols.join(',') : '*';
 }
 
 function applyFilters(q: any, where: any): any {
   if (!where) return q;
   for (const [key, val] of Object.entries(where)) {
     if (key === 'OR') {
-      const clauses = (val as any[]).map(c => {
+      const clauses = (val as any[]).map((c: any) => {
         const parts: string[] = [];
         for (const [k, v] of Object.entries(c)) {
           if (v === null) parts.push(`${k}.is.null`);
@@ -60,7 +69,7 @@ function applyFilters(q: any, where: any): any {
               else if (op === 'lte') parts.push(`${k}.lte.${operand}`);
               else if (op === 'not') parts.push(`${k}.neq.${operand}`);
             }
-          } else parts.push(`${k}.eq.${val}`);
+          } else parts.push(`${k}.eq.${v}`);
         }
         return parts.join(',');
       });
