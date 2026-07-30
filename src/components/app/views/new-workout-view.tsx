@@ -1727,84 +1727,100 @@ function SetRowMobile({
        exit={{ opacity: 0, x: -20 }}
        transition={{ duration: 0.15 }}
        className={cn(
-         "flex items-center gap-2 rounded-lg border px-2.5 py-2 transition-colors",
+         "rounded-lg border px-2.5 py-2 transition-colors space-y-1.5",
          validated
            ? "border-emerald-500/40 bg-emerald-500/8"
            : "border-border/60 bg-muted/20",
        )}
      >
-       <ValidateButton
-         validated={validated}
-         onClick={() => onValidate(!validated)}
-         label={`Série ${idx + 1}`}
-       />
-       <span className="text-xs font-medium tabular-nums text-muted-foreground w-5 shrink-0">
-         {idx + 1}
-       </span>
-       <div className="flex flex-1 items-center gap-1.5 min-w-0">
+       {/* Row 1: Validate + value + weight + RPE + delete */}
+       <div className="flex items-center gap-1.5">
+         <ValidateButton
+           validated={validated}
+           onClick={() => onValidate(!validated)}
+           label={`Série ${idx + 1}`}
+         />
+         <span className="text-xs font-semibold tabular-nums text-muted-foreground w-4 shrink-0">
+           {idx + 1}
+         </span>
          <button
            type="button"
            onClick={() => onUpdate({ mode: otherMode })}
-           className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground px-1 py-0.5 rounded bg-muted/60 transition-colors"
+           className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded bg-muted/60 transition-colors"
          >
            {mode === "reps" ? "Reps" : "s"}
          </button>
-         <NumberInput
-           value={mode === "reps" ? set.reps : set.holdSeconds}
+         <Input
+           type="number"
+           inputMode="decimal"
            placeholder={mode === "hold" ? "30" : "8"}
-           aria-label={`Valeur série ${idx + 1}`}
-           onChange={(n) =>
-             onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n })
-           }
+           value={mode === "reps" ? (set.reps ?? "") : (set.holdSeconds ?? "")}
+           onChange={(e) => {
+             const v = e.target.value;
+             const n = v === "" ? undefined : Number(v);
+             onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n });
+           }}
            className="h-8 w-14 tabular-nums"
+           aria-label={`Valeur série ${idx + 1}`}
          />
-       </div>
-       <div className="flex items-center gap-1 shrink-0">
-         <NumberInput
-           value={set.weightKg}
-           placeholder="0"
+         <Input
+           type="number"
+           inputMode="decimal"
            step={0.5}
+           placeholder="kg"
+           value={set.weightKg ?? ""}
+           onChange={(e) => {
+             const v = e.target.value;
+             onUpdate({ weightKg: v === "" ? undefined : Number(v) || undefined });
+           }}
+           className="h-8 w-16 tabular-nums"
            aria-label={`Poids série ${idx + 1}`}
-           onChange={(n) => onUpdate({ weightKg: n })}
-           className="h-8 w-12 tabular-nums"
          />
-         <span className="text-[10px] text-muted-foreground">kg</span>
-       </div>
-       <NumberInput
-         value={set.rpe}
-         placeholder="RPE"
-         min={1}
-         max={10}
-         aria-label={`RPE série ${idx + 1}`}
-         onChange={(n) => onUpdate({ rpe: n })}
-         className="h-8 w-10 tabular-nums"
-       />
-       <div className="flex items-center gap-0.5 shrink-0">
-         <RestButton defaultRestSec={defaultRestSec} validated={validated} />
+         <Input
+           type="number"
+           inputMode="decimal"
+           min={1}
+           max={10}
+           placeholder="RPE"
+           value={set.rpe ?? ""}
+           onChange={(e) => {
+             const v = e.target.value;
+             onUpdate({ rpe: v === "" ? undefined : Number(v) || undefined });
+           }}
+           className="h-8 w-12 tabular-nums"
+           aria-label={`RPE série ${idx + 1}`}
+         />
+         <div className="flex-1" />
          <Button
            size="icon"
            variant="ghost"
-           className="h-7 w-7 text-muted-foreground hover:text-destructive"
+           className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
            onClick={onRemove}
            aria-label={`Supprimer série ${idx + 1}`}
          >
            <Trash2 className="h-3 w-3" />
          </Button>
        </div>
-       {variants.length > 0 && (
-         <select
-           value={set.variantId ?? variants[0]?.id ?? ""}
-           onChange={(e) => onVariantChange(e.target.value)}
-           className="shrink-0 h-7 rounded-md border border-border/60 bg-background px-1 text-[10px] tabular-nums text-foreground outline-none focus:ring-2 focus:ring-ring max-w-[100px]"
-           aria-label={`Variante série ${idx + 1}`}
-         >
-           {variants.map((v) => (
-             <option key={v.id} value={v.id}>
-               {v.name}
-             </option>
-           ))}
-         </select>
-       )}
+
+       {/* Row 2: variant + rest */}
+       <div className="flex items-center gap-2">
+         {variants.length > 0 && (
+           <select
+             value={set.variantId ?? variants[0]?.id ?? ""}
+             onChange={(e) => onVariantChange(e.target.value)}
+             className="flex-1 h-7 rounded-md border border-border/60 bg-background px-1.5 text-[11px] tabular-nums text-foreground outline-none focus:ring-2 focus:ring-ring"
+             aria-label={`Variante série ${idx + 1}`}
+           >
+             {variants.map((v) => (
+               <option key={v.id} value={v.id}>
+                 {v.name} {difficultyStars(v.difficultyLevel)}
+               </option>
+             ))}
+           </select>
+         )}
+         <div className="flex-1" />
+         <RestButton defaultRestSec={defaultRestSec} validated={validated} />
+       </div>
      </motion.div>
    );
  }
