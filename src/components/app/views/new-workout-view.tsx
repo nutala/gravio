@@ -1730,91 +1730,96 @@ function SetRowMobile({
        exit={{ opacity: 0, x: -20 }}
        transition={{ duration: 0.15 }}
        className={cn(
-         "flex items-center gap-1 rounded-lg border px-2 py-1.5 transition-colors",
+         "rounded-lg border px-2.5 py-1.5 transition-colors space-y-1.5 overflow-visible",
          validated
            ? "border-emerald-500/40 bg-emerald-500/8"
            : "border-border/60 bg-muted/20",
        )}
      >
-       <ValidateButton
-         validated={validated}
-         onClick={() => onValidate(!validated)}
-         label={`Série ${idx + 1}`}
-       />
-       <span className="text-[11px] font-semibold tabular-nums text-muted-foreground w-3.5 shrink-0 text-center">
-         {idx + 1}
-       </span>
-       <button
-         type="button"
-         onClick={() => onUpdate({ mode: otherMode })}
-         className="shrink-0 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground px-1 py-0.5 rounded bg-muted/60 transition-colors"
-       >
-         {mode === "reps" ? "R" : "S"}
-       </button>
-       <input
-         type="number"
-         inputMode="decimal"
-         placeholder={mode === "hold" ? "30" : "8"}
-         value={mode === "reps" ? (set.reps ?? "") : (set.holdSeconds ?? "")}
-         onChange={(e) => {
-           const v = e.target.value;
-           const n = v === "" ? undefined : Number(v);
-           onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n });
-         }}
-         className="h-7 w-12 rounded border border-border/60 bg-background px-1 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-         aria-label={`Valeur série ${idx + 1}`}
-       />
-       <input
-         type="number"
-         inputMode="decimal"
-         step={0.5}
-         placeholder="kg"
-         value={set.weightKg ?? ""}
-         onChange={(e) => {
-           const v = e.target.value;
-           onUpdate({ weightKg: v === "" ? undefined : Number(v) || undefined });
-         }}
-         className="h-7 w-14 rounded border border-border/60 bg-background px-1 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-         aria-label={`Poids série ${idx + 1}`}
-       />
-       <input
-         type="number"
-         inputMode="decimal"
-         min={1}
-         max={10}
-         placeholder="RPE"
-         value={set.rpe ?? ""}
-         onChange={(e) => {
-           const v = e.target.value;
-           onUpdate({ rpe: v === "" ? undefined : Number(v) || undefined });
-         }}
-         className="h-7 w-12 rounded border border-border/60 bg-background px-1 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-         aria-label={`RPE série ${idx + 1}`}
-       />
+       {/* Line 1: main inputs */}
+       <div className="flex items-center gap-1">
+         <ValidateButton
+           validated={validated}
+           onClick={() => onValidate(!validated)}
+           label={`Série ${idx + 1}`}
+         />
+         <span className="text-[11px] font-semibold tabular-nums text-muted-foreground w-3.5 shrink-0 text-center">
+           {idx + 1}
+         </span>
+         <button
+           type="button"
+           onClick={() => onUpdate({ mode: otherMode })}
+           className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground px-1 py-0.5 rounded bg-muted/60 transition-colors"
+         >
+           {mode === "reps" ? "Reps" : "sec"}
+         </button>
+         <input
+           type="number"
+           inputMode="decimal"
+           placeholder={mode === "hold" ? "30" : "8"}
+           value={mode === "reps" ? (set.reps ?? "") : (set.holdSeconds ?? "")}
+           onChange={(e) => {
+             const v = e.target.value;
+             const n = v === "" ? undefined : Number(v);
+             onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n });
+           }}
+           className="h-7 w-12 rounded border border-border/60 bg-background px-1 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+           aria-label={`Valeur série ${idx + 1}`}
+         />
+         <input
+           type="number"
+           inputMode="decimal"
+           step={0.5}
+           placeholder="kg"
+           value={set.weightKg ?? ""}
+           onChange={(e) => {
+             const v = e.target.value;
+             onUpdate({ weightKg: v === "" ? undefined : Number(v) || undefined });
+           }}
+           className="h-7 w-14 rounded border border-border/60 bg-background px-1 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+           aria-label={`Poids série ${idx + 1}`}
+         />
+         <input
+           type="number"
+           inputMode="decimal"
+           min={1}
+           max={10}
+           placeholder="RPE"
+           value={set.rpe ?? ""}
+           onChange={(e) => {
+             const v = e.target.value;
+             onUpdate({ rpe: v === "" ? undefined : Number(v) || undefined });
+           }}
+           className="h-7 w-12 rounded border border-border/60 bg-background px-1 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+           aria-label={`RPE série ${idx + 1}`}
+         />
+         <RestButton defaultRestSec={defaultRestSec} validated={validated} />
+         <Button
+           size="icon"
+           variant="ghost"
+           className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
+           onClick={onRemove}
+           aria-label={`Supprimer série ${idx + 1}`}
+         >
+           <Trash2 className="h-3 w-3" />
+         </Button>
+       </div>
+
+       {/* Line 2: variant (if any) */}
        {variants.length > 0 && (
          <select
            value={set.variantId ?? variants[0]?.id ?? ""}
            onChange={(e) => onVariantChange(e.target.value)}
-           className="h-7 min-w-0 max-w-[72px] rounded border border-border/60 bg-background px-1 text-[9px] tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring truncate"
+           className="w-full h-7 rounded border border-border/60 bg-background px-1.5 text-[11px] tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
            aria-label={`Variante série ${idx + 1}`}
          >
            {variants.map((v) => (
              <option key={v.id} value={v.id}>
-               {v.name}
+               {v.name} {difficultyStars(v.difficultyLevel)}
              </option>
            ))}
          </select>
        )}
-       <RestButton defaultRestSec={defaultRestSec} validated={validated} />
-       <Button
-         size="icon"
-         variant="ghost"
-         className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
-         onClick={onRemove}
-         aria-label={`Supprimer série ${idx + 1}`}
-       >
-         <Trash2 className="h-3 w-3" />
-       </Button>
      </motion.div>
    );
  }
