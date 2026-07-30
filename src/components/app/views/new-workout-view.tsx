@@ -776,30 +776,36 @@ export function NewWorkoutView() {
 
       {/* ----------------------- Sticky save bar ----------------------- */}
       <div className="sticky bottom-4 z-30">
-        <div className="flex items-center justify-between rounded-xl border border-border/70 bg-background/80 px-3 py-2.5 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:px-4 sm:py-3">
-          <div className="flex items-center gap-3 text-xs">
+        <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-background/80 p-3 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm">
             {sessionStartedAt != null && (
               <SessionTimer startedAt={sessionStartedAt} />
             )}
             <div className="flex items-center gap-1.5">
-              <Dumbbell className="h-3.5 w-3.5 text-muted-foreground" />
+              <Dumbbell className="h-4 w-4 text-muted-foreground" />
               <span className="font-medium tabular-nums">{entries.length}</span>
+              <span className="text-muted-foreground">entrées</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Timer className="h-3.5 w-3.5 text-muted-foreground" />
+              <Timer className="h-4 w-4 text-muted-foreground" />
               <span className="font-medium tabular-nums">{totalSets}</span>
+              <span className="text-muted-foreground">séries</span>
             </div>
             {validatedSets > 0 && (
-              <div className="flex items-center gap-1.5 text-emerald-500">
-                <Check className="h-3.5 w-3.5" />
-                <span className="font-medium tabular-nums">{validatedSets}</span>
+              <div className="flex items-center gap-1.5">
+                <Check className="h-4 w-4 text-emerald-500" />
+                <span className="font-medium tabular-nums text-emerald-500">
+                  {validatedSets}
+                </span>
+                <span className="text-muted-foreground">validées</span>
               </div>
             )}
             <div className="flex items-center gap-1.5">
-              <Weight className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="font-medium tabular-nums text-sm">
+              <Weight className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium tabular-nums">
                 {fmtCompact(totalVolume)}
               </span>
+              <span className="text-muted-foreground">volume total</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -807,23 +813,25 @@ export function NewWorkoutView() {
               variant="outline"
               onClick={() => setCancelOpen(true)}
               disabled={createWorkout.isPending || updateWorkoutEntries.isPending}
-              size="sm"
               className="text-destructive hover:text-destructive"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-4 w-4" />
+              Annuler
             </Button>
             <Button
               onClick={handleSave}
               disabled={createWorkout.isPending || updateWorkoutEntries.isPending}
-              size="sm"
-              className="sm:min-w-36"
+              className="sm:min-w-44"
             >
               {createWorkout.isPending || updateWorkoutEntries.isPending ? (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                <>
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Enregistrement…
+                </>
               ) : (
                 <>
-                  <Save className="h-3.5 w-3.5" />
-                  {editingWorkoutId ? "Mettre à jour" : "Enregistrer"}
+                  <Save className="h-4 w-4" />
+                  {editingWorkoutId ? "Mettre à jour la séance" : "Enregistrer la séance"}
                 </>
               )}
             </Button>
@@ -989,16 +997,11 @@ function SessionTimer({ startedAt }: { startedAt: number }) {
    const display = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 
    return (
-     <motion.div
-       key={elapsed}
-       initial={{ scale: 1 }}
-       animate={{ scale: 1.02 }}
-       transition={{ duration: 0.3 }}
-       className="flex items-center gap-1.5 text-primary"
-     >
-       <Clock className="h-3.5 w-3.5" />
-       <span className="font-bold tabular-nums text-sm">{display}</span>
-     </motion.div>
+     <div className="flex items-center gap-1.5 text-primary">
+       <Clock className="h-4 w-4" />
+       <span className="font-bold tabular-nums">{display}</span>
+       <span className="text-muted-foreground">séance</span>
+     </div>
    );
  }
 
