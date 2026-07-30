@@ -501,92 +501,100 @@ export function TemplateEditorView() {
                         return (
                           <div
                             key={s.id}
-                            className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/20 p-2.5"
+                            className="rounded-lg border border-border/60 bg-muted/20 p-2.5 space-y-1.5"
                           >
-                            <span className="text-[10px] font-medium tabular-nums text-muted-foreground w-5 shrink-0">
-                              {sIdx + 1}
-                            </span>
-                            {!isStatic && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  updateSet(entryId, s.id, {
-                                    isHold: mode !== "hold",
-                                  })
-                                }
-                                className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded bg-muted/60 transition-colors"
-                              >
-                                {mode === "reps" ? "Reps" : "s"}
-                              </button>
-                            )}
-                            {isStatic && (
-                              <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                                Maintien
+                            {/* Line 1: index, mode toggle, value, kg */}
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-[10px] font-medium tabular-nums text-muted-foreground w-5 shrink-0">
+                                {sIdx + 1}
                               </span>
-                            )}
-                            <Input
-                              type="number"
-                              inputMode="decimal"
-                              placeholder={mode === "hold" ? "30" : "8"}
-                              value={metricValue ?? ""}
-                              onChange={(ev) => {
-                                const v =
-                                  ev.target.value === ""
-                                    ? undefined
-                                    : Number(ev.target.value) || undefined;
-                                updateSet(entryId, s.id, {
-                                  ...(mode === "reps"
-                                    ? { targetReps: v, targetHoldSeconds: undefined }
-                                    : { targetHoldSeconds: v, targetReps: undefined }),
-                                });
-                              }}
-                              className="h-8 w-16 tabular-nums"
-                            />
-                            <Input
-                              type="number"
-                              inputMode="decimal"
-                              step={0.5}
-                              placeholder="kg"
-                              value={s.targetWeightKg ?? ""}
-                              onChange={(ev) => {
-                                const v =
-                                  ev.target.value === ""
-                                    ? undefined
-                                    : Number(ev.target.value) || undefined;
-                                updateSet(entryId, s.id, {
-                                  targetWeightKg: v,
-                                });
-                              }}
-                              className="h-8 w-14 tabular-nums"
-                            />
-                            {sortedVariants && sortedVariants.length > 0 && (
-                              <select
-                                value={
-                                  s.variantId ?? sortedVariants[0]?.id ?? ""
-                                }
-                                onChange={(ev) =>
+                              {!isStatic && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    updateSet(entryId, s.id, {
+                                      isHold: mode !== "hold",
+                                    })
+                                  }
+                                  className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded bg-muted/60 transition-colors"
+                                >
+                                  {mode === "reps" ? "Reps" : "s"}
+                                </button>
+                              )}
+                              {isStatic && (
+                                <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                                  Maintien
+                                </span>
+                              )}
+                              <Input
+                                type="text"
+                                inputMode="decimal"
+                                placeholder={mode === "hold" ? "30" : "8"}
+                                value={metricValue ?? ""}
+                                onChange={(ev) => {
+                                  const v =
+                                    ev.target.value === ""
+                                      ? undefined
+                                      : Number(ev.target.value) || undefined;
                                   updateSet(entryId, s.id, {
-                                    variantId: ev.target.value || null,
-                                  })
-                                }
-                                className="h-7 min-w-0 flex-1 rounded-md border border-border/60 bg-background px-1.5 text-[10px] tabular-nums outline-none focus:ring-2 focus:ring-ring"
+                                    ...(mode === "reps"
+                                      ? { targetReps: v, targetHoldSeconds: undefined }
+                                      : { targetHoldSeconds: v, targetReps: undefined }),
+                                  });
+                                }}
+                                onFocus={(e) => e.target.select()}
+                                className="h-8 w-16 tabular-nums"
+                              />
+                              <Input
+                                type="text"
+                                inputMode="decimal"
+                                step={0.5}
+                                placeholder="kg"
+                                value={s.targetWeightKg ?? ""}
+                                onChange={(ev) => {
+                                  const v =
+                                    ev.target.value === ""
+                                      ? undefined
+                                      : Number(ev.target.value) || undefined;
+                                  updateSet(entryId, s.id, {
+                                    targetWeightKg: v,
+                                  });
+                                }}
+                                onFocus={(e) => e.target.select()}
+                                className="h-8 w-14 tabular-nums"
+                              />
+                            </div>
+                            {/* Line 2: variant + delete */}
+                            <div className="flex items-center gap-1">
+                              {sortedVariants && sortedVariants.length > 0 && (
+                                <select
+                                  value={
+                                    s.variantId ?? sortedVariants[0]?.id ?? ""
+                                  }
+                                  onChange={(ev) =>
+                                    updateSet(entryId, s.id, {
+                                      variantId: ev.target.value || null,
+                                    })
+                                  }
+                                  className="flex-1 h-7 rounded border border-border/60 bg-background px-1.5 text-[11px] tabular-nums text-foreground outline-none focus:ring-2 focus:ring-ring truncate min-w-0"
+                                >
+                                  {sortedVariants.map((v) => (
+                                    <option key={v.id} value={v.id}>
+                                      {v.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => removeSet(entryId, s.id)}
+                                aria-label={`Supprimer la série ${sIdx + 1}`}
+                                className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
                               >
-                                {sortedVariants.map((v) => (
-                                  <option key={v.id} value={v.id}>
-                                    {v.name}
-                                  </option>
-                                ))}
-                              </select>
-                            )}
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => removeSet(entryId, s.id)}
-                              aria-label={`Supprimer la série ${sIdx + 1}`}
-                              className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
                           </div>
                         );
                       })}
