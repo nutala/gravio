@@ -1766,60 +1766,71 @@ function SetRowMobile({
            className="h-7 w-12 rounded border border-border/60 bg-background px-1 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
            aria-label={`Valeur série ${idx + 1}`}
          />
-         <input
-           type="number"
-           inputMode="decimal"
-           step={0.5}
-           placeholder="kg"
-           value={set.weightKg ?? ""}
-           onChange={(e) => {
-             const v = e.target.value;
-             onUpdate({ weightKg: v === "" ? undefined : Number(v) || undefined });
-           }}
-           className="h-7 w-14 rounded border border-border/60 bg-background px-1 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-           aria-label={`Poids série ${idx + 1}`}
-         />
-         <input
-           type="number"
-           inputMode="decimal"
-           min={1}
-           max={10}
-           placeholder="RPE"
-           value={set.rpe ?? ""}
-           onChange={(e) => {
-             const v = e.target.value;
-             onUpdate({ rpe: v === "" ? undefined : Number(v) || undefined });
-           }}
-           className="h-7 w-12 rounded border border-border/60 bg-background px-1 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-           aria-label={`RPE série ${idx + 1}`}
-         />
-         <RestButton defaultRestSec={defaultRestSec} validated={validated} />
-         <Button
-           size="icon"
-           variant="ghost"
-           className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
-           onClick={onRemove}
-           aria-label={`Supprimer série ${idx + 1}`}
-         >
-           <Trash2 className="h-3 w-3" />
-         </Button>
-       </div>
+          <div className="flex items-center">
+            <input
+              type="number"
+              inputMode="decimal"
+              step={0.5}
+              placeholder="kg"
+              value={set.weightKg ?? ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                onUpdate({ weightKg: v === "" ? undefined : Number(v) || undefined });
+              }}
+              className="h-7 w-14 rounded-l border border-border/60 bg-background px-1 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              aria-label={`Poids série ${idx + 1}`}
+            />
+            <button
+              type="button"
+              onClick={() => onUpdate({ weightKg: -(set.weightKg ?? 0) })}
+              className="h-7 w-5 flex items-center justify-center rounded-r border border-l-0 border-border/60 bg-muted/40 text-[10px] text-muted-foreground hover:bg-muted transition-colors"
+            >
+              ±
+            </button>
+          </div>
+          <input
+            type="number"
+            inputMode="decimal"
+            min={1}
+            max={10}
+            placeholder="RPE"
+            value={set.rpe ?? ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              onUpdate({ rpe: v === "" ? undefined : Number(v) || undefined });
+            }}
+            className="h-7 w-12 rounded border border-border/60 bg-background px-1 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            aria-label={`RPE série ${idx + 1}`}
+          />
+        </div>
 
-       {/* Line 2: variant (if any) */}
-       {variants.length > 0 && (
-         <select
-           value={set.variantId ?? variants[0]?.id ?? ""}
-           onChange={(e) => onVariantChange(e.target.value)}
-           className="w-full h-7 rounded border border-border/60 bg-background px-1.5 text-[11px] tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
-           aria-label={`Variante série ${idx + 1}`}
-         >
-           {variants.map((v) => (
-             <option key={v.id} value={v.id}>
-               {v.name} {difficultyStars(v.difficultyLevel)}
-             </option>
-           ))}
-         </select>
-       )}
+        {/* Line 2: variant + rest + delete */}
+        <div className="flex items-center gap-1">
+          {variants.length > 0 && (
+            <select
+              value={set.variantId ?? variants[0]?.id ?? ""}
+              onChange={(e) => onVariantChange(e.target.value)}
+              className="flex-1 h-7 rounded border border-border/60 bg-background px-1.5 text-[11px] tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring truncate min-w-0"
+              aria-label={`Variante série ${idx + 1}`}
+            >
+              {variants.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name} {difficultyStars(v.difficultyLevel)}
+                </option>
+              ))}
+            </select>
+          )}
+          <RestButton defaultRestSec={defaultRestSec} validated={validated} />
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
+            onClick={onRemove}
+            aria-label={`Supprimer série ${idx + 1}`}
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
      </motion.div>
    );
  }
