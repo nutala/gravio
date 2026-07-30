@@ -65,6 +65,7 @@ export async function POST(req: Request) {
     const created = await db.$transaction(async (tx) => {
       const template = await tx.workoutTemplate.create({
         data: {
+          id: crypto.randomUUID(),
           name: body.name.trim(),
           notes: body.notes ?? null,
           userId,
