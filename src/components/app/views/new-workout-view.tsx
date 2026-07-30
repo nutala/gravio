@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { format } from "date-fns";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   PlusCircle,
   Plus,
@@ -85,6 +86,13 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -768,36 +776,30 @@ export function NewWorkoutView() {
 
       {/* ----------------------- Sticky save bar ----------------------- */}
       <div className="sticky bottom-4 z-30">
-        <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-background/80 p-3 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:flex-row sm:items-center sm:justify-between sm:p-4">
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm">
+        <div className="flex items-center justify-between rounded-xl border border-border/70 bg-background/80 px-3 py-2.5 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:px-4 sm:py-3">
+          <div className="flex items-center gap-3 text-xs">
             {sessionStartedAt != null && (
               <SessionTimer startedAt={sessionStartedAt} />
             )}
             <div className="flex items-center gap-1.5">
-              <Dumbbell className="h-4 w-4 text-muted-foreground" />
+              <Dumbbell className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="font-medium tabular-nums">{entries.length}</span>
-              <span className="text-muted-foreground">entrées</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Timer className="h-4 w-4 text-muted-foreground" />
+              <Timer className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="font-medium tabular-nums">{totalSets}</span>
-              <span className="text-muted-foreground">séries</span>
             </div>
             {validatedSets > 0 && (
-              <div className="flex items-center gap-1.5">
-                <Check className="h-4 w-4 text-emerald-500" />
-                <span className="font-medium tabular-nums text-emerald-500">
-                  {validatedSets}
-                </span>
-                <span className="text-muted-foreground">validées</span>
+              <div className="flex items-center gap-1.5 text-emerald-500">
+                <Check className="h-3.5 w-3.5" />
+                <span className="font-medium tabular-nums">{validatedSets}</span>
               </div>
             )}
             <div className="flex items-center gap-1.5">
-              <Weight className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium tabular-nums">
+              <Weight className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="font-medium tabular-nums text-sm">
                 {fmtCompact(totalVolume)}
               </span>
-              <span className="text-muted-foreground">volume total</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -805,25 +807,23 @@ export function NewWorkoutView() {
               variant="outline"
               onClick={() => setCancelOpen(true)}
               disabled={createWorkout.isPending || updateWorkoutEntries.isPending}
+              size="sm"
               className="text-destructive hover:text-destructive"
             >
-              <X className="h-4 w-4" />
-              Annuler
+              <X className="h-3.5 w-3.5" />
             </Button>
             <Button
               onClick={handleSave}
               disabled={createWorkout.isPending || updateWorkoutEntries.isPending}
-              className="sm:min-w-44"
+              size="sm"
+              className="sm:min-w-36"
             >
               {createWorkout.isPending || updateWorkoutEntries.isPending ? (
-                <>
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  Enregistrement…
-                </>
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
               ) : (
                 <>
-                  <Save className="h-4 w-4" />
-                  {editingWorkoutId ? "Mettre à jour la séance" : "Enregistrer la séance"}
+                  <Save className="h-3.5 w-3.5" />
+                  {editingWorkoutId ? "Mettre à jour" : "Enregistrer"}
                 </>
               )}
             </Button>
@@ -860,66 +860,61 @@ export function NewWorkoutView() {
       />
 
       {/* ----------------------- Template picker dialog ----------------------- */}
-      {templatePickerOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setTemplatePickerOpen(false)}
-        >
-          <div
-            className="w-full max-w-md rounded-lg border bg-background p-4 shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="mb-3 text-base font-semibold">Charger un template</h3>
-            {!templates || templates.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Aucun template disponible. Crée-en un depuis la page Exercices.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {templates.map((tpl) => (
-                  <button
-                    key={tpl.id}
-                    type="button"
-                    onClick={() => handleLoadTemplate(tpl.id)}
-                    className="w-full rounded-md border border-border/60 px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted"
-                  >
-                    <div className="font-medium">{tpl.name}</div>
-                    {tpl.notes && (
-                      <div className="mt-0.5 text-xs text-muted-foreground line-clamp-1">
-                        {tpl.notes}
-                      </div>
+      <Dialog open={templatePickerOpen} onOpenChange={setTemplatePickerOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Charger un template</DialogTitle>
+            <DialogDescription>
+              Choisis un template pré-enregistré pour pré-remplir ta séance.
+            </DialogDescription>
+          </DialogHeader>
+          {!templates || templates.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              Aucun template disponible. Crée-en un depuis la page Templates.
+            </p>
+          ) : (
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+              {templates.map((tpl) => (
+                <button
+                  key={tpl.id}
+                  type="button"
+                  onClick={() => handleLoadTemplate(tpl.id)}
+                  className="w-full rounded-lg border border-border/60 px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">{tpl.name}</span>
+                    {tpl.entries.length > 0 && (
+                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                        {tpl.entries.length} exercice{tpl.entries.length > 1 ? "s" : ""}
+                      </span>
                     )}
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {tpl.entries.slice(0, 5).map((e) => (
-                        <span
-                          key={e.id}
-                          className="inline-block rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
-                        >
-                          {e.exercise.name}
-                        </span>
-                      ))}
-                      {tpl.entries.length > 5 && (
-                        <span className="text-[10px] text-muted-foreground">
-                          +{tpl.entries.length - 5}
-                        </span>
-                      )}
+                  </div>
+                  {tpl.notes && (
+                    <div className="mt-0.5 text-xs text-muted-foreground line-clamp-1">
+                      {tpl.notes}
                     </div>
-                  </button>
-                ))}
-              </div>
-            )}
-            <div className="mt-3 flex justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setTemplatePickerOpen(false)}
-              >
-                Fermer
-              </Button>
+                  )}
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {tpl.entries.slice(0, 5).map((e) => (
+                      <span
+                        key={e.id}
+                        className="inline-block rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                      >
+                        {e.exercise.name}
+                      </span>
+                    ))}
+                    {tpl.entries.length > 5 && (
+                      <span className="text-[10px] text-muted-foreground">
+                        +{tpl.entries.length - 5}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              ))}
             </div>
-          </div>
-        </div>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
 
         {/* ----------------------- Workout Summary Modal ----------------------- */}
         <WorkoutSummaryModal
@@ -979,28 +974,33 @@ export function NewWorkoutView() {
 // SessionTimer — live stopwatch from sessionStartedAt
 // ---------------------------------------------------------------------------
 function SessionTimer({ startedAt }: { startedAt: number }) {
-  const [elapsed, setElapsed] = React.useState(0);
+   const [elapsed, setElapsed] = React.useState(0);
 
-  React.useEffect(() => {
-    setElapsed(Math.floor((Date.now() - startedAt) / 1000));
-    const id = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startedAt) / 1000));
-    }, 1000);
-    return () => clearInterval(id);
-  }, [startedAt]);
+   React.useEffect(() => {
+     setElapsed(Math.floor((Date.now() - startedAt) / 1000));
+     const id = setInterval(() => {
+       setElapsed(Math.floor((Date.now() - startedAt) / 1000));
+     }, 1000);
+     return () => clearInterval(id);
+   }, [startedAt]);
 
-  const m = Math.floor(elapsed / 60);
-  const s = elapsed % 60;
-  const display = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+   const m = Math.floor(elapsed / 60);
+   const s = elapsed % 60;
+   const display = `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 
-  return (
-    <div className="flex items-center gap-1.5 text-primary">
-      <Clock className="h-4 w-4" />
-      <span className="font-bold tabular-nums">{display}</span>
-      <span className="text-muted-foreground">séance</span>
-    </div>
-  );
-}
+   return (
+     <motion.div
+       key={elapsed}
+       initial={{ scale: 1 }}
+       animate={{ scale: 1.02 }}
+       transition={{ duration: 0.3 }}
+       className="flex items-center gap-1.5 text-primary"
+     >
+       <Clock className="h-3.5 w-3.5" />
+       <span className="font-bold tabular-nums text-sm">{display}</span>
+     </motion.div>
+   );
+ }
 
 /** Fetch all sets from the most recent session for a given exercise+variant. */
 async function fetchLastSession(
@@ -1183,58 +1183,58 @@ function EntryCard({
           : undefined
       }
     >
-      <CardHeader>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <span aria-hidden className="text-base leading-none">
-              {meta.emoji}
-            </span>
-            <CardTitle className="truncate text-base">
-              {exercise.name}
-            </CardTitle>
-            <Badge
-              variant="outline"
-              className="border-transparent"
-              style={{
-                backgroundColor: `${meta.color}22`,
-                color: meta.color,
-              }}
-            >
-              {meta.label}
-            </Badge>
-            {(exercise as unknown as { tags: string[] }).tags?.map((tag) => {
-              const tagMeta = getCatMeta(tag);
-              return (
-                <Badge
-                  key={tag}
-                  variant="outline"
-                  className="gap-1 text-[9px] font-medium leading-tight"
-                  style={{
-                    borderColor: `${tagMeta.color}44`,
-                    color: tagMeta.color,
-                  }}
-                >
-                  {tagMeta.emoji} {tagMeta.label}
-                </Badge>
-              );
-            })}
-            {isStatic && (
-              <Badge variant="secondary" className="text-[10px]">
-                Maintien (s)
-              </Badge>
-            )}
-            {inSuperset && ssColor && ssLabel && (
-              <Badge
-                variant="outline"
-                className="gap-1 border-transparent text-[10px] font-bold"
-                style={{ backgroundColor: `${ssColor}22`, color: ssColor }}
-                title={`Superset ${ssLabel} · ${supersetCount} exercice${supersetCount > 1 ? "s" : ""}`}
-              >
-                <Link2 className="h-3 w-3" />
-                Superset {ssLabel}
-              </Badge>
-            )}
-          </div>
+       <CardHeader className="pb-2 pt-3">
+         <div className="flex flex-wrap items-center justify-between gap-2">
+           <div className="flex min-w-0 flex-wrap items-center gap-2">
+             <span aria-hidden className="text-sm leading-none">
+               {meta.emoji}
+             </span>
+             <CardTitle className="truncate text-sm">
+               {exercise.name}
+             </CardTitle>
+             <Badge
+               variant="outline"
+               className="border-transparent"
+               style={{
+                 backgroundColor: `${meta.color}22`,
+                 color: meta.color,
+               }}
+             >
+               {meta.label}
+             </Badge>
+             {(exercise as unknown as { tags: string[] }).tags?.map((tag) => {
+               const tagMeta = getCatMeta(tag);
+               return (
+                 <Badge
+                   key={tag}
+                   variant="outline"
+                   className="gap-1 text-[9px] font-medium leading-tight"
+                   style={{
+                     borderColor: `${tagMeta.color}44`,
+                     color: tagMeta.color,
+                   }}
+                 >
+                   {tagMeta.emoji} {tagMeta.label}
+                 </Badge>
+               );
+             })}
+             {isStatic && (
+               <Badge variant="secondary" className="text-[10px]">
+                 Maintien (s)
+               </Badge>
+             )}
+             {inSuperset && ssColor && ssLabel && (
+               <Badge
+                 variant="outline"
+                 className="gap-1 border-transparent text-[10px] font-bold"
+                 style={{ backgroundColor: `${ssColor}22`, color: ssColor }}
+                 title={`Superset ${ssLabel} · ${supersetCount} exercice${supersetCount > 1 ? "s" : ""}`}
+               >
+                 <Link2 className="h-3 w-3" />
+                 Superset {ssLabel}
+               </Badge>
+             )}
+           </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -1434,74 +1434,13 @@ function EntryCard({
               )}
             </div>
 
-            <Button variant="outline" size="sm" onClick={handleAddSet}>
-              <Plus className="h-4 w-4" />
-              Ajouter une série
-            </Button>
-
-            <Separator />
-
-            {/* Per-entry summary */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              <span>
-                <span className="font-medium text-foreground tabular-nums">
-                  {totalSetsCount}
-                </span>{" "}
-                séries
-              </span>
-              {(hasReps || hasHold) && (
-                <span>
-                  Volume{" "}
-                  {hasReps && (
-                    <>
-                      <span className="font-medium text-foreground tabular-nums">
-                        {fmtCompact(repsVolume)}
-                      </span>{" "}
-                      reps
-                    </>
-                  )}
-                  {hasReps && hasHold && <span className="mx-0.5">·</span>}
-                  {hasHold && (
-                    <>
-                      <span className="font-medium text-foreground tabular-nums">
-                        {fmtCompact(holdVolume)}
-                      </span>{" "}
-                      s
-                    </>
-                  )}
-                </span>
-              )}
-              {(bestReps > 0 || bestHold > 0) && (
-                <span>
-                  Meilleure{" "}
-                  {bestReps > 0 && (
-                    <>
-                      <span className="font-medium text-foreground tabular-nums">
-                        {fmtCompact(bestReps)}
-                      </span>{" "}
-                      reps
-                    </>
-                  )}
-                  {bestReps > 0 && bestHold > 0 && <span className="mx-0.5">·</span>}
-                  {bestHold > 0 && (
-                    <>
-                      <span className="font-medium text-foreground tabular-nums">
-                        {fmtCompact(bestHold)}
-                      </span>{" "}
-                      s
-                    </>
-                  )}
-                </span>
-              )}
-              {validatedCount > 0 && (
-                <span className="text-emerald-500">
-                  <span className="font-medium tabular-nums">{validatedCount}</span> validée{validatedCount > 1 ? "s" : ""}
-                </span>
-              )}
-            </div>
-          </>
-        )}
-      </CardContent>
+             <Button variant="outline" size="sm" onClick={handleAddSet}>
+               <Plus className="h-4 w-4" />
+               Ajouter une série
+             </Button>
+           </>
+         )}
+       </CardContent>
     </Card>
   );
 }
@@ -1629,121 +1568,121 @@ function RestButton({
 }
 
 function SetRowDesktop({
-  set,
-  idx,
-  isStatic,
-  metricLabel,
-  defaultRestSec,
-  variants,
-  onUpdate,
-  onRemove,
-  onValidate,
-  onVariantChange,
-}: {
-  set: DraftSet;
-  idx: number;
-  isStatic: boolean;
-  metricLabel: string;
-  defaultRestSec: number;
-  variants: { id: string; name: string; difficultyLevel: number }[];
-  onUpdate: (patch: Partial<DraftSet>) => void;
-  onRemove: () => void;
-  onValidate: (validated: boolean) => void;
-  onVariantChange: (variantId: string) => void;
-}) {
-  const validated = set.validated;
-  const mode = set.mode ?? (isStatic ? "hold" : "reps");
-  const otherMode = mode === "reps" ? "hold" : "reps";
-  return (
-    <tr
-      className={cn(
-        "border-t border-border/50 transition-colors",
-        validated && "bg-emerald-500/8",
-      )}
-    >
-      <td className="py-2 text-muted-foreground tabular-nums">{idx + 1}</td>
-      <td className="py-2 pr-2">
-        <div className="flex items-center gap-1">
-          <NumberInput
-            value={mode === "reps" ? set.reps : set.holdSeconds}
-            placeholder={mode === "hold" ? "30" : "8"}
-            aria-label={`${mode === "hold" ? "Maintien" : "Reps"} pour la série ${idx + 1}`}
-            onChange={(n) =>
-              onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n })
-            }
-          />
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            className="h-9 px-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground"
-            onClick={() => onUpdate({ mode: otherMode })}
-            aria-label={`Passer en ${otherMode === "reps" ? "répétitions" : "maintien (s)"}`}
-          >
-            {mode === "reps" ? "Reps" : "Maintien (s)"}
-          </Button>
-        </div>
-      </td>
-      {variants.length > 0 && (
-        <td className="py-2 pr-2">
-          <select
-            value={set.variantId ?? variants[0]?.id}
-            onChange={(e) => onVariantChange(e.target.value)}
-            className="h-9 w-44 rounded-md border border-border/60 bg-background px-1.5 text-xs tabular-nums text-foreground outline-none focus:ring-2 focus:ring-ring"
-            aria-label={`Variante pour la série ${idx + 1}`}
-          >
-            {variants.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.name} {difficultyStars(v.difficultyLevel)}
-              </option>
-            ))}
-          </select>
-        </td>
-      )}
-      <td className="py-2 pr-2">
-        <div className="flex items-center gap-0.5">
-          <NumberInput
-            value={set.weightKg}
-            placeholder="0"
-            step={0.5}
-            aria-label={`Poids pour la série ${idx + 1}`}
-            onChange={(n) => onUpdate({ weightKg: n })}
-          />
-          <button
-            type="button"
-            onClick={() => onUpdate({ weightKg: -(set.weightKg ?? 0) })}
-            className="flex h-9 w-5 items-center justify-center rounded-md border border-border/60 text-[10px] tabular-nums text-muted-foreground hover:bg-muted"
-            aria-label="Inverser le signe du poids"
-          >
-            ±
-          </button>
-        </div>
-      </td>
-      <td className="py-2 pr-2">
-        <NumberInput
-          value={set.rpe}
-          placeholder="7"
-          min={1}
-          max={10}
-          aria-label={`RPE pour la série ${idx + 1}`}
-          onChange={(n) => onUpdate({ rpe: n })}
-        />
-      </td>
-      <td className="py-2 text-center">
-        <ValidateButton
-          validated={validated}
-          onClick={() => onValidate(!validated)}
-          label={`Marquer la série ${idx + 1} comme ${validated ? "non faite" : "faite"}`}
-        />
-      </td>
-      <td className="py-2 text-right">
-        <RestButton defaultRestSec={defaultRestSec} validated={validated} />
-      </td>
-      <td className="py-2">
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+   set,
+   idx,
+   isStatic,
+   metricLabel,
+   defaultRestSec,
+   variants,
+   onUpdate,
+   onRemove,
+   onValidate,
+   onVariantChange,
+ }: {
+   set: DraftSet;
+   idx: number;
+   isStatic: boolean;
+   metricLabel: string;
+   defaultRestSec: number;
+   variants: { id: string; name: string; difficultyLevel: number }[];
+   onUpdate: (patch: Partial<DraftSet>) => void;
+   onRemove: () => void;
+   onValidate: (validated: boolean) => void;
+   onVariantChange: (variantId: string) => void;
+ }) {
+   const validated = set.validated;
+   const mode = set.mode ?? (isStatic ? "hold" : "reps");
+   const otherMode = mode === "reps" ? "hold" : "reps";
+   return (
+     <tr
+       className={cn(
+         "border-t border-border/50 transition-colors",
+         validated && "bg-emerald-500/6",
+       )}
+     >
+       <td className="py-1.5 text-muted-foreground tabular-nums w-6">{idx + 1}</td>
+       <td className="py-1.5 pr-2">
+         <div className="flex items-center gap-1">
+           <NumberInput
+             value={mode === "reps" ? set.reps : set.holdSeconds}
+             placeholder={mode === "hold" ? "30" : "8"}
+             aria-label={`${mode === "hold" ? "Maintien" : "Reps"} pour la série ${idx + 1}`}
+             onChange={(n) =>
+               onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n })
+             }
+           />
+           <Button
+             type="button"
+             size="sm"
+             variant="ghost"
+             className="h-8 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground"
+             onClick={() => onUpdate({ mode: otherMode })}
+             aria-label={`Passer en ${otherMode === "reps" ? "répétitions" : "maintien (s)"}`}
+           >
+             {mode === "reps" ? "Reps" : "s"}
+           </Button>
+         </div>
+       </td>
+       {variants.length > 0 && (
+         <td className="py-1.5 pr-2">
+           <select
+             value={set.variantId ?? variants[0]?.id}
+             onChange={(e) => onVariantChange(e.target.value)}
+             className="h-8 w-36 rounded-md border border-border/60 bg-background px-1.5 text-[11px] tabular-nums text-foreground outline-none focus:ring-2 focus:ring-ring"
+             aria-label={`Variante pour la série ${idx + 1}`}
+           >
+             {variants.map((v) => (
+               <option key={v.id} value={v.id}>
+                 {v.name} {difficultyStars(v.difficultyLevel)}
+               </option>
+             ))}
+           </select>
+         </td>
+       )}
+       <td className="py-1.5 pr-2">
+         <div className="flex items-center gap-0.5">
+           <NumberInput
+             value={set.weightKg}
+             placeholder="0"
+             step={0.5}
+             aria-label={`Poids pour la série ${idx + 1}`}
+             onChange={(n) => onUpdate({ weightKg: n })}
+           />
+           <button
+             type="button"
+             onClick={() => onUpdate({ weightKg: -(set.weightKg ?? 0) })}
+             className="flex h-8 w-4 items-center justify-center rounded border border-border/60 text-[10px] tabular-nums text-muted-foreground hover:bg-muted"
+             aria-label="Inverser le signe du poids"
+           >
+             ±
+           </button>
+         </div>
+       </td>
+       <td className="py-1.5 pr-2">
+         <NumberInput
+           value={set.rpe}
+           placeholder="7"
+           min={1}
+           max={10}
+           aria-label={`RPE pour la série ${idx + 1}`}
+           onChange={(n) => onUpdate({ rpe: n })}
+         />
+       </td>
+       <td className="py-1.5 text-center">
+         <ValidateButton
+           validated={validated}
+           onClick={() => onValidate(!validated)}
+           label={`Marquer la série ${idx + 1} comme ${validated ? "non faite" : "faite"}`}
+         />
+       </td>
+       <td className="py-1.5 text-right">
+         <RestButton defaultRestSec={defaultRestSec} validated={validated} />
+       </td>
+       <td className="py-1.5">
+         <Button
+           size="icon"
+           variant="ghost"
+           className="h-7 w-7 text-muted-foreground hover:text-destructive"
           onClick={onRemove}
           aria-label={`Supprimer la série ${idx + 1}`}
         >
@@ -1755,198 +1694,170 @@ function SetRowDesktop({
 }
 
 function SetRowMobile({
-  set,
-  idx,
-  isStatic,
-  metricLabel,
-  defaultRestSec,
-  variants,
-  onUpdate,
-  onRemove,
-  onValidate,
-  onVariantChange,
-}: {
-  set: DraftSet;
-  idx: number;
-  isStatic: boolean;
-  metricLabel: string;
-  defaultRestSec: number;
-  variants: { id: string; name: string; difficultyLevel: number }[];
-  onUpdate: (patch: Partial<DraftSet>) => void;
-  onRemove: () => void;
-  onValidate: (validated: boolean) => void;
-  onVariantChange: (variantId: string) => void;
-}) {
-  const validated = set.validated;
-  const mode = set.mode ?? (isStatic ? "hold" : "reps");
-  const otherMode = mode === "reps" ? "hold" : "reps";
-  return (
-    <div
-      className={cn(
-        "rounded-lg border-2 bg-muted/20 p-3 transition-colors",
-        validated
-          ? "border-emerald-500/60 bg-emerald-500/10"
-          : "border-border/60",
-      )}
-    >
-      <div className="mb-2 flex items-center justify-between">
-        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground tabular-nums">
-          Série {idx + 1}
-        </span>
-        <div className="flex items-center gap-1">
-          <ValidateButton
-            validated={validated}
-            onClick={() => onValidate(!validated)}
-            label={`Marquer la série ${idx + 1} comme ${validated ? "non faite" : "faite"}`}
-          />
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-7 w-7 text-muted-foreground hover:text-destructive"
-            onClick={onRemove}
-            aria-label={`Supprimer la série ${idx + 1}`}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </div>
-      <div className="grid grid-cols-3 gap-2">
-          <div className="space-y-1">
-            <button
-              type="button"
-              onClick={() => onUpdate({ mode: otherMode })}
-              className="block text-[10px] font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground"
-              aria-label={`Passer en ${otherMode === "reps" ? "répétitions" : "maintien (s)"}`}
-            >
-              {mode === "reps" ? "Reps" : "Maintien (s)"}
-            </button>
-          <Input
-            type="number"
-            inputMode="decimal"
-            placeholder={mode === "hold" ? "30" : "8"}
-            value={mode === "reps" ? (set.reps ?? "") : (set.holdSeconds ?? "")}
-            onChange={(e) => {
-              const v = e.target.value;
-              const n = v === "" ? undefined : Number(v);
-              onUpdate(
-                mode === "reps"
-                  ? { reps: n }
-                  : { holdSeconds: n },
-              );
-            }}
-            className="h-9 tabular-nums"
-          />
-        </div>
-        <div className="space-y-1">
-          <span className="block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-            Poids (kg)
-          </span>
-          <div className="flex items-center gap-0.5">
-            <Input
-              type="number"
-              inputMode="decimal"
-              step={0.5}
-              placeholder="0"
-              value={set.weightKg ?? ""}
-              onChange={(e) => {
-                const v = e.target.value;
-                onUpdate({
-                  weightKg: v === "" ? undefined : Number(v) || undefined,
-                });
-              }}
-              className="h-9 tabular-nums"
-            />
-            <button
-              type="button"
-              onClick={() => onUpdate({ weightKg: -(set.weightKg ?? 0) })}
-              className="flex h-9 w-5 shrink-0 items-center justify-center rounded-md border border-border/60 text-[10px] tabular-nums text-muted-foreground hover:bg-muted"
-              aria-label="Inverser le signe du poids"
-            >
-              ±
-            </button>
-          </div>
-        </div>
-        <LabeledNumber
-          label="RPE"
-          value={set.rpe}
-          placeholder="7"
-          min={1}
-          max={10}
-          onChange={(n) => onUpdate({ rpe: n })}
-        />
-      </div>
-      {variants.length > 0 && (
-        <div className="mt-2 flex items-center gap-2">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-            Variante
-          </span>
-          <select
-            value={set.variantId ?? variants[0]?.id}
-            onChange={(e) => onVariantChange(e.target.value)}
-            className="h-7 min-w-0 flex-1 rounded-md border border-border/60 bg-background px-1.5 text-xs tabular-nums text-foreground outline-none focus:ring-2 focus:ring-ring"
-          >
-            {variants.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.name} {difficultyStars(v.difficultyLevel)}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-      <div className="mt-2 flex justify-end">
-        <RestButton defaultRestSec={defaultRestSec} validated={validated} />
-      </div>
-    </div>
-  );
-}
+   set,
+   idx,
+   isStatic,
+   metricLabel,
+   defaultRestSec,
+   variants,
+   onUpdate,
+   onRemove,
+   onValidate,
+   onVariantChange,
+ }: {
+   set: DraftSet;
+   idx: number;
+   isStatic: boolean;
+   metricLabel: string;
+   defaultRestSec: number;
+   variants: { id: string; name: string; difficultyLevel: number }[];
+   onUpdate: (patch: Partial<DraftSet>) => void;
+   onRemove: () => void;
+   onValidate: (validated: boolean) => void;
+   onVariantChange: (variantId: string) => void;
+ }) {
+   const validated = set.validated;
+   const mode = set.mode ?? (isStatic ? "hold" : "reps");
+   const otherMode = mode === "reps" ? "hold" : "reps";
+   return (
+     <motion.div
+       layout
+       initial={{ opacity: 0, y: 8 }}
+       animate={{ opacity: 1, y: 0 }}
+       exit={{ opacity: 0, x: -20 }}
+       transition={{ duration: 0.15 }}
+       className={cn(
+         "flex items-center gap-2 rounded-lg border px-2.5 py-2 transition-colors",
+         validated
+           ? "border-emerald-500/40 bg-emerald-500/8"
+           : "border-border/60 bg-muted/20",
+       )}
+     >
+       <ValidateButton
+         validated={validated}
+         onClick={() => onValidate(!validated)}
+         label={`Série ${idx + 1}`}
+       />
+       <span className="text-xs font-medium tabular-nums text-muted-foreground w-5 shrink-0">
+         {idx + 1}
+       </span>
+       <div className="flex flex-1 items-center gap-1.5 min-w-0">
+         <button
+           type="button"
+           onClick={() => onUpdate({ mode: otherMode })}
+           className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground px-1 py-0.5 rounded bg-muted/60 transition-colors"
+         >
+           {mode === "reps" ? "Reps" : "s"}
+         </button>
+         <NumberInput
+           value={mode === "reps" ? set.reps : set.holdSeconds}
+           placeholder={mode === "hold" ? "30" : "8"}
+           aria-label={`Valeur série ${idx + 1}`}
+           onChange={(n) =>
+             onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n })
+           }
+           className="h-8 w-14 tabular-nums"
+         />
+       </div>
+       <div className="flex items-center gap-1 shrink-0">
+         <NumberInput
+           value={set.weightKg}
+           placeholder="0"
+           step={0.5}
+           aria-label={`Poids série ${idx + 1}`}
+           onChange={(n) => onUpdate({ weightKg: n })}
+           className="h-8 w-12 tabular-nums"
+         />
+         <span className="text-[10px] text-muted-foreground">kg</span>
+       </div>
+       <NumberInput
+         value={set.rpe}
+         placeholder="RPE"
+         min={1}
+         max={10}
+         aria-label={`RPE série ${idx + 1}`}
+         onChange={(n) => onUpdate({ rpe: n })}
+         className="h-8 w-10 tabular-nums"
+       />
+       <div className="flex items-center gap-0.5 shrink-0">
+         <RestButton defaultRestSec={defaultRestSec} validated={validated} />
+         <Button
+           size="icon"
+           variant="ghost"
+           className="h-7 w-7 text-muted-foreground hover:text-destructive"
+           onClick={onRemove}
+           aria-label={`Supprimer série ${idx + 1}`}
+         >
+           <Trash2 className="h-3 w-3" />
+         </Button>
+       </div>
+       {variants.length > 0 && (
+         <select
+           value={set.variantId ?? variants[0]?.id ?? ""}
+           onChange={(e) => onVariantChange(e.target.value)}
+           className="shrink-0 h-7 rounded-md border border-border/60 bg-background px-1 text-[10px] tabular-nums text-foreground outline-none focus:ring-2 focus:ring-ring max-w-[100px]"
+           aria-label={`Variante série ${idx + 1}`}
+         >
+           {variants.map((v) => (
+             <option key={v.id} value={v.id}>
+               {v.name}
+             </option>
+           ))}
+         </select>
+       )}
+     </motion.div>
+   );
+ }
 
 // ---------------------------------------------------------------------------
 // Small numeric input primitives
 // ---------------------------------------------------------------------------
 function NumberInput({
-  value,
-  onChange,
-  placeholder,
-  step,
-  min,
-  max,
-  "aria-label": ariaLabel,
-}: {
-  value: number | undefined;
-  onChange: (n: number | undefined) => void;
-  placeholder?: string;
-  step?: number;
-  min?: number;
-  max?: number;
-  "aria-label"?: string;
-}) {
-  return (
-    <Input
-      type="number"
-      inputMode="decimal"
-      step={step}
-      min={min}
-      max={max}
-      placeholder={placeholder}
-      value={value ?? ""}
-      onChange={(e) => {
-        const v = e.target.value;
-        if (v === "") {
-          onChange(undefined);
-          return;
-        }
-        const n = Number(v);
-        if (Number.isNaN(n)) {
-          onChange(undefined);
-          return;
-        }
-        onChange(n);
-      }}
-      className="h-9 w-16 tabular-nums"
-      aria-label={ariaLabel}
-    />
-  );
-}
+   value,
+   onChange,
+   placeholder,
+   step,
+   min,
+   max,
+   "aria-label": ariaLabel,
+   className,
+ }: {
+   value: number | undefined;
+   onChange: (n: number | undefined) => void;
+   placeholder?: string;
+   step?: number;
+   min?: number;
+   max?: number;
+   "aria-label"?: string;
+   className?: string;
+ }) {
+   return (
+     <Input
+       type="number"
+       inputMode="decimal"
+       step={step}
+       min={min}
+       max={max}
+       placeholder={placeholder}
+       value={value ?? ""}
+       onChange={(e) => {
+         const v = e.target.value;
+         if (v === "") {
+           onChange(undefined);
+           return;
+         }
+         const n = Number(v);
+         if (Number.isNaN(n)) {
+           onChange(undefined);
+           return;
+         }
+         onChange(n);
+       }}
+       className={cn("h-9 w-16 tabular-nums", className)}
+       aria-label={ariaLabel}
+     />
+   );
+ }
 
 function LabeledNumber({
   label,

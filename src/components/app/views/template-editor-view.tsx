@@ -290,7 +290,7 @@ export function TemplateEditorView() {
   }
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6 p-4 sm:p-6">
+    <div className="mx-auto flex max-w-2xl flex-col gap-4 p-4 sm:p-6 pb-24">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Button
@@ -301,11 +301,11 @@ export function TemplateEditorView() {
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div>
-          <h1 className="text-lg font-bold">
+        <div className="min-w-0">
+          <h1 className="text-base font-bold tracking-tight">
             {templateEditorId ? "Modifier le template" : "Nouveau template"}
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Prépare ta séance à l&apos;avance
           </p>
         </div>
@@ -316,7 +316,7 @@ export function TemplateEditorView() {
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Nom du template (ex. Push max)"
-        className="h-10 text-base font-medium"
+        className="h-9 text-sm font-medium"
       />
 
       {/* Notes */}
@@ -324,13 +324,13 @@ export function TemplateEditorView() {
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         placeholder="Notes (optionnel)"
-        className="min-h-[60px] resize-none"
+        className="min-h-[48px] resize-none text-sm"
       />
 
       <Separator />
 
       {/* Entries */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {entries.length === 0 ? (
           <EmptyState
             icon={Dumbbell}
@@ -355,49 +355,49 @@ export function TemplateEditorView() {
               .sort((a, b) => a.difficultyLevel - b.difficultyLevel);
             const entryId = e.id;
             return (
-              <Card key={entryId}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex min-w-0 flex-wrap items-center gap-2">
-                      <span aria-hidden className="text-base leading-none">
-                        {meta.emoji}
-                      </span>
-                      <CardTitle className="truncate text-base">
-                        {ex.name}
-                      </CardTitle>
-                      <Badge
-                        variant="outline"
-                        className="border-transparent"
-                        style={{
-                          backgroundColor: `${meta.color}22`,
-                          color: meta.color,
-                        }}
-                      >
-                        {meta.label}
-                      </Badge>
-                      {(ex as unknown as { tags: string[] }).tags?.map((tag) => {
-                        const tagMeta = getCatMeta(tag);
-                        return (
-                          <Badge
-                            key={tag}
-                            variant="outline"
-                            className="gap-1 text-[9px] font-medium leading-tight"
-                            style={{
-                              borderColor: `${tagMeta.color}44`,
-                              color: tagMeta.color,
-                            }}
-                          >
-                            {tagMeta.emoji} {tagMeta.label}
-                          </Badge>
-                        );
-                      })}
-                      {isStatic && (
-                        <Badge variant="secondary" className="text-[10px]">
-                          Maintien (s)
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-0.5">
+               <Card key={entryId}>
+                 <CardHeader className="pb-2 pt-2">
+                   <div className="flex items-center justify-between gap-2">
+                     <div className="flex min-w-0 flex-wrap items-center gap-2">
+                       <span aria-hidden className="text-sm leading-none">
+                         {meta.emoji}
+                       </span>
+                       <CardTitle className="truncate text-sm">
+                         {ex.name}
+                       </CardTitle>
+                       <Badge
+                         variant="outline"
+                         className="border-transparent"
+                         style={{
+                           backgroundColor: `${meta.color}22`,
+                           color: meta.color,
+                         }}
+                       >
+                         {meta.label}
+                       </Badge>
+                       {(ex as unknown as { tags: string[] }).tags?.map((tag) => {
+                         const tagMeta = getCatMeta(tag);
+                         return (
+                           <Badge
+                             key={tag}
+                             variant="outline"
+                             className="gap-1 text-[9px] font-medium leading-tight"
+                             style={{
+                               borderColor: `${tagMeta.color}44`,
+                               color: tagMeta.color,
+                             }}
+                           >
+                             {tagMeta.emoji} {tagMeta.label}
+                           </Badge>
+                         );
+                       })}
+                       {isStatic && (
+                         <Badge variant="secondary" className="text-[10px]">
+                           Maintien (s)
+                         </Badge>
+                       )}
+                     </div>
+                     <div className="flex items-center gap-0.5">
                       {idx > 0 && (
                         <Button
                           size="icon"
@@ -433,7 +433,7 @@ export function TemplateEditorView() {
                   </div>
                 </CardHeader>
 
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-2">
                   {(ex?.name === "Combos" || e.comboSteps.length > 0) ? (
                     <ComboEditor
                       steps={e.comboSteps}
@@ -490,7 +490,7 @@ export function TemplateEditorView() {
                     />
                   ) : (
                     <>
-                      {e.sets.map((s, idx) => {
+                      {e.sets.map((s, sIdx) => {
                         const isHold = s.isHold ?? isStatic;
                         const mode = isHold ? "hold" : "reps";
                         const otherMode = mode === "reps" ? "hold" : "reps";
@@ -501,135 +501,92 @@ export function TemplateEditorView() {
                         return (
                           <div
                             key={s.id}
-                            className="rounded-lg border border-border/60 bg-muted/20 p-3 transition-colors"
+                            className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/20 p-2.5"
                           >
-                            <div className="mb-2 flex items-center justify-between">
-                              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground tabular-nums">
-                                Série {idx + 1}
-                              </span>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => removeSet(entryId, s.id)}
-                                aria-label={`Supprimer la série ${idx + 1}`}
-                                className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            <span className="text-[10px] font-medium tabular-nums text-muted-foreground w-5 shrink-0">
+                              {sIdx + 1}
+                            </span>
+                            {!isStatic && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateSet(entryId, s.id, {
+                                    isHold: mode !== "hold",
+                                  })
+                                }
+                                className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded bg-muted/60 transition-colors"
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-
-                            <div className="grid grid-cols-3 gap-2">
-                              <div className="space-y-1">
-                                {!isStatic && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      updateSet(entryId, s.id, {
-                                        isHold: mode !== "hold",
-                                      })
-                                    }
-                                    className="block text-[10px] font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground"
-                                    aria-label={`Passer en ${otherMode === "reps" ? "répétitions" : "maintien (s)"}`}
-                                  >
-                                    {mode === "reps" ? "Reps" : "Maintien (s)"}
-                                  </button>
-                                )}
-                                {isStatic && (
-                                  <span className="block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                                    Maintien (s)
-                                  </span>
-                                )}
-                                <Input
-                                  type="number"
-                                  inputMode="decimal"
-                                  placeholder={mode === "hold" ? "30" : "8"}
-                                  value={metricValue ?? ""}
-                                  onChange={(ev) => {
-                                    const v =
-                                      ev.target.value === ""
-                                        ? undefined
-                                        : Number(ev.target.value) || undefined;
-                                    updateSet(entryId, s.id, {
-                                      ...(mode === "reps"
-                                        ? { targetReps: v, targetHoldSeconds: undefined }
-                                        : { targetHoldSeconds: v, targetReps: undefined }),
-                                    });
-                                  }}
-                                  className="h-9 tabular-nums"
-                                />
-                              </div>
-
-                              <div className="space-y-1">
-                                <span className="block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                                  Poids (kg)
-                                </span>
-                                <Input
-                                  type="number"
-                                  inputMode="decimal"
-                                  placeholder="0"
-                                  value={s.targetWeightKg ?? ""}
-                                  onChange={(ev) => {
-                                    const v =
-                                      ev.target.value === ""
-                                        ? undefined
-                                        : Number(ev.target.value) || undefined;
-                                    updateSet(entryId, s.id, {
-                                      targetWeightKg: v,
-                                    });
-                                  }}
-                                  className="h-9 tabular-nums"
-                                />
-                              </div>
-
-                              <div className="space-y-1">
-                                <span className="block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                                  RPE
-                                </span>
-                                <Input
-                                  type="number"
-                                  inputMode="decimal"
-                                  min={1}
-                                  max={10}
-                                  placeholder="7"
-                                  value={s.targetRpe ?? ""}
-                                  onChange={(ev) => {
-                                    const v =
-                                      ev.target.value === ""
-                                        ? undefined
-                                        : Number(ev.target.value) || undefined;
-                                    updateSet(entryId, s.id, {
-                                      targetRpe: v,
-                                    });
-                                  }}
-                                  className="h-9 tabular-nums"
-                                />
-                              </div>
-                            </div>
-
-                            {sortedVariants && sortedVariants.length > 0 && (
-                              <div className="mt-2 flex items-center gap-2">
-                                <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                                  Variante
-                                </span>
-                                <select
-                                  value={
-                                    s.variantId ?? sortedVariants[0]?.id ?? ""
-                                  }
-                                  onChange={(ev) =>
-                                    updateSet(entryId, s.id, {
-                                      variantId: ev.target.value || null,
-                                    })
-                                  }
-                                  className="h-7 min-w-0 flex-1 rounded-md border border-border/60 bg-background px-1.5 text-xs tabular-nums outline-none focus:ring-2 focus:ring-ring"
-                                >
-                                  {sortedVariants.map((v) => (
-                                    <option key={v.id} value={v.id}>
-                                      {v.name} {difficultyStars(v.difficultyLevel)}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
+                                {mode === "reps" ? "Reps" : "s"}
+                              </button>
                             )}
+                            {isStatic && (
+                              <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                                Maintien
+                              </span>
+                            )}
+                            <Input
+                              type="number"
+                              inputMode="decimal"
+                              placeholder={mode === "hold" ? "30" : "8"}
+                              value={metricValue ?? ""}
+                              onChange={(ev) => {
+                                const v =
+                                  ev.target.value === ""
+                                    ? undefined
+                                    : Number(ev.target.value) || undefined;
+                                updateSet(entryId, s.id, {
+                                  ...(mode === "reps"
+                                    ? { targetReps: v, targetHoldSeconds: undefined }
+                                    : { targetHoldSeconds: v, targetReps: undefined }),
+                                });
+                              }}
+                              className="h-8 w-16 tabular-nums"
+                            />
+                            <Input
+                              type="number"
+                              inputMode="decimal"
+                              step={0.5}
+                              placeholder="kg"
+                              value={s.targetWeightKg ?? ""}
+                              onChange={(ev) => {
+                                const v =
+                                  ev.target.value === ""
+                                    ? undefined
+                                    : Number(ev.target.value) || undefined;
+                                updateSet(entryId, s.id, {
+                                  targetWeightKg: v,
+                                });
+                              }}
+                              className="h-8 w-14 tabular-nums"
+                            />
+                            {sortedVariants && sortedVariants.length > 0 && (
+                              <select
+                                value={
+                                  s.variantId ?? sortedVariants[0]?.id ?? ""
+                                }
+                                onChange={(ev) =>
+                                  updateSet(entryId, s.id, {
+                                    variantId: ev.target.value || null,
+                                  })
+                                }
+                                className="h-7 min-w-0 flex-1 rounded-md border border-border/60 bg-background px-1.5 text-[10px] tabular-nums outline-none focus:ring-2 focus:ring-ring"
+                              >
+                                {sortedVariants.map((v) => (
+                                  <option key={v.id} value={v.id}>
+                                    {v.name}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => removeSet(entryId, s.id)}
+                              aria-label={`Supprimer la série ${sIdx + 1}`}
+                              className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
                           </div>
                         );
                       })}
@@ -667,16 +624,27 @@ export function TemplateEditorView() {
 
       {/* Bottom: Save button */}
       {entries.length > 0 && (
-        <div className="flex justify-center pb-8">
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            size="lg"
-            className="gap-2 px-8"
-          >
-            <Save className="h-4 w-4" />
-            Enregistrer le template
-          </Button>
+        <div className="sticky bottom-4 z-30">
+          <div className="flex items-center justify-between rounded-xl border border-border/70 bg-background/80 px-3 py-2.5 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <span className="text-xs text-muted-foreground">
+              {entries.length} exercice{entries.length > 1 ? "s" : ""}
+            </span>
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              size="sm"
+              className="gap-2"
+            >
+              {saving ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              ) : (
+                <>
+                  <Save className="h-3.5 w-3.5" />
+                  Enregistrer le template
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       )}
 
