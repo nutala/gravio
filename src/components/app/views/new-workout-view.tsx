@@ -1753,33 +1753,35 @@ function SetRowMobile({
          >
            {mode === "reps" ? "Reps" : "sec"}
          </button>
-         <input
-           type="number"
-           inputMode="decimal"
-           placeholder={mode === "hold" ? "30" : "8"}
-           value={mode === "reps" ? (set.reps ?? "") : (set.holdSeconds ?? "")}
-           onChange={(e) => {
-             const v = e.target.value;
-             const n = v === "" ? undefined : Number(v);
-             onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n });
-           }}
-           className="h-7 w-12 rounded border border-border/60 bg-background px-1 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-           aria-label={`Valeur série ${idx + 1}`}
-         />
-          <div className="flex items-center">
-            <input
-              type="number"
-              inputMode="decimal"
-              step={0.5}
-              placeholder="kg"
-              value={set.weightKg ?? ""}
-              onChange={(e) => {
-                const v = e.target.value;
-                onUpdate({ weightKg: v === "" ? undefined : Number(v) || undefined });
-              }}
-              className="h-7 w-14 rounded-l border border-border/60 bg-background px-1 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-              aria-label={`Poids série ${idx + 1}`}
-            />
+          <input
+            type="text"
+            inputMode="decimal"
+            placeholder={mode === "hold" ? "30" : "8"}
+            value={mode === "reps" ? (set.reps ?? "") : (set.holdSeconds ?? "")}
+            onChange={(e) => {
+              const v = e.target.value;
+              const n = v === "" ? undefined : Number(v);
+              onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n });
+            }}
+            onFocus={(e) => e.target.select()}
+            className="h-7 w-12 rounded border border-border/60 bg-background px-1 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
+            aria-label={`Valeur série ${idx + 1}`}
+          />
+           <div className="flex items-center">
+             <input
+               type="text"
+               inputMode="decimal"
+               step={0.5}
+               placeholder="kg"
+               value={set.weightKg ?? ""}
+               onChange={(e) => {
+                 const v = e.target.value;
+                 onUpdate({ weightKg: v === "" ? undefined : Number(v) || undefined });
+               }}
+               onFocus={(e) => e.target.select()}
+               className="h-7 w-14 rounded-l border border-border/60 bg-background px-1 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
+               aria-label={`Poids série ${idx + 1}`}
+             />
             <button
               type="button"
               onClick={() => onUpdate({ weightKg: -(set.weightKg ?? 0) })}
@@ -1789,7 +1791,7 @@ function SetRowMobile({
             </button>
           </div>
           <input
-            type="number"
+            type="text"
             inputMode="decimal"
             min={1}
             max={10}
@@ -1799,7 +1801,8 @@ function SetRowMobile({
               const v = e.target.value;
               onUpdate({ rpe: v === "" ? undefined : Number(v) || undefined });
             }}
-            className="h-7 w-12 rounded border border-border/60 bg-background px-1 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            onFocus={(e) => e.target.select()}
+            className="h-7 w-12 rounded border border-border/60 bg-background px-1 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
             aria-label={`RPE série ${idx + 1}`}
           />
         </div>
@@ -1856,28 +1859,29 @@ function NumberInput({
    max?: number;
    "aria-label"?: string;
    className?: string;
- }) {
-   return (
-     <Input
-       type="number"
-       inputMode="decimal"
-       step={step}
-       min={min}
-       max={max}
-       placeholder={placeholder}
-       value={value ?? ""}
-       onChange={(e) => {
-         const v = e.target.value;
-         if (v === "") {
-           onChange(undefined);
-           return;
-         }
-         const n = Number(v);
-         if (Number.isNaN(n)) {
-           onChange(undefined);
-           return;
-         }
-         onChange(n);
+  }) {
+    return (
+      <Input
+        type="number"
+        inputMode="decimal"
+        step={step}
+        min={min}
+        max={max}
+        placeholder={placeholder}
+        value={value ?? ""}
+        onFocus={(e) => e.target.select()}
+        onChange={(e) => {
+          const v = e.target.value;
+          if (v === "") {
+            onChange(undefined);
+            return;
+          }
+          const n = Number(v);
+          if (Number.isNaN(n)) {
+            onChange(undefined);
+            return;
+          }
+          onChange(n);
        }}
        className={cn("h-9 w-16 tabular-nums", className)}
        aria-label={ariaLabel}
