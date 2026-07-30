@@ -1727,14 +1727,14 @@ function SetRowMobile({
        exit={{ opacity: 0, x: -20 }}
        transition={{ duration: 0.15 }}
        className={cn(
-         "rounded-lg border px-2.5 py-2 transition-colors space-y-1.5",
+         "rounded-lg border px-3 py-2.5 transition-colors space-y-2",
          validated
            ? "border-emerald-500/40 bg-emerald-500/8"
            : "border-border/60 bg-muted/20",
        )}
      >
        {/* Row 1: Validate + value + weight + RPE + delete */}
-       <div className="flex items-center gap-1.5">
+       <div className="flex items-center gap-2 flex-wrap">
          <ValidateButton
            validated={validated}
            onClick={() => onValidate(!validated)}
@@ -1760,7 +1760,7 @@ function SetRowMobile({
              const n = v === "" ? undefined : Number(v);
              onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n });
            }}
-           className="h-8 w-14 tabular-nums"
+           className="h-8 w-[70px] tabular-nums"
            aria-label={`Valeur série ${idx + 1}`}
          />
          <Input
@@ -1773,7 +1773,7 @@ function SetRowMobile({
              const v = e.target.value;
              onUpdate({ weightKg: v === "" ? undefined : Number(v) || undefined });
            }}
-           className="h-8 w-16 tabular-nums"
+           className="h-8 w-[68px] tabular-nums"
            aria-label={`Poids série ${idx + 1}`}
          />
          <Input
@@ -1787,10 +1787,9 @@ function SetRowMobile({
              const v = e.target.value;
              onUpdate({ rpe: v === "" ? undefined : Number(v) || undefined });
            }}
-           className="h-8 w-12 tabular-nums"
+           className="h-8 w-[64px] tabular-nums"
            aria-label={`RPE série ${idx + 1}`}
          />
-         <div className="flex-1" />
          <Button
            size="icon"
            variant="ghost"
@@ -1803,12 +1802,12 @@ function SetRowMobile({
        </div>
 
        {/* Row 2: variant + rest */}
-       <div className="flex items-center gap-2">
-         {variants.length > 0 && (
+       {variants.length > 0 && (
+         <div className="flex items-center gap-2">
            <select
              value={set.variantId ?? variants[0]?.id ?? ""}
              onChange={(e) => onVariantChange(e.target.value)}
-             className="flex-1 h-7 rounded-md border border-border/60 bg-background px-1.5 text-[11px] tabular-nums text-foreground outline-none focus:ring-2 focus:ring-ring"
+             className="flex-1 h-7 min-w-0 rounded-md border border-border/60 bg-background px-1.5 text-[11px] tabular-nums text-foreground outline-none focus:ring-2 focus:ring-ring"
              aria-label={`Variante série ${idx + 1}`}
            >
              {variants.map((v) => (
@@ -1817,10 +1816,14 @@ function SetRowMobile({
                </option>
              ))}
            </select>
-         )}
-         <div className="flex-1" />
-         <RestButton defaultRestSec={defaultRestSec} validated={validated} />
-       </div>
+           <RestButton defaultRestSec={defaultRestSec} validated={validated} />
+         </div>
+       )}
+       {variants.length === 0 && (
+         <div className="flex justify-end">
+           <RestButton defaultRestSec={defaultRestSec} validated={validated} />
+         </div>
+       )}
      </motion.div>
    );
  }
