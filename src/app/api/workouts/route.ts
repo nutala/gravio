@@ -48,6 +48,7 @@ export async function POST(req: Request) {
     const created = await db.$transaction(async (tx) => {
       const workout = await tx.workout.create({
         data: {
+          id: crypto.randomUUID(),
           date: body.date ? new Date(body.date) : new Date(),
           title: body.title ?? null,
           durationMin: body.durationMin ?? null,
@@ -63,6 +64,7 @@ export async function POST(req: Request) {
         const isCombo = Array.isArray(e.comboSteps) && e.comboSteps.length > 0;
         const entry = await tx.workoutEntry.create({
           data: {
+            id: crypto.randomUUID(),
             workoutId: workout.id,
             exerciseId: e.exerciseId,
             variantId: e.variantId || null,
@@ -78,6 +80,7 @@ export async function POST(req: Request) {
           await tx.workoutSet.createMany({
             data: e.sets.map(
               (s: { variantId?: string | null; reps?: number; holdSeconds?: number; weightKg?: number; rpe?: number }, j: number) => ({
+                id: crypto.randomUUID(),
                 workoutEntryId: entry.id,
                 setNumber: j + 1,
                 variantId: s.variantId || null,

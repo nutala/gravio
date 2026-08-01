@@ -64,6 +64,7 @@ export async function PUT(req: Request, { params }: Params) {
         const isCombo = Array.isArray(e.comboSteps) && e.comboSteps.length > 0;
         const entry = await tx.workoutEntry.create({
           data: {
+            id: crypto.randomUUID(),
             workoutId: workout.id,
             exerciseId: e.exerciseId,
             variantId: e.variantId || null,
@@ -79,6 +80,7 @@ export async function PUT(req: Request, { params }: Params) {
           await tx.workoutSet.createMany({
             data: e.sets.map(
               (s: { variantId?: string | null; reps?: number; holdSeconds?: number; weightKg?: number; rpe?: number }, j: number) => ({
+                id: crypto.randomUUID(),
                 workoutEntryId: entry.id,
                 setNumber: j + 1,
                 variantId: s.variantId || null,

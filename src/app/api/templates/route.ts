@@ -76,6 +76,7 @@ export async function POST(req: Request) {
         const e = body.entries[i];
         await tx.workoutTemplateEntry.create({
           data: {
+            id: crypto.randomUUID(),
             templateId: template.id,
             exerciseId: e.exerciseId,
             variantId: e.variantId || null,
