@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { format } from "date-fns";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, animate } from "framer-motion";
 import {
   PlusCircle,
   Plus,
@@ -1150,20 +1150,23 @@ function EntryCard({
 
   async function handleVariantChange(setId: string, newVariantId: string) {
     const setIndex = sets.findIndex((s) => s.id === setId);
+    const newVariant = sortedVariants.find((v) => v.id === newVariantId);
+    const newMode: "reps" | "hold" = (newVariant as unknown as { mode?: string })?.mode === "hold" ? "hold" : "reps";
     const historySets = await fetchLastSession(exercise.id, newVariantId);
     const historySet = historySets[setIndex];
     if (historySet) {
       onUpdateSet(setId, {
         variantId: newVariantId,
-        mode: historySet.reps != null ? "reps" : historySet.holdSeconds != null ? "hold" : undefined,
-        reps: historySet.reps ?? undefined,
-        holdSeconds: historySet.holdSeconds ?? undefined,
+        mode: newMode,
+        reps: newMode === "reps" ? (historySet.reps ?? undefined) : undefined,
+        holdSeconds: newMode === "hold" ? (historySet.holdSeconds ?? undefined) : undefined,
         weightKg: historySet.weightKg ?? undefined,
         rpe: historySet.rpe ?? undefined,
       });
     } else {
       onUpdateSet(setId, {
         variantId: newVariantId,
+        mode: newMode,
         reps: undefined,
         holdSeconds: undefined,
         weightKg: undefined,
@@ -1411,20 +1414,22 @@ function EntryCard({
               </table>
             </div>
 
-            {/* Mobile: compact table-like layout */}
+            {/* Mobile: compact 2-line rows */}
             <div className="sm:hidden space-y-1">
               {/* Column headers */}
-              {sets.length > 0 && (
-                <div className="flex items-center gap-1 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  <span className="w-7 shrink-0" />
-                  <span className="w-3.5 shrink-0 text-center">#</span>
-                  <span className="w-12 shrink-0 text-right pr-1">{isStatic ? "SEC" : "REPS"}</span>
-                  <span className="w-16 shrink-0 text-right pr-5">KG</span>
-                  <span className="w-12 shrink-0 text-right pr-1">RPE</span>
-                  <span className="flex-1" />
-                  <span className="w-6 shrink-0" />
-                </div>
-              )}
+              {sets.length > 0 && (() => {
+                const firstMode = sets[0]?.mode ?? (isStatic ? "hold" : "reps");
+                return (
+                  <div className="flex items-center gap-1 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <span className="w-7 shrink-0" />
+                    <span className="w-3.5 shrink-0 text-center">#</span>
+                    <span className="flex-1 text-right pr-1">{firstMode === "hold" ? "SEC" : "REPS"}</span>
+                    <span className="w-16 shrink-0 text-right pr-9">KG</span>
+                    <span className="w-10 shrink-0 text-right pr-1">RPE</span>
+                    <span className="w-8 shrink-0" />
+                  </div>
+                );
+              })()}
               {sets.map((set, idx) => (
                 <SetRowMobile
                   key={set.id}
@@ -1649,7 +1654,21 @@ function SetRowMobile({
  }) {
    const validated = set.validated;
    const mode = set.mode ?? (isStatic ? "hold" : "reps");
-   const otherMode = mode === "reps" ? "hold" : "reps";
+
+   const x = useMotionValue(0);
+   const deleteOpacity = useTransform(x, [-100, -60, 0], [1, 0.5, 0]);
+   const [dragging, setDragging] = React.useState(false);
+
+   function handleDragEnd() {
+     setDragging(false);
+     const offset = x.get();
+     const velocity = (x as unknown as { getVelocity?: () => number }).getVelocity?.() ?? 0;
+     if (offset < -60 || velocity < -400) {
+       onRemove();
+     } else {
+       animate(x, 0, { type: "spring", stiffness: 500, damping: 30 });
+     }
+   }
 
    function handleValidate() {
      const nextValidated = !validated;
@@ -1660,122 +1679,114 @@ function SetRowMobile({
    }
 
    return (
-     <motion.div
-       layout
-       initial={{ opacity: 0, y: 4 }}
-       animate={{ opacity: 1, y: 0 }}
-       exit={{ opacity: 0, x: -16 }}
-       transition={{ duration: 0.12 }}
-       className={cn(
-         "flex items-center gap-1 rounded-md px-1 py-0.5 transition-colors",
-         validated
-           ? "bg-emerald-500/8"
-           : "hover:bg-muted/30",
-       )}
-     >
-       {/* Validate */}
-       <ValidateButton
-         validated={validated}
-         onClick={handleValidate}
-         label={`Série ${idx + 1}`}
-       />
-       {/* Set number */}
-       <span className="text-[11px] font-semibold tabular-nums text-muted-foreground w-3.5 shrink-0 text-center">
-         {idx + 1}
-       </span>
-       {/* Value (reps or hold) */}
-       <div className="flex items-center w-12 shrink-0">
-         <input
-           type="text"
-           inputMode="decimal"
-           placeholder={mode === "hold" ? "30" : "8"}
-           value={mode === "reps" ? (set.reps ?? "") : (set.holdSeconds ?? "")}
-           onChange={(e) => {
-             const v = e.target.value;
-             const n = v === "" ? undefined : Number(v);
-             onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n });
-           }}
-           onFocus={(e) => e.target.select()}
-           className="h-7 w-full rounded border border-border/60 bg-background px-1 text-right text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
-           aria-label={`Valeur série ${idx + 1}`}
-         />
-         <button
-           type="button"
-           onClick={() => onUpdate({ mode: otherMode })}
-           className="shrink-0 text-[9px] font-bold uppercase text-muted-foreground/60 hover:text-foreground ml-px"
-           aria-label={`Passer en ${otherMode === "reps" ? "répétitions" : "maintien"}`}
-         >
-           {mode === "reps" ? "r" : "s"}
-         </button>
-       </div>
-       {/* Weight */}
-       <div className="flex items-center w-16 shrink-0">
-         <input
-           type="text"
-           inputMode="decimal"
-           step={0.5}
-           placeholder="0"
-           value={set.weightKg ?? ""}
-           onChange={(e) => {
-             const v = e.target.value;
-             onUpdate({ weightKg: v === "" ? undefined : Number(v) || undefined });
-           }}
-           onFocus={(e) => e.target.select()}
-           className="h-7 w-full rounded-l border border-border/60 bg-background px-1 text-right text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
-           aria-label={`Poids série ${idx + 1}`}
-         />
-         <button
-           type="button"
-           onClick={() => onUpdate({ weightKg: -(set.weightKg ?? 0) })}
-           className="h-7 w-5 flex items-center justify-center rounded-r border border-l-0 border-border/60 bg-muted/40 text-[9px] text-muted-foreground hover:bg-muted transition-colors shrink-0"
-         >
-           ±
-         </button>
-       </div>
-       {/* RPE */}
-       <input
-         type="text"
-         inputMode="decimal"
-         min={1}
-         max={10}
-         placeholder="—"
-         value={set.rpe ?? ""}
-         onChange={(e) => {
-           const v = e.target.value;
-           onUpdate({ rpe: v === "" ? undefined : Number(v) || undefined });
-         }}
-         onFocus={(e) => e.target.select()}
-         className="h-7 w-12 rounded border border-border/60 bg-background px-1 text-right text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring shrink-0"
-         aria-label={`RPE série ${idx + 1}`}
-       />
-       {/* Spacer */}
-       <div className="flex-1 min-w-0">
-         {variants.length > 1 && (
-           <select
-             value={set.variantId ?? variants[0]?.id ?? ""}
-             onChange={(e) => onVariantChange(e.target.value)}
-             className="w-full h-5 rounded border border-border/60 bg-background px-1 text-[9px] tabular-nums text-muted-foreground outline-none focus:ring-1 focus:ring-ring truncate"
-             aria-label={`Variante série ${idx + 1}`}
-           >
-             {variants.map((v) => (
-               <option key={v.id} value={v.id}>
-                 {v.name}
-               </option>
-             ))}
-           </select>
-         )}
-       </div>
-       {/* Delete */}
-       <Button
-         size="icon"
-         variant="ghost"
-         className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
-         onClick={onRemove}
-         aria-label={`Supprimer série ${idx + 1}`}
+     <div className="relative overflow-hidden rounded-lg select-none">
+       {/* Delete background */}
+       <motion.div
+         style={{ opacity: deleteOpacity }}
+         className="absolute inset-0 flex items-center justify-end rounded-lg bg-destructive px-4"
        >
-         <Trash2 className="h-3 w-3" />
-       </Button>
-     </motion.div>
+         <Trash2 className="h-4 w-4 text-destructive-foreground" />
+         <span className="text-xs font-medium text-destructive-foreground ml-1.5">Supprimer</span>
+       </motion.div>
+
+       {/* Swipeable content */}
+       <motion.div
+         style={{ x }}
+         drag="x"
+         dragConstraints={{ left: 0, right: 0 }}
+         dragElastic={0.15}
+         onDragStart={() => setDragging(true)}
+         onDragEnd={handleDragEnd}
+         className={cn(
+           "relative rounded-lg transition-colors",
+           validated
+             ? "bg-emerald-500/8"
+             : "bg-muted/30",
+         )}
+       >
+         {/* Line 1: #, value, kg, rpe, validate */}
+         <div className="flex items-center gap-1 px-1.5 py-1.5">
+           <span className="text-[11px] font-semibold tabular-nums text-muted-foreground w-3.5 shrink-0 text-center">
+             {idx + 1}
+           </span>
+           <input
+             type="text"
+             inputMode="decimal"
+             placeholder={mode === "hold" ? "30" : "8"}
+             value={mode === "reps" ? (set.reps ?? "") : (set.holdSeconds ?? "")}
+             onChange={(e) => {
+               const v = e.target.value;
+               const n = v === "" ? undefined : Number(v);
+               onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n });
+             }}
+             onFocus={(e) => e.target.select()}
+             className="flex-1 h-8 rounded border border-border/60 bg-background px-2 text-center text-sm tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
+             aria-label={`Valeur série ${idx + 1}`}
+           />
+           <div className="flex items-center shrink-0">
+             <input
+               type="text"
+               inputMode="decimal"
+               step={0.5}
+               placeholder="kg"
+               value={set.weightKg ?? ""}
+               onChange={(e) => {
+                 const v = e.target.value;
+                 onUpdate({ weightKg: v === "" ? undefined : Number(v) || undefined });
+               }}
+               onFocus={(e) => e.target.select()}
+               className="h-8 w-14 rounded-l border border-border/60 bg-background px-1.5 text-right text-sm tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
+               aria-label={`Poids série ${idx + 1}`}
+             />
+             <button
+               type="button"
+               onClick={() => onUpdate({ weightKg: -(set.weightKg ?? 0) })}
+               className="h-8 w-5 flex items-center justify-center rounded-r border border-l-0 border-border/60 bg-muted/40 text-[10px] text-muted-foreground hover:bg-muted transition-colors shrink-0"
+             >
+               ±
+             </button>
+           </div>
+           <input
+             type="text"
+             inputMode="decimal"
+             min={1}
+             max={10}
+             placeholder="—"
+             value={set.rpe ?? ""}
+             onChange={(e) => {
+               const v = e.target.value;
+               onUpdate({ rpe: v === "" ? undefined : Number(v) || undefined });
+             }}
+             onFocus={(e) => e.target.select()}
+             className="h-8 w-10 rounded border border-border/60 bg-background px-1 text-right text-sm tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring shrink-0"
+             aria-label={`RPE série ${idx + 1}`}
+           />
+           <ValidateButton
+             validated={validated}
+             onClick={handleValidate}
+             label={`Série ${idx + 1}`}
+           />
+         </div>
+
+         {/* Line 2: variant */}
+         {variants.length > 1 && (
+           <div className="flex items-center gap-1 px-1.5 pb-1.5 pt-0">
+             <select
+               value={set.variantId ?? variants[0]?.id ?? ""}
+               onChange={(e) => onVariantChange(e.target.value)}
+               className="flex-1 h-7 rounded border border-border/60 bg-background px-2 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring truncate"
+               aria-label={`Variante série ${idx + 1}`}
+             >
+               {variants.map((v) => (
+                 <option key={v.id} value={v.id}>
+                   {v.name}
+                 </option>
+               ))}
+             </select>
+           </div>
+         )}
+       </motion.div>
+     </div>
    );
  }
 
