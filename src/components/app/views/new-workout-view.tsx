@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { format } from "date-fns";
-import { motion, AnimatePresence, useMotionValue, animate } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   PlusCircle,
   Plus,
@@ -1655,18 +1655,31 @@ function SetRowMobile({
    const validated = set.validated;
    const mode = set.mode ?? (isStatic ? "hold" : "reps");
 
-   const x = useMotionValue(0);
-   const deleteOpacity = useTransform(x, [-100, -60, 0], [1, 0.5, 0]);
-   const [dragging, setDragging] = React.useState(false);
+   const startX = React.useRef(0);
+   const currentX = React.useRef(0);
+   const [offset, setOffset] = React.useState(0);
+   const [animating, setAnimating] = React.useState(false);
 
-   function handleDragEnd() {
-     setDragging(false);
-     const offset = x.get();
-     const velocity = (x as unknown as { getVelocity?: () => number }).getVelocity?.() ?? 0;
-     if (offset < -60 || velocity < -400) {
+   function handleTouchStart(e: React.TouchEvent) {
+     startX.current = e.touches[0].clientX;
+     currentX.current = 0;
+   }
+
+   function handleTouchMove(e: React.TouchEvent) {
+     const dx = e.touches[0].clientX - startX.current;
+     if (dx < 0) {
+       currentX.current = Math.max(dx, -120);
+       setOffset(currentX.current);
+     }
+   }
+
+   function handleTouchEnd() {
+     if (currentX.current < -60) {
        onRemove();
      } else {
-       animate(x, 0, { type: "spring", stiffness: 500, damping: 30 });
+       setAnimating(true);
+       setOffset(0);
+       setTimeout(() => setAnimating(false), 200);
      }
    }
 
@@ -1681,27 +1694,28 @@ function SetRowMobile({
    return (
      <div className="relative overflow-hidden rounded-lg select-none">
        {/* Delete background */}
-       <motion.div
-         style={{ opacity: deleteOpacity }}
-         className="absolute inset-0 flex items-center justify-end rounded-lg bg-destructive px-4"
+       <div
+         className={cn(
+           "absolute inset-0 flex items-center justify-end rounded-lg bg-destructive px-4 transition-opacity",
+           offset < -30 ? "opacity-100" : "opacity-0",
+         )}
        >
          <Trash2 className="h-4 w-4 text-destructive-foreground" />
          <span className="text-xs font-medium text-destructive-foreground ml-1.5">Supprimer</span>
-       </motion.div>
+       </div>
 
        {/* Swipeable content */}
-       <motion.div
-         style={{ x }}
-         drag="x"
-         dragConstraints={{ left: 0, right: 0 }}
-         dragElastic={0.15}
-         onDragStart={() => setDragging(true)}
-         onDragEnd={handleDragEnd}
+       <div
+         style={{
+           transform: `translateX(${offset}px)`,
+           transition: animating ? "transform 0.2s ease" : "none",
+         }}
+         onTouchStart={handleTouchStart}
+         onTouchMove={handleTouchMove}
+         onTouchEnd={handleTouchEnd}
          className={cn(
-           "relative rounded-lg transition-colors",
-           validated
-             ? "bg-emerald-500/8"
-             : "bg-muted/30",
+           "relative rounded-lg",
+           validated ? "bg-emerald-500/8" : "bg-muted/30",
          )}
        >
          {/* Line 1: #, value, kg, rpe, validate */}
@@ -1785,7 +1799,7 @@ function SetRowMobile({
              </select>
            </div>
          )}
-       </motion.div>
+       </div>
      </div>
    );
  }
