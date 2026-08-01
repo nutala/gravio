@@ -1411,8 +1411,20 @@ function EntryCard({
               </table>
             </div>
 
-            {/* Mobile: stacked cards */}
-            <div className="space-y-2 sm:hidden">
+            {/* Mobile: compact table-like layout */}
+            <div className="sm:hidden space-y-1">
+              {/* Column headers */}
+              {sets.length > 0 && (
+                <div className="flex items-center gap-1 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <span className="w-7 shrink-0" />
+                  <span className="w-3.5 shrink-0 text-center">#</span>
+                  <span className="w-12 shrink-0 text-right pr-1">{isStatic ? "SEC" : "REPS"}</span>
+                  <span className="w-16 shrink-0 text-right pr-5">KG</span>
+                  <span className="w-12 shrink-0 text-right pr-1">RPE</span>
+                  <span className="flex-1" />
+                  <span className="w-6 shrink-0" />
+                </div>
+              )}
               {sets.map((set, idx) => (
                 <SetRowMobile
                   key={set.id}
@@ -1648,116 +1660,121 @@ function SetRowMobile({
    }
 
    return (
-      <motion.div
-        layout
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, x: -20 }}
-        transition={{ duration: 0.15 }}
-        className={cn(
-          "rounded-lg border px-2.5 py-1.5 transition-colors space-y-1.5 overflow-visible",
-          validated
-            ? "border-emerald-500/40 bg-emerald-500/8"
-            : "border-border/60 bg-muted/20",
-        )}
-      >
-        {/* Line 1: main inputs */}
-        <div className="flex items-center gap-1">
-          <ValidateButton
-            validated={validated}
-            onClick={handleValidate}
-            label={`Série ${idx + 1}`}
-          />
-          <span className="text-[11px] font-semibold tabular-nums text-muted-foreground w-3.5 shrink-0 text-center">
-            {idx + 1}
-          </span>
-          <button
-            type="button"
-            onClick={() => onUpdate({ mode: otherMode })}
-            className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground px-1 py-0.5 rounded bg-muted/60 transition-colors"
-          >
-            {mode === "reps" ? "Reps" : "sec"}
-          </button>
-           <input
-             type="text"
-             inputMode="decimal"
-             placeholder={mode === "hold" ? "30" : "8"}
-             value={mode === "reps" ? (set.reps ?? "") : (set.holdSeconds ?? "")}
-             onChange={(e) => {
-               const v = e.target.value;
-               const n = v === "" ? undefined : Number(v);
-               onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n });
-             }}
-             onFocus={(e) => e.target.select()}
-             className="h-7 w-12 rounded border border-border/60 bg-background px-1 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
-             aria-label={`Valeur série ${idx + 1}`}
-           />
-            <div className="flex items-center">
-              <input
-                type="text"
-                inputMode="decimal"
-                step={0.5}
-                placeholder="kg"
-                value={set.weightKg ?? ""}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  onUpdate({ weightKg: v === "" ? undefined : Number(v) || undefined });
-                }}
-                onFocus={(e) => e.target.select()}
-                className="h-7 w-14 rounded-l border border-border/60 bg-background px-1 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
-                aria-label={`Poids série ${idx + 1}`}
-              />
-             <button
-               type="button"
-               onClick={() => onUpdate({ weightKg: -(set.weightKg ?? 0) })}
-               className="h-7 w-5 flex items-center justify-center rounded-r border border-l-0 border-border/60 bg-muted/40 text-[10px] text-muted-foreground hover:bg-muted transition-colors"
-             >
-               ±
-             </button>
-           </div>
-          <input
-            type="text"
-            inputMode="decimal"
-            min={1}
-            max={10}
-            placeholder="RPE"
-            value={set.rpe ?? ""}
-            onChange={(e) => {
-              const v = e.target.value;
-              onUpdate({ rpe: v === "" ? undefined : Number(v) || undefined });
-            }}
-            onFocus={(e) => e.target.select()}
-            className="h-7 w-12 rounded border border-border/60 bg-background px-1 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
-            aria-label={`RPE série ${idx + 1}`}
-          />
-        </div>
-
-        {/* Line 2: variant + delete */}
-        <div className="flex items-center gap-1">
-          {variants.length > 0 && (
-            <select
-              value={set.variantId ?? variants[0]?.id ?? ""}
-              onChange={(e) => onVariantChange(e.target.value)}
-              className="flex-1 h-7 rounded border border-border/60 bg-background px-1.5 text-[11px] tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring truncate min-w-0"
-              aria-label={`Variante série ${idx + 1}`}
-            >
-              {variants.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.name} {difficultyStars(v.difficultyLevel)}
-                </option>
-              ))}
-            </select>
-          )}
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
-            onClick={onRemove}
-            aria-label={`Supprimer série ${idx + 1}`}
-          >
-            <Trash2 className="h-3 w-3" />
-          </Button>
-        </div>
+     <motion.div
+       layout
+       initial={{ opacity: 0, y: 4 }}
+       animate={{ opacity: 1, y: 0 }}
+       exit={{ opacity: 0, x: -16 }}
+       transition={{ duration: 0.12 }}
+       className={cn(
+         "flex items-center gap-1 rounded-md px-1 py-0.5 transition-colors",
+         validated
+           ? "bg-emerald-500/8"
+           : "hover:bg-muted/30",
+       )}
+     >
+       {/* Validate */}
+       <ValidateButton
+         validated={validated}
+         onClick={handleValidate}
+         label={`Série ${idx + 1}`}
+       />
+       {/* Set number */}
+       <span className="text-[11px] font-semibold tabular-nums text-muted-foreground w-3.5 shrink-0 text-center">
+         {idx + 1}
+       </span>
+       {/* Value (reps or hold) */}
+       <div className="flex items-center w-12 shrink-0">
+         <input
+           type="text"
+           inputMode="decimal"
+           placeholder={mode === "hold" ? "30" : "8"}
+           value={mode === "reps" ? (set.reps ?? "") : (set.holdSeconds ?? "")}
+           onChange={(e) => {
+             const v = e.target.value;
+             const n = v === "" ? undefined : Number(v);
+             onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n });
+           }}
+           onFocus={(e) => e.target.select()}
+           className="h-7 w-full rounded border border-border/60 bg-background px-1 text-right text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
+           aria-label={`Valeur série ${idx + 1}`}
+         />
+         <button
+           type="button"
+           onClick={() => onUpdate({ mode: otherMode })}
+           className="shrink-0 text-[9px] font-bold uppercase text-muted-foreground/60 hover:text-foreground ml-px"
+           aria-label={`Passer en ${otherMode === "reps" ? "répétitions" : "maintien"}`}
+         >
+           {mode === "reps" ? "r" : "s"}
+         </button>
+       </div>
+       {/* Weight */}
+       <div className="flex items-center w-16 shrink-0">
+         <input
+           type="text"
+           inputMode="decimal"
+           step={0.5}
+           placeholder="0"
+           value={set.weightKg ?? ""}
+           onChange={(e) => {
+             const v = e.target.value;
+             onUpdate({ weightKg: v === "" ? undefined : Number(v) || undefined });
+           }}
+           onFocus={(e) => e.target.select()}
+           className="h-7 w-full rounded-l border border-border/60 bg-background px-1 text-right text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
+           aria-label={`Poids série ${idx + 1}`}
+         />
+         <button
+           type="button"
+           onClick={() => onUpdate({ weightKg: -(set.weightKg ?? 0) })}
+           className="h-7 w-5 flex items-center justify-center rounded-r border border-l-0 border-border/60 bg-muted/40 text-[9px] text-muted-foreground hover:bg-muted transition-colors shrink-0"
+         >
+           ±
+         </button>
+       </div>
+       {/* RPE */}
+       <input
+         type="text"
+         inputMode="decimal"
+         min={1}
+         max={10}
+         placeholder="—"
+         value={set.rpe ?? ""}
+         onChange={(e) => {
+           const v = e.target.value;
+           onUpdate({ rpe: v === "" ? undefined : Number(v) || undefined });
+         }}
+         onFocus={(e) => e.target.select()}
+         className="h-7 w-12 rounded border border-border/60 bg-background px-1 text-right text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring shrink-0"
+         aria-label={`RPE série ${idx + 1}`}
+       />
+       {/* Spacer */}
+       <div className="flex-1 min-w-0">
+         {variants.length > 1 && (
+           <select
+             value={set.variantId ?? variants[0]?.id ?? ""}
+             onChange={(e) => onVariantChange(e.target.value)}
+             className="w-full h-5 rounded border border-border/60 bg-background px-1 text-[9px] tabular-nums text-muted-foreground outline-none focus:ring-1 focus:ring-ring truncate"
+             aria-label={`Variante série ${idx + 1}`}
+           >
+             {variants.map((v) => (
+               <option key={v.id} value={v.id}>
+                 {v.name}
+               </option>
+             ))}
+           </select>
+         )}
+       </div>
+       {/* Delete */}
+       <Button
+         size="icon"
+         variant="ghost"
+         className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
+         onClick={onRemove}
+         aria-label={`Supprimer série ${idx + 1}`}
+       >
+         <Trash2 className="h-3 w-3" />
+       </Button>
      </motion.div>
    );
  }
