@@ -126,6 +126,7 @@ export const useTimerStore = create<RestTimerStore>()(
 
 /** Preset rest durations offered in the UI (seconds). */
 export const REST_PRESETS = [
+  { sec: 0, label: "Aucun" },
   { sec: 30, label: "30s" },
   { sec: 60, label: "1m" },
   { sec: 90, label: "1m30" },

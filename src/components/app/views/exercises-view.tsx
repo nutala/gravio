@@ -96,6 +96,7 @@ interface ExerciseFormState {
 interface VariantFormState {
   name: string;
   difficultyLevel: number;
+  mode: "reps" | "hold";
   targetValue: number;
   description: string;
 }
@@ -113,6 +114,7 @@ const EMPTY_EXERCISE_FORM: ExerciseFormState = {
 const EMPTY_VARIANT_FORM: VariantFormState = {
   name: "",
   difficultyLevel: 1,
+  mode: "reps",
   targetValue: 0,
   description: "",
 };
@@ -265,27 +267,27 @@ export function ExercisesView() {
     const { exerciseId, variant } = variantContext;
     const name = form.name.trim();
     const difficultyLevel = Number(form.difficultyLevel) || 1;
+    const mode = form.mode;
     const targetValue =
       form.targetValue > 0 ? Number(form.targetValue) : undefined;
     const description = form.description.trim()
       ? form.description.trim()
       : undefined;
     if (variant) {
-      // Update uses Record<string, unknown>; send null to clear optional fields.
       updateVariant.mutate({
         id: variant.id,
         body: {
           name,
           difficultyLevel,
+          mode,
           targetValue: targetValue ?? null,
           description: description ?? null,
         },
       });
     } else {
-      // Create uses typed body with optional fields — use undefined to omit.
       addVariant.mutate({
         exerciseId,
-        body: { name, difficultyLevel, targetValue, description },
+        body: { name, difficultyLevel, mode, targetValue, description },
       });
     }
     setVariantDialogOpen(false);
@@ -1054,6 +1056,7 @@ function VariantFormDialog({
       setForm({
         name: context.variant.name,
         difficultyLevel: context.variant.difficultyLevel ?? 1,
+        mode: (context.variant as unknown as { mode?: string }).mode === "hold" ? "hold" : "reps",
         targetValue: context.variant.targetValue ?? 0,
         description: context.variant.description ?? "",
       });
@@ -1073,7 +1076,7 @@ function VariantFormDialog({
     onSubmit(form);
   };
 
-  const unit = context ? metricUnit(context.isStatic) : "reps";
+  const unit = form.mode === "hold" ? "sec" : "reps";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1100,6 +1103,30 @@ function VariantFormDialog({
               autoFocus
               required
             />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label>Mode de comptage</Label>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={form.mode === "reps" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => update("mode", "reps")}
+              >
+                <Repeat className="h-4 w-4 mr-1.5" />
+                Reps
+              </Button>
+              <Button
+                type="button"
+                variant={form.mode === "hold" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => update("mode", "hold")}
+              >
+                <Clock className="h-4 w-4 mr-1.5" />
+                Hold (sec)
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

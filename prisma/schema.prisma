@@ -75,6 +75,7 @@ model ExerciseVariant {
   exerciseId      String
   name            String
   difficultyLevel Int      @default(1)
+  mode            String   @default("reps")
   description     String?
   targetValue     Int?
   createdAt       DateTime @default(now())

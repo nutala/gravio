@@ -18,12 +18,16 @@ export async function PATCH(req: Request, { params }: Params) {
         ...(body.difficultyLevel !== undefined
           ? { difficultyLevel: Number(body.difficultyLevel) }
           : {}),
+        ...(body.mode !== undefined
+          ? { mode: body.mode === "hold" ? "hold" : "reps" }
+          : {}),
         ...(body.description !== undefined
           ? { description: body.description }
           : {}),
         ...(body.targetValue !== undefined
           ? { targetValue: body.targetValue }
           : {}),
+        updatedAt: new Date(),
       },
     });
     return NextResponse.json(updated);

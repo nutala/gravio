@@ -14,7 +14,6 @@ import {
   Weight,
   Gauge,
   Check,
-  Coffee,
   Link2,
   Link2Off,
   RefreshCw,
@@ -1379,7 +1378,6 @@ function EntryCard({
                     <th className="pb-2 text-left font-medium">Poids (kg)</th>
                     <th className="pb-2 text-left font-medium">RPE</th>
                     <th className="w-20 pb-2 text-center font-medium">Fait</th>
-                    <th className="w-24 pb-2 text-right font-medium">Repos</th>
                     <th className="w-10 pb-2" />
                   </tr>
                 </thead>
@@ -1402,7 +1400,7 @@ function EntryCard({
                   {sets.length === 0 && (
                     <tr>
                       <td
-                        colSpan={sortedVariants.length > 0 ? 8 : 7}
+                        colSpan={sortedVariants.length > 0 ? 7 : 6}
                         className="py-3 text-center text-xs text-muted-foreground"
                       >
                         Aucune série pour le moment — ajoute-en une ci-dessous.
@@ -1482,94 +1480,6 @@ function ValidateButton({
   );
 }
 
-function RestButton({
-  defaultRestSec,
-  validated,
-}: {
-  defaultRestSec: number;
-  validated: boolean;
-}) {
-  const start = useTimerStore((s) => s.start);
-  const [open, setOpen] = React.useState(false);
-  const longPressTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  function handleTouchStart() {
-    longPressTimer.current = setTimeout(() => {
-      setOpen(true);
-    }, 500);
-  }
-
-  function handleTouchEnd() {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  }
-
-  // When the popover is open we show preset buttons; otherwise the main
-  // button starts the default rest timer directly.
-  if (!open) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            type="button"
-            size="sm"
-            variant={validated ? "secondary" : "outline"}
-            className={cn(
-              "h-8 gap-1.5 select-none",
-              validated && "bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/25 dark:text-emerald-400",
-            )}
-            onClick={() => start(defaultRestSec)}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              setOpen(true);
-            }}
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-            onTouchMove={handleTouchEnd}
-          >
-            <Coffee className="h-3.5 w-3.5" />
-            <span className="tabular-nums">{defaultRestSec}s</span>
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="top">
-          <p>Clic : lancer le repos · Clic droit / Appui long : préréglages</p>
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
-
-  return (
-    <div className="flex items-center gap-1 overflow-x-auto rounded-lg border bg-card p-1 shadow-sm [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      {REST_PRESETS.map((p) => (
-        <Button
-          key={p.sec}
-          type="button"
-          size="sm"
-          variant={p.sec === defaultRestSec ? "default" : "ghost"}
-          className="h-7 tabular-nums"
-          onClick={() => {
-            start(p.sec);
-            setOpen(false);
-          }}
-        >
-          {p.label}
-        </Button>
-      ))}
-      <Button
-        type="button"
-        size="sm"
-        variant="ghost"
-        className="h-7 px-2"
-        onClick={() => setOpen(false)}
-      >
-        ✕
-      </Button>
-    </div>
-  );
-}
-
 function SetRowDesktop({
    set,
    idx,
@@ -1596,6 +1506,15 @@ function SetRowDesktop({
    const validated = set.validated;
    const mode = set.mode ?? (isStatic ? "hold" : "reps");
    const otherMode = mode === "reps" ? "hold" : "reps";
+
+   function handleValidate() {
+     const nextValidated = !validated;
+     onValidate(nextValidated);
+     if (nextValidated && defaultRestSec > 0) {
+       useTimerStore.getState().start(defaultRestSec);
+     }
+   }
+
    return (
      <tr
        className={cn(
@@ -1674,12 +1593,9 @@ function SetRowDesktop({
        <td className="py-1.5 text-center">
          <ValidateButton
            validated={validated}
-           onClick={() => onValidate(!validated)}
+           onClick={handleValidate}
            label={`Marquer la série ${idx + 1} comme ${validated ? "non faite" : "faite"}`}
          />
-       </td>
-       <td className="py-1.5 text-right">
-         <RestButton defaultRestSec={defaultRestSec} validated={validated} />
        </td>
        <td className="py-1.5">
          <Button
@@ -1694,7 +1610,7 @@ function SetRowDesktop({
       </td>
     </tr>
   );
-}
+ }
 
 function SetRowMobile({
    set,
@@ -1722,74 +1638,83 @@ function SetRowMobile({
    const validated = set.validated;
    const mode = set.mode ?? (isStatic ? "hold" : "reps");
    const otherMode = mode === "reps" ? "hold" : "reps";
+
+   function handleValidate() {
+     const nextValidated = !validated;
+     onValidate(nextValidated);
+     if (nextValidated && defaultRestSec > 0) {
+       useTimerStore.getState().start(defaultRestSec);
+     }
+   }
+
    return (
-     <motion.div
-       layout
-       initial={{ opacity: 0, y: 8 }}
-       animate={{ opacity: 1, y: 0 }}
-       exit={{ opacity: 0, x: -20 }}
-       transition={{ duration: 0.15 }}
-       className={cn(
-         "rounded-lg border px-2.5 py-1.5 transition-colors space-y-1.5 overflow-visible",
-         validated
-           ? "border-emerald-500/40 bg-emerald-500/8"
-           : "border-border/60 bg-muted/20",
-       )}
-     >
-       {/* Line 1: main inputs */}
-       <div className="flex items-center gap-1">
-         <ValidateButton
-           validated={validated}
-           onClick={() => onValidate(!validated)}
-           label={`Série ${idx + 1}`}
-         />
-         <span className="text-[11px] font-semibold tabular-nums text-muted-foreground w-3.5 shrink-0 text-center">
-           {idx + 1}
-         </span>
-         <button
-           type="button"
-           onClick={() => onUpdate({ mode: otherMode })}
-           className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground px-1 py-0.5 rounded bg-muted/60 transition-colors"
-         >
-           {mode === "reps" ? "Reps" : "sec"}
-         </button>
-          <input
-            type="text"
-            inputMode="decimal"
-            placeholder={mode === "hold" ? "30" : "8"}
-            value={mode === "reps" ? (set.reps ?? "") : (set.holdSeconds ?? "")}
-            onChange={(e) => {
-              const v = e.target.value;
-              const n = v === "" ? undefined : Number(v);
-              onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n });
-            }}
-            onFocus={(e) => e.target.select()}
-            className="h-7 w-12 rounded border border-border/60 bg-background px-1 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
-            aria-label={`Valeur série ${idx + 1}`}
+      <motion.div
+        layout
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, x: -20 }}
+        transition={{ duration: 0.15 }}
+        className={cn(
+          "rounded-lg border px-2.5 py-1.5 transition-colors space-y-1.5 overflow-visible",
+          validated
+            ? "border-emerald-500/40 bg-emerald-500/8"
+            : "border-border/60 bg-muted/20",
+        )}
+      >
+        {/* Line 1: main inputs */}
+        <div className="flex items-center gap-1">
+          <ValidateButton
+            validated={validated}
+            onClick={handleValidate}
+            label={`Série ${idx + 1}`}
           />
-           <div className="flex items-center">
-             <input
-               type="text"
-               inputMode="decimal"
-               step={0.5}
-               placeholder="kg"
-               value={set.weightKg ?? ""}
-               onChange={(e) => {
-                 const v = e.target.value;
-                 onUpdate({ weightKg: v === "" ? undefined : Number(v) || undefined });
-               }}
-               onFocus={(e) => e.target.select()}
-               className="h-7 w-14 rounded-l border border-border/60 bg-background px-1 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
-               aria-label={`Poids série ${idx + 1}`}
-             />
-            <button
-              type="button"
-              onClick={() => onUpdate({ weightKg: -(set.weightKg ?? 0) })}
-              className="h-7 w-5 flex items-center justify-center rounded-r border border-l-0 border-border/60 bg-muted/40 text-[10px] text-muted-foreground hover:bg-muted transition-colors"
-            >
-              ±
-            </button>
-          </div>
+          <span className="text-[11px] font-semibold tabular-nums text-muted-foreground w-3.5 shrink-0 text-center">
+            {idx + 1}
+          </span>
+          <button
+            type="button"
+            onClick={() => onUpdate({ mode: otherMode })}
+            className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground px-1 py-0.5 rounded bg-muted/60 transition-colors"
+          >
+            {mode === "reps" ? "Reps" : "sec"}
+          </button>
+           <input
+             type="text"
+             inputMode="decimal"
+             placeholder={mode === "hold" ? "30" : "8"}
+             value={mode === "reps" ? (set.reps ?? "") : (set.holdSeconds ?? "")}
+             onChange={(e) => {
+               const v = e.target.value;
+               const n = v === "" ? undefined : Number(v);
+               onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n });
+             }}
+             onFocus={(e) => e.target.select()}
+             className="h-7 w-12 rounded border border-border/60 bg-background px-1 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
+             aria-label={`Valeur série ${idx + 1}`}
+           />
+            <div className="flex items-center">
+              <input
+                type="text"
+                inputMode="decimal"
+                step={0.5}
+                placeholder="kg"
+                value={set.weightKg ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  onUpdate({ weightKg: v === "" ? undefined : Number(v) || undefined });
+                }}
+                onFocus={(e) => e.target.select()}
+                className="h-7 w-14 rounded-l border border-border/60 bg-background px-1 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
+                aria-label={`Poids série ${idx + 1}`}
+              />
+             <button
+               type="button"
+               onClick={() => onUpdate({ weightKg: -(set.weightKg ?? 0) })}
+               className="h-7 w-5 flex items-center justify-center rounded-r border border-l-0 border-border/60 bg-muted/40 text-[10px] text-muted-foreground hover:bg-muted transition-colors"
+             >
+               ±
+             </button>
+           </div>
           <input
             type="text"
             inputMode="decimal"
@@ -1807,7 +1732,7 @@ function SetRowMobile({
           />
         </div>
 
-        {/* Line 2: variant + rest + delete */}
+        {/* Line 2: variant + delete */}
         <div className="flex items-center gap-1">
           {variants.length > 0 && (
             <select
@@ -1823,7 +1748,6 @@ function SetRowMobile({
               ))}
             </select>
           )}
-          <RestButton defaultRestSec={defaultRestSec} validated={validated} />
           <Button
             size="icon"
             variant="ghost"

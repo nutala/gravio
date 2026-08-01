@@ -13,11 +13,15 @@ export async function POST(req: Request, { params }: Params) {
   try {
     const variant = await db.exerciseVariant.create({
       data: {
+        id: crypto.randomUUID(),
         exerciseId: id,
         name: body.name.trim(),
         difficultyLevel: Number(body.difficultyLevel ?? 1),
+        mode: body.mode === "hold" ? "hold" : "reps",
         description: body.description ?? null,
         targetValue: body.targetValue ?? null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     });
     return NextResponse.json(variant, { status: 201 });
