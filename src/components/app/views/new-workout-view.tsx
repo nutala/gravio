@@ -1414,19 +1414,18 @@ function EntryCard({
               </table>
             </div>
 
-            {/* Mobile: compact 2-line rows */}
-            <div className="sm:hidden space-y-1">
+            {/* Mobile: compact grid rows */}
+            <div className="sm:hidden space-y-1.5">
               {/* Column headers */}
               {sets.length > 0 && (() => {
                 const firstMode = sets[0]?.mode ?? (isStatic ? "hold" : "reps");
                 return (
-                  <div className="flex items-center gap-1 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    <span className="w-7 shrink-0" />
-                    <span className="w-3.5 shrink-0 text-center">#</span>
-                    <span className="flex-1 text-right pr-1">{firstMode === "hold" ? "SEC" : "REPS"}</span>
-                    <span className="w-16 shrink-0 text-right pr-9">KG</span>
-                    <span className="w-10 shrink-0 text-right pr-1">RPE</span>
-                    <span className="w-8 shrink-0" />
+                  <div className="grid grid-cols-[20px_1fr_64px_44px_32px] items-center gap-1 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <span className="text-center">#</span>
+                    <span className="text-center">{firstMode === "hold" ? "SEC" : "REPS"}</span>
+                    <span className="text-center">KG</span>
+                    <span className="text-center">RPE</span>
+                    <span />
                   </div>
                 );
               })()}
@@ -1719,8 +1718,8 @@ function SetRowMobile({
          )}
        >
          {/* Line 1: #, value, kg, rpe, validate */}
-         <div className="flex items-center gap-1 px-1.5 py-1.5">
-           <span className="text-[11px] font-semibold tabular-nums text-muted-foreground w-3.5 shrink-0 text-center">
+         <div className="grid grid-cols-[20px_1fr_64px_44px_32px] items-center gap-1 px-1 py-1.5">
+           <span className="text-center text-xs font-semibold tabular-nums text-muted-foreground">
              {idx + 1}
            </span>
            <input
@@ -1734,28 +1733,28 @@ function SetRowMobile({
                onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n });
              }}
              onFocus={(e) => e.target.select()}
-             className="flex-1 h-8 rounded border border-border/60 bg-background px-2 text-center text-sm tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
+             className="h-8 w-full rounded border border-border/60 bg-background px-1 text-center text-sm tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
              aria-label={`Valeur série ${idx + 1}`}
            />
-           <div className="flex items-center shrink-0">
+           <div className="flex items-center">
              <input
                type="text"
                inputMode="decimal"
                step={0.5}
-               placeholder="kg"
+               placeholder="0"
                value={set.weightKg ?? ""}
                onChange={(e) => {
                  const v = e.target.value;
                  onUpdate({ weightKg: v === "" ? undefined : Number(v) || undefined });
                }}
                onFocus={(e) => e.target.select()}
-               className="h-8 w-14 rounded-l border border-border/60 bg-background px-1.5 text-right text-sm tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
+               className="h-8 w-full min-w-0 rounded-l border border-border/60 bg-background px-1 text-center text-sm tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
                aria-label={`Poids série ${idx + 1}`}
              />
              <button
                type="button"
                onClick={() => onUpdate({ weightKg: -(set.weightKg ?? 0) })}
-               className="h-8 w-5 flex items-center justify-center rounded-r border border-l-0 border-border/60 bg-muted/40 text-[10px] text-muted-foreground hover:bg-muted transition-colors shrink-0"
+               className="h-8 w-4 shrink-0 flex items-center justify-center rounded-r border border-l-0 border-border/60 bg-muted/40 text-[9px] text-muted-foreground hover:bg-muted transition-colors"
              >
                ±
              </button>
@@ -1772,7 +1771,7 @@ function SetRowMobile({
                onUpdate({ rpe: v === "" ? undefined : Number(v) || undefined });
              }}
              onFocus={(e) => e.target.select()}
-             className="h-8 w-10 rounded border border-border/60 bg-background px-1 text-right text-sm tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring shrink-0"
+             className="h-8 w-full rounded border border-border/60 bg-background px-1 text-center text-sm tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
              aria-label={`RPE série ${idx + 1}`}
            />
            <ValidateButton
@@ -1784,11 +1783,11 @@ function SetRowMobile({
 
          {/* Line 2: variant */}
          {variants.length > 1 && (
-           <div className="flex items-center gap-1 px-1.5 pb-1.5 pt-0">
+           <div className="px-1 pb-1.5">
              <select
                value={set.variantId ?? variants[0]?.id ?? ""}
                onChange={(e) => onVariantChange(e.target.value)}
-               className="flex-1 h-7 rounded border border-border/60 bg-background px-2 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring truncate"
+               className="w-full h-7 rounded border border-border/60 bg-background px-2 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring truncate"
                aria-label={`Variante série ${idx + 1}`}
              >
                {variants.map((v) => (
