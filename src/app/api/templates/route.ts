@@ -69,6 +69,8 @@ export async function POST(req: Request) {
           name: body.name.trim(),
           notes: body.notes ?? null,
           userId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
       });
 

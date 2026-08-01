@@ -86,7 +86,7 @@ export async function PUT(req: Request, { params }: Params) {
 
       return tx.workoutTemplate.update({
         where: { id },
-        data: { name: body.name.trim(), notes: body.notes ?? null },
+        data: { name: body.name.trim(), notes: body.notes ?? null, updatedAt: new Date() },
         include: {
           entries: {
             include: { exercise: true, variant: true },

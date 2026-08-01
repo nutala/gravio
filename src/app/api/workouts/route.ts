@@ -56,6 +56,8 @@ export async function POST(req: Request) {
           bodyweightKg: body.bodyweightKg ?? null,
           notes: body.notes ?? null,
           userId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
       });
 
@@ -74,6 +76,7 @@ export async function POST(req: Request) {
             comboSteps: isCombo ? e.comboSteps : [],
             comboWeightKg: isCombo ? (e.weightKg ?? null) : null,
             comboRpe: isCombo ? (e.rpe ?? null) : null,
+            createdAt: new Date(),
           },
         });
         if (!isCombo) {
@@ -88,6 +91,7 @@ export async function POST(req: Request) {
                 holdSeconds: s.holdSeconds ?? null,
                 weightKg: s.weightKg ?? null,
                 rpe: s.rpe ?? null,
+                createdAt: new Date(),
               }),
             ),
           });

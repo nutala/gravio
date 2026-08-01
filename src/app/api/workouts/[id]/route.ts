@@ -52,6 +52,7 @@ export async function PUT(req: Request, { params }: Params) {
             ? { bodyweightKg: body.bodyweightKg }
             : {}),
           ...(body.notes !== undefined ? { notes: body.notes } : {}),
+          updatedAt: new Date(),
         },
       });
 
@@ -74,6 +75,7 @@ export async function PUT(req: Request, { params }: Params) {
             comboSteps: isCombo ? e.comboSteps : [],
             comboWeightKg: isCombo ? (e.weightKg ?? null) : null,
             comboRpe: isCombo ? (e.rpe ?? null) : null,
+            createdAt: new Date(),
           },
         });
         if (!isCombo) {
@@ -88,6 +90,7 @@ export async function PUT(req: Request, { params }: Params) {
                 holdSeconds: s.holdSeconds ?? null,
                 weightKg: s.weightKg ?? null,
                 rpe: s.rpe ?? null,
+                createdAt: new Date(),
               }),
             ),
           });
@@ -135,6 +138,7 @@ export async function PATCH(req: Request, { params }: Params) {
           ? { bodyweightKg: body.bodyweightKg }
           : {}),
         ...(body.notes !== undefined ? { notes: body.notes } : {}),
+        updatedAt: new Date(),
       },
     });
     return NextResponse.json(updated);
