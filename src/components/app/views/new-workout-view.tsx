@@ -1667,13 +1667,13 @@ function SetRowMobile({
    function handleTouchMove(e: React.TouchEvent) {
      const dx = e.touches[0].clientX - startX.current;
      if (dx < 0) {
-       currentX.current = Math.max(dx, -120);
+       currentX.current = Math.max(dx, -160);
        setOffset(currentX.current);
      }
    }
 
    function handleTouchEnd() {
-     if (currentX.current < -60) {
+     if (currentX.current < -100) {
        onRemove();
      } else {
        setAnimating(true);
@@ -1696,7 +1696,7 @@ function SetRowMobile({
        <div
          className={cn(
            "absolute inset-0 flex items-center justify-end rounded-lg bg-destructive px-4 transition-opacity",
-           offset < -30 ? "opacity-100" : "opacity-0",
+           offset < -60 ? "opacity-100" : "opacity-0",
          )}
        >
          <Trash2 className="h-4 w-4 text-destructive-foreground" />
@@ -1792,7 +1792,7 @@ function SetRowMobile({
              >
                {variants.map((v) => (
                  <option key={v.id} value={v.id}>
-                   {v.name}
+                   {v.name} {difficultyStars(v.difficultyLevel)}
                  </option>
                ))}
              </select>
