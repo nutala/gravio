@@ -155,12 +155,12 @@ export function GuideView() {
         subtitle="C'est ici que tu enregistres tout ton entraînement."
         items={[
           "Ajoute des exercices : le premier sera pré-rempli avec ta dernière performance.",
-          "Ajoute, valide (✓) ou supprime une série. Ajuste ensuite reps, maintien, poids (kg/lb) et RPE.",
+          "Ajoute, valide (✓) ou supprime une série. Ajuste ensuite les reps, le maintien, le poids (kg/lb) et le RPE.",
           "Choisis la variante de chaque série depuis l'arbre de progression.",
           "Lance un minuteur de repos entre les séries — il flotte sur toutes les vues.",
           "Relie deux exercices en superset pour les noter ensemble.",
           "Crée des Combos multi-étapes (plusieurs mouvements dans une série), chaque étape en ✓ ou ✗.",
-          "Charge un template pour repartir d'une séance préparée, ou refais une séance passéée en un clic.",
+          "Charge un template pour préparer une séance, ou rejoue une séance passée depuis l'historique.",
           "Travaille hors-ligne : tes séances sont mises en file d'attente et synchronisées au retour du réseau.",
           "Utilise les raccourcis clavier (cheatsheet) pour aller plus vite.",
         ]}
