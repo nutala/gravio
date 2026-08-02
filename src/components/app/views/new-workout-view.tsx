@@ -1203,10 +1203,10 @@ function EntryCard({
   return (
     <Card
       data-entry-id={entry.id}
-      className={cn(
-        "overflow-hidden transition-shadow",
-        inSuperset && "shadow-sm",
-      )}
+       className={cn(
+         "overflow-hidden py-3 transition-shadow",
+         inSuperset && "shadow-sm",
+       )}
       style={
         inSuperset && ssColor
           ? { borderLeftColor: ssColor, borderLeftWidth: 4 }
