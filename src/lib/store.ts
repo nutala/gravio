@@ -11,7 +11,8 @@ export type ViewId =
   | "settings"
   | "exercise-detail"
   | "templates"
-  | "template-editor";
+  | "template-editor"
+  | "guide";
 
 interface AppState {
   view: ViewId;

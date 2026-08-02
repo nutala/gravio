@@ -15,6 +15,7 @@ import { ProfileView } from "@/components/app/views/profile-view";
 import { TemplatesView } from "@/components/app/views/templates-view";
 import { TemplateEditorView } from "@/components/app/views/template-editor-view";
 import { SettingsView } from "@/components/app/views/settings-view";
+import { GuideView } from "@/components/app/views/guide-view";
 
 export default function Home() {
   const { data: session, status } = useSession();
@@ -72,6 +73,8 @@ function ViewRouter({ view }: { view: ReturnType<typeof useAppStore.getState>["v
       return <TemplatesView />;
     case "template-editor":
       return <TemplateEditorView />;
+    case "guide":
+      return <GuideView />;
     default:
       return <DashboardView />;
   }

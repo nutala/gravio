@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { signOut, useSession } from "next-auth/react";
-import { LogOut, User } from "lucide-react";
+import { BookOpen, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -102,6 +102,13 @@ export function UserMenu() {
           >
             <User className="h-4 w-4" />
             Mon Profil
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => useAppStore.getState().setView("guide")}
+            className="gap-2"
+          >
+            <BookOpen className="h-4 w-4" />
+            Guide
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
