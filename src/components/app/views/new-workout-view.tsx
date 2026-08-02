@@ -1149,6 +1149,17 @@ function EntryCard({
   const ssLabel = supersetLabel(supersetGroup);
   const inSuperset = supersetGroup != null;
 
+  const [pendingDelete, setPendingDelete] = React.useState<string | null>(null);
+
+  function requestDeleteSet(setId: string) {
+    setPendingDelete(setId);
+  }
+
+  function getSetNumber(setId: string | null, list: typeof sets) {
+    const i = list.findIndex((s) => s.id === setId);
+    return i === -1 ? "" : `#${i + 1}`;
+  }
+
   async function handleAddSet() {
     // Read latest entry from store (not closure) to avoid race conditions
     // when handleVariantChange (async) hasn't resolved yet.
@@ -1415,7 +1426,7 @@ function EntryCard({
                       defaultRestSec={defaultRestSec}
                       variants={sortedVariants}
                       onUpdate={(patch) => onUpdateSet(set.id, patch)}
-                      onRemove={() => onRemoveSet(set.id)}
+                      onRemove={() => requestDeleteSet(set.id)}
                       onValidate={(v) => onValidateSet(set.id, v)}
                       onVariantChange={(vid) => handleVariantChange(set.id, vid)}
                     />
@@ -1457,7 +1468,7 @@ function EntryCard({
                   defaultRestSec={defaultRestSec}
                   variants={sortedVariants}
                   onUpdate={(patch) => onUpdateSet(set.id, patch)}
-                  onRemove={() => onRemoveSet(set.id)}
+                  onRemove={() => requestDeleteSet(set.id)}
                   onValidate={(v) => onValidateSet(set.id, v)}
                   onVariantChange={(vid) => handleVariantChange(set.id, vid)}
                   onDuplicate={() => {
@@ -1485,7 +1496,29 @@ function EntryCard({
              </Button>
            </>
          )}
-       </CardContent>
+</CardContent>
+       <AlertDialog open={!!pendingDelete} onOpenChange={() => setPendingDelete(null)}>
+         <AlertDialogContent>
+           <AlertDialogHeader>
+             <AlertDialogTitle>Supprimer cette série ?</AlertDialogTitle>
+             <AlertDialogDescription>
+               Voulez-vous supprimer la série {getSetNumber(pendingDelete, sets)} ?
+             </AlertDialogDescription>
+           </AlertDialogHeader>
+           <AlertDialogFooter>
+             <AlertDialogCancel>Annuler</AlertDialogCancel>
+             <AlertDialogAction
+               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+               onClick={() => {
+                 if (pendingDelete) onRemoveSet(pendingDelete);
+                 setPendingDelete(null);
+               }}
+             >
+               Supprimer
+             </AlertDialogAction>
+           </AlertDialogFooter>
+         </AlertDialogContent>
+       </AlertDialog>
     </Card>
   );
 }
