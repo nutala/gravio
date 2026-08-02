@@ -1390,16 +1390,16 @@ function EntryCard({
           <>
             {/* Desktop: inline table */}
             <div className="hidden sm:block">
-              <table className="w-full table-fixed text-sm">
+              <table className="w-full text-sm">
                 <thead>
                   <tr className="text-xs uppercase text-muted-foreground">
-                    <th className="w-8 pb-2 text-left font-medium">Série</th>
-                    <th className="w-[30%] pb-2 text-left font-medium">Valeur</th>
+                    <th className="w-10 pb-2 text-left font-medium">Série</th>
+                    <th className="pb-2 text-left font-medium">Valeur</th>
                     {sortedVariants.length > 0 && (
-                      <th className="w-40 pb-2 text-left font-medium">Var.</th>
+                      <th className="w-20 pb-2 text-left font-medium">Var.</th>
                     )}
-                    <th className="w-[24%] pb-2 text-left font-medium">Poids (kg)</th>
-                    <th className="w-[14%] pb-2 text-left font-medium">RPE</th>
+                    <th className="pb-2 text-left font-medium">Poids (kg)</th>
+                    <th className="pb-2 text-left font-medium">RPE</th>
                     <th className="w-20 pb-2 text-center font-medium">Fait</th>
                     <th className="w-10 pb-2" />
                   </tr>
@@ -1575,7 +1575,6 @@ function SetRowDesktop({
               onChange={(n) =>
                 onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n })
               }
-              className="w-full"
             />
             <span className="text-[9px] font-bold uppercase text-muted-foreground/50 tabular-nums shrink-0">
               {mode === "hold" ? "sec" : "reps"}
@@ -1587,7 +1586,7 @@ function SetRowDesktop({
            <select
              value={set.variantId ?? variants[0]?.id}
              onChange={(e) => onVariantChange(e.target.value)}
-             className="h-8 w-full rounded-md border border-border/60 bg-background px-1.5 text-[11px] tabular-nums text-foreground outline-none focus:ring-2 focus:ring-ring"
+             className="h-8 w-36 rounded-md border border-border/60 bg-background px-1.5 text-[11px] tabular-nums text-foreground outline-none focus:ring-2 focus:ring-ring"
              aria-label={`Variante pour la série ${idx + 1}`}
            >
              {variants.map((v) => (
@@ -1606,12 +1605,11 @@ function SetRowDesktop({
               step={0.5}
               aria-label={`Poids pour la série ${idx + 1}`}
               onChange={(n) => onUpdate({ weightKg: n })}
-              className="w-full"
             />
             <button
               type="button"
               onClick={() => onUpdate({ weightKg: -(set.weightKg ?? 0) })}
-              className="flex h-8 w-4 items-center justify-center rounded border border-border/60 text-[10px] tabular-nums text-muted-foreground hover:bg-muted shrink-0"
+              className="flex h-8 w-4 items-center justify-center rounded border border-border/60 text-[10px] tabular-nums text-muted-foreground hover:bg-muted"
               aria-label="Inverser le signe du poids"
             >
               ±
@@ -1626,7 +1624,6 @@ function SetRowDesktop({
             max={10}
             aria-label={`RPE pour la série ${idx + 1}`}
             onChange={(n) => onUpdate({ rpe: n })}
-            className="w-full"
           />
         </td>
        <td className="py-1.5 text-center">
