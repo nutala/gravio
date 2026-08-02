@@ -1362,7 +1362,7 @@ function EntryCard({
         )}
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 px-2 sm:px-6">
         <Input
           placeholder="Indices d'exécution..."
           value={notes}
