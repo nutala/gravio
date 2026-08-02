@@ -1416,11 +1416,11 @@ function EntryCard({
 
             {/* Mobile: compact grid rows */}
             <div className="sm:hidden space-y-1.5">
-              {/* Column headers — mode label shown per row */}
+              {/* Column headers */}
               {sets.length > 0 && (
                 <div className="grid grid-cols-[20px_1fr_24px_64px_44px_32px] items-center gap-0.5 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
                   <span className="text-center">#</span>
-                  <span />
+                  <span className="text-center">Valeur</span>
                   <span />
                   <span className="text-center">KG</span>
                   <span className="text-center">RPE</span>
@@ -1440,6 +1440,16 @@ function EntryCard({
                   onRemove={() => onRemoveSet(set.id)}
                   onValidate={(v) => onValidateSet(set.id, v)}
                   onVariantChange={(vid) => handleVariantChange(set.id, vid)}
+                  onDuplicate={() => {
+                    draft.addSet(entry.id, {
+                      variantId: set.variantId,
+                      mode: set.mode,
+                      reps: set.reps,
+                      holdSeconds: set.holdSeconds,
+                      weightKg: set.weightKg,
+                      rpe: set.rpe,
+                    });
+                  }}
                 />
               ))}
               {sets.length === 0 && (
@@ -1637,6 +1647,7 @@ function SetRowMobile({
    onRemove,
    onValidate,
    onVariantChange,
+   onDuplicate,
  }: {
    set: DraftSet;
    idx: number;
@@ -1648,6 +1659,7 @@ function SetRowMobile({
    onRemove: () => void;
    onValidate: (validated: boolean) => void;
    onVariantChange: (variantId: string) => void;
+   onDuplicate: () => void;
  }) {
    const validated = set.validated;
    const mode = set.mode ?? (isStatic ? "hold" : "reps");
@@ -1664,15 +1676,19 @@ function SetRowMobile({
 
    function handleTouchMove(e: React.TouchEvent) {
      const dx = e.touches[0].clientX - startX.current;
-     if (dx < 0) {
-       currentX.current = Math.max(dx, -200);
-       setOffset(currentX.current);
-     }
+     const clamped = Math.max(-200, Math.min(dx, 120));
+     currentX.current = clamped;
+     setOffset(clamped);
    }
 
    function handleTouchEnd() {
      if (currentX.current < -130) {
        onRemove();
+     } else if (currentX.current > 80) {
+       onDuplicate();
+       setAnimating(true);
+       setOffset(0);
+       setTimeout(() => setAnimating(false), 200);
      } else {
        setAnimating(true);
        setOffset(0);
@@ -1690,7 +1706,7 @@ function SetRowMobile({
 
    return (
      <div className="relative overflow-hidden rounded-lg select-none">
-       {/* Delete background */}
+       {/* Delete background (left swipe) */}
        <div
          className={cn(
            "absolute inset-0 flex items-center justify-end rounded-lg bg-destructive px-4 transition-opacity",
@@ -1699,6 +1715,17 @@ function SetRowMobile({
        >
          <Trash2 className="h-4 w-4 text-destructive-foreground" />
          <span className="text-xs font-medium text-destructive-foreground ml-1.5">Supprimer</span>
+       </div>
+
+       {/* Duplicate background (right swipe) */}
+       <div
+         className={cn(
+           "absolute inset-0 flex items-center justify-start rounded-lg bg-primary/80 px-4 transition-opacity",
+           offset > 60 ? "opacity-100" : "opacity-0",
+         )}
+       >
+         <Plus className="h-4 w-4 text-primary-foreground" />
+         <span className="text-xs font-medium text-primary-foreground ml-1.5">Dupliquer</span>
        </div>
 
        {/* Swipeable content */}
