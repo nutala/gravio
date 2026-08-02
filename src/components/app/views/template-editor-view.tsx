@@ -80,21 +80,19 @@ function uid() {
   return `te-${_eid}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
-function firstVariantId(exercise: ExerciseWithVariants): string | null {
-  const sorted = exercise.variants
-    ?.slice()
-    .sort((a, b) => a.difficultyLevel - b.difficultyLevel);
-  return sorted?.[0]?.id ?? null;
-}
-
 function makeDefaultSet(
   exercise: ExerciseWithVariants,
   prev?: EditorSet,
 ): EditorSet {
+  const firstVariant = exercise.variants
+    ?.slice()
+    .sort((a, b) => a.difficultyLevel - b.difficultyLevel)[0];
+  const firstVariantId = prev?.variantId ?? firstVariant?.id ?? null;
+  const variantMode = (firstVariant as unknown as { mode?: string })?.mode;
   return {
     id: uid(),
-    isHold: exercise.isStatic,
-    variantId: prev?.variantId ?? firstVariantId(exercise),
+    isHold: variantMode === "hold" ? true : variantMode === "reps" ? false : exercise.isStatic,
+    variantId: firstVariantId,
     targetReps: prev?.targetReps ?? undefined,
     targetHoldSeconds: prev?.targetHoldSeconds ?? undefined,
     targetWeightKg: prev?.targetWeightKg ?? undefined,
@@ -151,31 +149,41 @@ export function TemplateEditorView() {
             setName(data.name ?? "");
             setNotes(data.notes ?? "");
             setEntries(
-              data.entries?.map((e: Record<string, unknown>) => ({
-                id: uid(),
-                exerciseId: e.exerciseId as string,
-                supersetGroup: (e.supersetGroup as number) ?? null,
-                notes: (e.notes as string) ?? "",
-                sets: ((e.sets as Array<Record<string, unknown>>) ?? []).map(
-                  (s, _si, arr) => {
-                    const prev = _si > 0 ? arr[_si - 1] : undefined;
-                    return {
-                      id: uid(),
-                      isHold: (s.isHold as boolean) ?? false,
-                      variantId:
-                        (s.variantId as string) ??
+              data.entries?.map((e: Record<string, unknown>) => {
+                const ex = exerciseMap.get(e.exerciseId as string);
+                const sortedVar = ex?.variants
+                  ?.slice()
+                  .sort((a, b) => a.difficultyLevel - b.difficultyLevel);
+                return {
+                  id: uid(),
+                  exerciseId: e.exerciseId as string,
+                  supersetGroup: (e.supersetGroup as number) ?? null,
+                  notes: (e.notes as string) ?? "",
+                  sets: ((e.sets as Array<Record<string, unknown>>) ?? []).map(
+                    (s, _si, arr) => {
+                      const prev = _si > 0 ? arr[_si - 1] : undefined;
+                      const vId = (s.variantId as string) ??
                         (prev?.variantId as string | undefined) ??
-                        null,
-                      targetReps: s.targetReps as number | undefined,
-                      targetHoldSeconds:
-                        s.targetHoldSeconds as number | undefined,
-                      targetWeightKg: s.targetWeightKg as number | undefined,
-                      targetRpe: s.targetRpe as number | undefined,
-                    };
-                  },
-                ),
-                comboSteps: (Array.isArray(e.comboSteps) ? e.comboSteps : []) as ComboStep[],
-              })),
+                        (e.variantId as string | undefined) ??
+                        sortedVar?.[0]?.id ??
+                        null;
+                      const matchedVariant = sortedVar?.find((v) => v.id === vId);
+                      const variantMode = (matchedVariant as unknown as { mode?: string })?.mode;
+                      return {
+                        id: uid(),
+                        isHold: variantMode === "hold" ? true : variantMode === "reps" ? false : (ex?.isStatic ?? false),
+                        variantId: vId,
+                        targetReps: s.targetReps as number | undefined,
+                        targetHoldSeconds:
+                          s.targetHoldSeconds as number | undefined,
+                        targetWeightKg: s.targetWeightKg as number | undefined,
+                        targetRpe: s.targetRpe as number | undefined,
+                      };
+                    },
+                  ),
+                  comboSteps: (Array.isArray(e.comboSteps) ? e.comboSteps : []) as ComboStep[],
+                };
+              }),
             );
           }
           loaded.current = true;
@@ -679,11 +687,17 @@ export function TemplateEditorView() {
                             {sortedVariants && sortedVariants.length > 1 && (
                               <select
                                 value={s.variantId ?? sortedVariants[0]?.id ?? ""}
-                                onChange={(ev) =>
+                                onChange={(ev) => {
+                                  const newVariantId = ev.target.value || null;
+                                  const selectedVariant = sortedVariants.find(
+                                    (v) => v.id === newVariantId,
+                                  );
+                                  const variantMode = (selectedVariant as unknown as { mode?: string })?.mode;
                                   updateSet(entryId, s.id, {
-                                    variantId: ev.target.value || null,
-                                  })
-                                }
+                                    variantId: newVariantId,
+                                    isHold: variantMode === "hold" ? true : variantMode === "reps" ? false : isStatic,
+                                  });
+                                }}
                                 className="w-full h-7 rounded border border-border/60 bg-background px-2 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring truncate"
                               >
                                 {sortedVariants.map((v) => (

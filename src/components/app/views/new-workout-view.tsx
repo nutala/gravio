@@ -876,9 +876,22 @@ export function NewWorkoutView() {
             </DialogDescription>
           </DialogHeader>
           {!templates || templates.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">
-              Aucun template disponible. Crée-en un depuis la page Templates.
-            </p>
+            <div className="flex flex-col items-center gap-3 py-4">
+              <p className="text-sm text-muted-foreground text-center">
+                Aucun template disponible.
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setTemplatePickerOpen(false);
+                  useAppStore.getState().viewTemplateEditor();
+                }}
+                className="gap-2"
+              >
+                <PlusCircle className="h-4 w-4" />
+                Créer un template
+              </Button>
+            </div>
           ) : (
             <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
               {templates.map((tpl) => (
@@ -918,6 +931,18 @@ export function NewWorkoutView() {
                   </div>
                 </button>
               ))}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setTemplatePickerOpen(false);
+                  useAppStore.getState().viewTemplateEditor();
+                }}
+                className="w-full gap-2 text-muted-foreground"
+              >
+                <PlusCircle className="h-4 w-4" />
+                Créer un template
+              </Button>
             </div>
           )}
         </DialogContent>
