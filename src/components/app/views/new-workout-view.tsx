@@ -1416,19 +1416,17 @@ function EntryCard({
 
             {/* Mobile: compact grid rows */}
             <div className="sm:hidden space-y-1.5">
-              {/* Column headers */}
-              {sets.length > 0 && (() => {
-                const firstMode = sets[0]?.mode ?? (isStatic ? "hold" : "reps");
-                return (
-                  <div className="grid grid-cols-[20px_1fr_64px_44px_32px] items-center gap-1 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    <span className="text-center">#</span>
-                    <span className="text-center">{firstMode === "hold" ? "SEC" : "REPS"}</span>
-                    <span className="text-center">KG</span>
-                    <span className="text-center">RPE</span>
-                    <span />
-                  </div>
-                );
-              })()}
+              {/* Column headers — mode label shown per row */}
+              {sets.length > 0 && (
+                <div className="grid grid-cols-[20px_1fr_24px_64px_44px_32px] items-center gap-0.5 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <span className="text-center">#</span>
+                  <span />
+                  <span />
+                  <span className="text-center">KG</span>
+                  <span className="text-center">RPE</span>
+                  <span />
+                </div>
+              )}
               {sets.map((set, idx) => (
                 <SetRowMobile
                   key={set.id}
@@ -1667,13 +1665,13 @@ function SetRowMobile({
    function handleTouchMove(e: React.TouchEvent) {
      const dx = e.touches[0].clientX - startX.current;
      if (dx < 0) {
-       currentX.current = Math.max(dx, -160);
+       currentX.current = Math.max(dx, -200);
        setOffset(currentX.current);
      }
    }
 
    function handleTouchEnd() {
-     if (currentX.current < -100) {
+     if (currentX.current < -130) {
        onRemove();
      } else {
        setAnimating(true);
@@ -1696,7 +1694,7 @@ function SetRowMobile({
        <div
          className={cn(
            "absolute inset-0 flex items-center justify-end rounded-lg bg-destructive px-4 transition-opacity",
-           offset < -60 ? "opacity-100" : "opacity-0",
+           offset < -80 ? "opacity-100" : "opacity-0",
          )}
        >
          <Trash2 className="h-4 w-4 text-destructive-foreground" />
@@ -1717,8 +1715,8 @@ function SetRowMobile({
            validated ? "bg-emerald-500/8" : "bg-muted/30",
          )}
        >
-         {/* Line 1: #, value, kg, rpe, validate */}
-         <div className="grid grid-cols-[20px_1fr_64px_44px_32px] items-center gap-1 px-1 py-1.5">
+         {/* Line 1: #, value, mode label, kg, rpe, validate */}
+         <div className="grid grid-cols-[20px_1fr_24px_64px_44px_32px] items-center gap-0.5 px-1 py-1.5">
            <span className="text-center text-xs font-semibold tabular-nums text-muted-foreground">
              {idx + 1}
            </span>
@@ -1736,6 +1734,9 @@ function SetRowMobile({
              className="h-8 w-full rounded border border-border/60 bg-background px-1 text-center text-sm tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
              aria-label={`Valeur série ${idx + 1}`}
            />
+           <span className="text-[9px] font-bold uppercase text-muted-foreground/50 text-center leading-none">
+             {mode === "hold" ? "sec" : "reps"}
+           </span>
            <div className="flex items-center">
              <input
                type="text"
