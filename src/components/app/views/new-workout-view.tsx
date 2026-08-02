@@ -1467,6 +1467,7 @@ function EntryCard({
                   metricLabel={metricLabel}
                   defaultRestSec={defaultRestSec}
                   variants={sortedVariants}
+                  pendingDelete={pendingDelete}
                   onUpdate={(patch) => onUpdateSet(set.id, patch)}
                   onRemove={() => requestDeleteSet(set.id)}
                   onValidate={(v) => onValidateSet(set.id, v)}
@@ -1682,37 +1683,50 @@ function SetRowDesktop({
  }
 
 function SetRowMobile({
-   set,
-   idx,
-   isStatic,
-   metricLabel,
-   defaultRestSec,
-   variants,
-   onUpdate,
-   onRemove,
-   onValidate,
-   onVariantChange,
-   onDuplicate,
- }: {
-   set: DraftSet;
-   idx: number;
-   isStatic: boolean;
-   metricLabel: string;
-   defaultRestSec: number;
-   variants: { id: string; name: string; difficultyLevel: number }[];
-   onUpdate: (patch: Partial<DraftSet>) => void;
-   onRemove: () => void;
-   onValidate: (validated: boolean) => void;
-   onVariantChange: (variantId: string) => void;
-   onDuplicate: () => void;
- }) {
+    set,
+    idx,
+    isStatic,
+    metricLabel,
+    defaultRestSec,
+    variants,
+    pendingDelete,
+    onUpdate,
+    onRemove,
+    onValidate,
+    onVariantChange,
+    onDuplicate,
+  }: {
+    set: DraftSet;
+    idx: number;
+    isStatic: boolean;
+    metricLabel: string;
+    defaultRestSec: number;
+    variants: { id: string; name: string; difficultyLevel: number }[];
+    pendingDelete: string | null;
+    onUpdate: (patch: Partial<DraftSet>) => void;
+    onRemove: () => void;
+    onValidate: (validated: boolean) => void;
+    onVariantChange: (variantId: string) => void;
+    onDuplicate: () => void;
+  }) {
    const validated = set.validated;
    const mode = set.mode ?? (isStatic ? "hold" : "reps");
 
-   const startX = React.useRef(0);
-   const currentX = React.useRef(0);
-   const [offset, setOffset] = React.useState(0);
-   const [animating, setAnimating] = React.useState(false);
+const startX = React.useRef(0);
+    const currentX = React.useRef(0);
+    const [offset, setOffset] = React.useState(0);
+    const [animating, setAnimating] = React.useState(false);
+
+    // Reset swipe when dialog is dismissed
+    const prevPendingDelete = React.useRef(pendingDelete);
+    React.useEffect(() => {
+      if (prevPendingDelete.current === set.id && pendingDelete === null) {
+        setAnimating(true);
+        setOffset(0);
+        setTimeout(() => setAnimating(false), 200);
+      }
+      prevPendingDelete.current = pendingDelete;
+    }, [pendingDelete, set.id]);
 
    function handleTouchStart(e: React.TouchEvent) {
      startX.current = e.touches[0].clientX;
