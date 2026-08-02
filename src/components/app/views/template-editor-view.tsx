@@ -608,117 +608,225 @@ export function TemplateEditorView() {
                     />
                   ) : (
                     <>
-                      {/* Column headers */}
-                      {e.sets.length > 0 && (
-                        <div className="grid grid-cols-[20px_1fr_24px_1fr_32px] items-center gap-0.5 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          <span className="text-center">#</span>
-                          <span className="text-center">Valeur</span>
-                          <span />
-                          <span className="text-center">KG</span>
-                          <span />
-                        </div>
-                      )}
-                      {e.sets.map((s, sIdx) => {
-                        const isHold = s.isHold ?? isStatic;
-                        const mode = isHold ? "hold" : "reps";
-                        const metricValue =
-                          mode === "reps"
-                            ? s.targetReps
-                            : s.targetHoldSeconds;
-                        return (
-                          <div
-                            key={s.id}
-                            className="space-y-1"
-                          >
-                            <div className="grid grid-cols-[20px_1fr_24px_1fr_32px] items-center gap-0.5 rounded-md bg-muted/30 px-1 py-1">
-                              <span className="text-center text-xs font-semibold tabular-nums text-muted-foreground">
-                                {sIdx + 1}
-                              </span>
-                              <Input
-                                type="text"
-                                inputMode="decimal"
-                                placeholder={mode === "hold" ? "30" : "8"}
-                                value={metricValue ?? ""}
-                                onChange={(ev) => {
-                                  const v =
-                                    ev.target.value === ""
-                                      ? undefined
-                                      : Number(ev.target.value) || undefined;
-                                  updateSet(entryId, s.id, {
-                                    ...(mode === "reps"
-                                      ? { targetReps: v, targetHoldSeconds: undefined }
-                                      : { targetHoldSeconds: v, targetReps: undefined }),
-                                  });
-                                }}
-                                onFocus={(e) => e.target.select()}
-                                className="h-8 w-full text-center text-sm tabular-nums"
-                              />
-                              <span className="text-[9px] font-bold uppercase text-muted-foreground/50 text-center leading-none">
-                                {mode === "hold" ? "sec" : "reps"}
-                              </span>
-                              <Input
-                                type="text"
-                                inputMode="decimal"
-                                step={0.5}
-                                placeholder="kg"
-                                value={s.targetWeightKg ?? ""}
-                                onChange={(ev) => {
-                                  const v =
-                                    ev.target.value === ""
-                                      ? undefined
-                                      : Number(ev.target.value) || undefined;
-                                  updateSet(entryId, s.id, {
-                                    targetWeightKg: v,
-                                  });
-                                }}
-                                onFocus={(e) => e.target.select()}
-                                className="h-8 w-full text-center text-sm tabular-nums"
-                              />
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => removeSet(entryId, s.id)}
-                                aria-label={`Supprimer la série ${sIdx + 1}`}
-                                className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                            {sortedVariants && sortedVariants.length > 1 && (
-                              <select
-                                value={s.variantId ?? sortedVariants[0]?.id ?? ""}
-                                onChange={(ev) => {
-                                  const newVariantId = ev.target.value || null;
-                                  const selectedVariant = sortedVariants.find(
-                                    (v) => v.id === newVariantId,
-                                  );
-                                  const variantMode = (selectedVariant as unknown as { mode?: string })?.mode;
-                                  updateSet(entryId, s.id, {
-                                    variantId: newVariantId,
-                                    isHold: variantMode === "hold" ? true : variantMode === "reps" ? false : isStatic,
-                                  });
-                                }}
-                                className="w-full h-7 rounded border border-border/60 bg-background px-2 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring truncate"
-                              >
-                                {sortedVariants.map((v) => (
-                                  <option key={v.id} value={v.id}>
-                                    {v.name} {difficultyStars(v.difficultyLevel)}
-                                  </option>
-                                ))}
-                              </select>
-                            )}
-                          </div>
-                        );
-                      })}
+                      {/* Desktop: inline table */}
+                      <div className="hidden sm:block">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-xs uppercase text-muted-foreground">
+                              <th className="w-10 pb-2 text-left font-medium">#</th>
+                              <th className="w-[30%] pb-2 text-left font-medium">Valeur</th>
+                              {sortedVariants && sortedVariants.length > 1 && (
+                                <th className="w-40 pb-2 text-left font-medium">Variante</th>
+                              )}
+                              <th className="w-[24%] pb-2 text-left font-medium">KG</th>
+                              <th className="w-10 pb-2" />
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {e.sets.map((s, sIdx) => {
+                              const isHold = s.isHold ?? isStatic;
+                              const mode = isHold ? "hold" : "reps";
+                              const metricValue =
+                                mode === "reps"
+                                  ? s.targetReps
+                                  : s.targetHoldSeconds;
+                              return (
+                                <tr key={s.id} className="border-t border-border/50">
+                                  <td className="py-1.5 text-muted-foreground tabular-nums w-10">{sIdx + 1}</td>
+                                  <td className="py-1.5 pr-2">
+                                    <div className="flex items-center gap-1">
+                                      <Input
+                                        type="number"
+                                        inputMode="decimal"
+                                        placeholder={mode === "hold" ? "30" : "8"}
+                                        value={metricValue ?? ""}
+                                        aria-label={`${mode === "hold" ? "Maintien" : "Reps"} série ${sIdx + 1}`}
+                                        onFocus={(e) => e.target.select()}
+                                        onChange={(ev) => {
+                                          const v =
+                                            ev.target.value === ""
+                                              ? undefined
+                                              : Number(ev.target.value) || undefined;
+                                          updateSet(entryId, s.id, {
+                                            ...(mode === "reps"
+                                              ? { targetReps: v, targetHoldSeconds: undefined }
+                                              : { targetHoldSeconds: v, targetReps: undefined }),
+                                          });
+                                        }}
+                                        className="h-8 w-16 tabular-nums"
+                                      />
+                                      <span className="text-[9px] font-bold uppercase text-muted-foreground/50 tabular-nums shrink-0">
+                                        {mode === "hold" ? "sec" : "reps"}
+                                      </span>
+                                    </div>
+                                  </td>
+                                  {sortedVariants && sortedVariants.length > 1 && (
+                                    <td className="py-1.5 pr-2">
+                                      <select
+                                        value={s.variantId ?? sortedVariants[0]?.id ?? ""}
+                                        onChange={(ev) => {
+                                          const newVariantId = ev.target.value || null;
+                                          const selectedVariant = sortedVariants.find(
+                                            (v) => v.id === newVariantId,
+                                          );
+                                          const variantMode = (selectedVariant as unknown as { mode?: string })?.mode;
+                                          updateSet(entryId, s.id, {
+                                            variantId: newVariantId,
+                                            isHold: variantMode === "hold" ? true : variantMode === "reps" ? false : isStatic,
+                                          });
+                                        }}
+                                        className="h-8 w-full rounded-md border border-border/60 bg-background px-1.5 text-[11px] tabular-nums text-foreground outline-none focus:ring-2 focus:ring-ring"
+                                        aria-label={`Variante série ${sIdx + 1}`}
+                                      >
+                                        {sortedVariants.map((v) => (
+                                          <option key={v.id} value={v.id}>
+                                            {v.name} {difficultyStars(v.difficultyLevel)}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </td>
+                                  )}
+                                  <td className="py-1.5 pr-2">
+                                    <Input
+                                      type="number"
+                                      inputMode="decimal"
+                                      step={0.5}
+                                      placeholder="0"
+                                      value={s.targetWeightKg ?? ""}
+                                      aria-label={`Poids série ${sIdx + 1}`}
+                                      onFocus={(e) => e.target.select()}
+                                      onChange={(ev) => {
+                                        const v =
+                                          ev.target.value === ""
+                                            ? undefined
+                                            : Number(ev.target.value) || undefined;
+                                        updateSet(entryId, s.id, {
+                                          targetWeightKg: v,
+                                        });
+                                      }}
+                                      className="h-8 w-16 tabular-nums"
+                                    />
+                                  </td>
+                                  <td className="py-1.5">
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      onClick={() => removeSet(entryId, s.id)}
+                                      aria-label={`Supprimer la série ${sIdx + 1}`}
+                                      className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
 
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => addSet(entryId)}
-                      >
-                        <Plus className="h-4 w-4" />
-                        Ajouter une série
-                      </Button>
+                      {/* Mobile: 2-line grid rows */}
+                      <div className="sm:hidden space-y-1.5">
+                        {e.sets.length > 0 && (
+                          <div className="grid grid-cols-[20px_1fr_24px_1fr_32px] items-center gap-0.5 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            <span className="text-center">#</span>
+                            <span className="text-center">Valeur</span>
+                            <span />
+                            <span className="text-center">KG</span>
+                            <span />
+                          </div>
+                        )}
+                        {e.sets.map((s, sIdx) => {
+                          const isHold = s.isHold ?? isStatic;
+                          const mode = isHold ? "hold" : "reps";
+                          const metricValue =
+                            mode === "reps"
+                              ? s.targetReps
+                              : s.targetHoldSeconds;
+                          return (
+                            <div key={s.id} className="space-y-1">
+                              <div className="grid grid-cols-[20px_1fr_24px_1fr_32px] items-center gap-0.5 rounded-md bg-muted/30 px-1 py-1">
+                                <span className="text-center text-xs font-semibold tabular-nums text-muted-foreground">
+                                  {sIdx + 1}
+                                </span>
+                                <Input
+                                  type="text"
+                                  inputMode="decimal"
+                                  placeholder={mode === "hold" ? "30" : "8"}
+                                  value={metricValue ?? ""}
+                                  onChange={(ev) => {
+                                    const v =
+                                      ev.target.value === ""
+                                        ? undefined
+                                        : Number(ev.target.value) || undefined;
+                                    updateSet(entryId, s.id, {
+                                      ...(mode === "reps"
+                                        ? { targetReps: v, targetHoldSeconds: undefined }
+                                        : { targetHoldSeconds: v, targetReps: undefined }),
+                                    });
+                                  }}
+                                  onFocus={(e) => e.target.select()}
+                                  className="h-8 w-full text-center text-sm tabular-nums"
+                                />
+                                <span className="text-[9px] font-bold uppercase text-muted-foreground/50 text-center leading-none">
+                                  {mode === "hold" ? "sec" : "reps"}
+                                </span>
+                                <Input
+                                  type="text"
+                                  inputMode="decimal"
+                                  step={0.5}
+                                  placeholder="kg"
+                                  value={s.targetWeightKg ?? ""}
+                                  onChange={(ev) => {
+                                    const v =
+                                      ev.target.value === ""
+                                        ? undefined
+                                        : Number(ev.target.value) || undefined;
+                                    updateSet(entryId, s.id, {
+                                      targetWeightKg: v,
+                                    });
+                                  }}
+                                  onFocus={(e) => e.target.select()}
+                                  className="h-8 w-full text-center text-sm tabular-nums"
+                                />
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => removeSet(entryId, s.id)}
+                                  aria-label={`Supprimer la série ${sIdx + 1}`}
+                                  className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                              {sortedVariants && sortedVariants.length > 1 && (
+                                <select
+                                  value={s.variantId ?? sortedVariants[0]?.id ?? ""}
+                                  onChange={(ev) => {
+                                    const newVariantId = ev.target.value || null;
+                                    const selectedVariant = sortedVariants.find(
+                                      (v) => v.id === newVariantId,
+                                    );
+                                    const variantMode = (selectedVariant as unknown as { mode?: string })?.mode;
+                                    updateSet(entryId, s.id, {
+                                      variantId: newVariantId,
+                                      isHold: variantMode === "hold" ? true : variantMode === "reps" ? false : isStatic,
+                                    });
+                                  }}
+                                  className="w-full h-7 rounded border border-border/60 bg-background px-2 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring truncate"
+                                  aria-label={`Variante série ${sIdx + 1}`}
+                                >
+                                  {sortedVariants.map((v) => (
+                                    <option key={v.id} value={v.id}>
+                                      {v.name} {difficultyStars(v.difficultyLevel)}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </>
                   )}
                 </CardContent>
