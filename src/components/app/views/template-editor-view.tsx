@@ -610,7 +610,7 @@ export function TemplateEditorView() {
                     <>
                       {/* Column headers */}
                       {e.sets.length > 0 && (
-                        <div className="grid grid-cols-[20px_1fr_24px_64px_32px] items-center gap-0.5 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        <div className="grid grid-cols-[20px_1fr_24px_1fr_32px] items-center gap-0.5 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
                           <span className="text-center">#</span>
                           <span className="text-center">Valeur</span>
                           <span />
@@ -630,7 +630,7 @@ export function TemplateEditorView() {
                             key={s.id}
                             className="space-y-1"
                           >
-                            <div className="grid grid-cols-[20px_1fr_24px_64px_32px] items-center gap-0.5 rounded-md bg-muted/30 px-1 py-1">
+                            <div className="grid grid-cols-[20px_1fr_24px_1fr_32px] items-center gap-0.5 rounded-md bg-muted/30 px-1 py-1">
                               <span className="text-center text-xs font-semibold tabular-nums text-muted-foreground">
                                 {sIdx + 1}
                               </span>

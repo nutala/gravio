@@ -899,7 +899,7 @@ export function NewWorkoutView() {
                   key={tpl.id}
                   type="button"
                   onClick={() => handleLoadTemplate(tpl.id)}
-                  className="w-full rounded-lg border border-border/60 px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full rounded-lg border border-border/60 px-3 py-2.5 text-left text-sm transition-colors hover:bg-muted focus:outline-none"
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-medium">{tpl.name}</span>
@@ -1548,8 +1548,7 @@ function SetRowDesktop({
    onVariantChange: (variantId: string) => void;
  }) {
    const validated = set.validated;
-   const mode = set.mode ?? (isStatic ? "hold" : "reps");
-   const otherMode = mode === "reps" ? "hold" : "reps";
+    const mode = set.mode ?? (isStatic ? "hold" : "reps");
 
    function handleValidate() {
      const nextValidated = !validated;
@@ -1567,28 +1566,21 @@ function SetRowDesktop({
        )}
      >
        <td className="py-1.5 text-muted-foreground tabular-nums w-6">{idx + 1}</td>
-       <td className="py-1.5 pr-2">
-         <div className="flex items-center gap-1">
-           <NumberInput
-             value={mode === "reps" ? set.reps : set.holdSeconds}
-             placeholder={mode === "hold" ? "30" : "8"}
-             aria-label={`${mode === "hold" ? "Maintien" : "Reps"} pour la série ${idx + 1}`}
-             onChange={(n) =>
-               onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n })
-             }
-           />
-           <Button
-             type="button"
-             size="sm"
-             variant="ghost"
-             className="h-8 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground"
-             onClick={() => onUpdate({ mode: otherMode })}
-             aria-label={`Passer en ${otherMode === "reps" ? "répétitions" : "maintien (s)"}`}
-           >
-             {mode === "reps" ? "Reps" : "s"}
-           </Button>
-         </div>
-       </td>
+        <td className="py-1.5 pr-2">
+          <div className="flex items-center gap-1">
+            <NumberInput
+              value={mode === "reps" ? set.reps : set.holdSeconds}
+              placeholder={mode === "hold" ? "30" : "8"}
+              aria-label={`${mode === "hold" ? "Maintien" : "Reps"} pour la série ${idx + 1}`}
+              onChange={(n) =>
+                onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n })
+              }
+            />
+            <span className="text-[9px] font-bold uppercase text-muted-foreground/50 tabular-nums shrink-0">
+              {mode === "hold" ? "sec" : "reps"}
+            </span>
+          </div>
+        </td>
        {variants.length > 0 && (
          <td className="py-1.5 pr-2">
            <select
