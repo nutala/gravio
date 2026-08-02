@@ -1438,7 +1438,7 @@ function EntryCard({
             <div className="sm:hidden space-y-1.5">
               {/* Column headers */}
               {sets.length > 0 && (
-                <div className="grid grid-cols-[20px_1fr_24px_64px_44px_32px] items-center gap-0.5 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <div className="grid grid-cols-[20px_1.5fr_24px_1fr_0.9fr_32px] items-center gap-0.5 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
                   <span className="text-center">#</span>
                   <span className="text-center">Valeur</span>
                   <span />
@@ -1758,7 +1758,7 @@ function SetRowMobile({
          )}
        >
          {/* Line 1: #, value, mode label, kg, rpe, validate */}
-         <div className="grid grid-cols-[20px_1fr_24px_64px_44px_32px] items-center gap-0.5 px-1 py-1.5">
+         <div className="grid grid-cols-[20px_1.5fr_24px_1fr_0.9fr_32px] items-center gap-0.5 px-1 py-1.5">
            <span className="text-center text-xs font-semibold tabular-nums text-muted-foreground">
              {idx + 1}
            </span>
