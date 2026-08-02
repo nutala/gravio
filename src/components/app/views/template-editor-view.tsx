@@ -8,9 +8,10 @@ import {
   Save,
   ArrowLeft,
   Dumbbell,
-  Repeat,
   ChevronUp,
   ChevronDown,
+  Link2,
+  Link2Off,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,7 +24,7 @@ import type {
   ExerciseCategory,
   ComboStep,
 } from "@/lib/types";
-import { difficultyStars } from "@/lib/calc";
+import { difficultyStars, supersetLabel, supersetColor } from "@/lib/calc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,6 +35,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { EmptyState } from "@/components/app/common";
 import { ExercisePickerDialog } from "@/components/app/exercise-picker-dialog";
@@ -92,6 +100,22 @@ function makeDefaultSet(
     targetWeightKg: prev?.targetWeightKg ?? undefined,
     targetRpe: prev?.targetRpe ?? undefined,
   };
+}
+
+function tplNextSupersetGroup(entries: EditorEntry[]): number {
+  const used = new Set(
+    entries.map((e) => e.supersetGroup).filter((g): g is number => g != null),
+  );
+  let n = 1;
+  while (used.has(n)) n++;
+  return n;
+}
+
+function tplUsedSupersetGroups(entries: EditorEntry[]): number[] {
+  const used = new Set(
+    entries.map((e) => e.supersetGroup).filter((g): g is number => g != null),
+  );
+  return Array.from(used).sort((a, b) => a - b);
 }
 
 /* ------------------------------------------------------------------ */
@@ -247,6 +271,14 @@ export function TemplateEditorView() {
     );
   }
 
+  function setSupersetGroup(entryId: string, group: number | null) {
+    setEntries((prev) =>
+      prev.map((e) =>
+        e.id === entryId ? { ...e, supersetGroup: group } : e,
+      ),
+    );
+  }
+
   async function handleSave() {
     const trimmedName = name.trim();
     if (!trimmedName) {
@@ -354,9 +386,25 @@ export function TemplateEditorView() {
               ?.slice()
               .sort((a, b) => a.difficultyLevel - b.difficultyLevel);
             const entryId = e.id;
+            const ssGroup = e.supersetGroup;
+            const ssLabel = supersetLabel(ssGroup);
+            const ssColor = supersetColor(ssGroup);
+            const inSuperset = ssGroup != null;
+            const existingGroups = tplUsedSupersetGroups(entries);
+            const nextGroup = tplNextSupersetGroup(entries);
             return (
-               <Card key={entryId}>
-                  <CardHeader className="pb-1 pt-2">
+               <Card
+                 key={entryId}
+                 className={cn(
+                   inSuperset && "shadow-sm",
+                 )}
+                 style={
+                   inSuperset && ssColor
+                     ? { borderLeftColor: ssColor, borderLeftWidth: 4 }
+                     : undefined
+                 }
+               >
+                  <CardHeader className="pb-0.5 pt-1.5">
                    <div className="flex items-center justify-between gap-2">
                      <div className="flex min-w-0 flex-wrap items-center gap-2">
                        <span aria-hidden className="text-sm leading-none">
@@ -375,6 +423,16 @@ export function TemplateEditorView() {
                        >
                          {meta.label}
                        </Badge>
+                       {inSuperset && ssColor && ssLabel && (
+                         <Badge
+                           variant="outline"
+                           className="gap-1 border-transparent text-[10px] font-bold"
+                           style={{ backgroundColor: `${ssColor}22`, color: ssColor }}
+                         >
+                           <Link2 className="h-3 w-3" />
+                           Superset {ssLabel}
+                         </Badge>
+                       )}
                        {(ex as unknown as { tags: string[] }).tags?.map((tag) => {
                          const tagMeta = getCatMeta(tag);
                          return (
@@ -391,13 +449,65 @@ export function TemplateEditorView() {
                            </Badge>
                          );
                        })}
-                       {isStatic && (
-                         <Badge variant="secondary" className="text-[10px]">
-                           Maintien (s)
-                         </Badge>
-                       )}
-                     </div>
-                     <div className="flex items-center gap-0.5">
+                      </div>
+                      <div className="flex items-center gap-0.5">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className={cn(
+                              "h-8 w-8",
+                              inSuperset
+                                ? "text-primary"
+                                : "text-muted-foreground hover:text-primary",
+                            )}
+                            aria-label="Options de superset"
+                          >
+                            {inSuperset ? (
+                              <Link2Off className="h-4 w-4" />
+                            ) : (
+                              <Link2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56">
+                          {inSuperset && (
+                            <>
+                              <DropdownMenuItem
+                                onClick={() => setSupersetGroup(entryId, null)}
+                                className="gap-2 text-destructive focus:text-destructive"
+                              >
+                                <Link2Off className="h-4 w-4" />
+                                Retirer du superset {supersetLabel(ssGroup)}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                            </>
+                          )}
+                          {existingGroups
+                            .filter((g) => g !== ssGroup)
+                            .map((g) => (
+                              <DropdownMenuItem
+                                key={g}
+                                onClick={() => setSupersetGroup(entryId, g)}
+                                className="gap-2"
+                              >
+                                <span
+                                  className="h-2 w-2 rounded-full"
+                                  style={{ backgroundColor: supersetColor(g) }}
+                                />
+                                Superset {supersetLabel(g)}
+                              </DropdownMenuItem>
+                            ))}
+                          <DropdownMenuItem
+                            onClick={() => setSupersetGroup(entryId, nextGroup)}
+                            className="gap-2"
+                          >
+                            <Plus className="h-4 w-4" />
+                            Nouveau superset
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       {idx > 0 && (
                         <Button
                           size="icon"

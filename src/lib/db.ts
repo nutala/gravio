@@ -12,26 +12,32 @@ function getSupabase(): SupabaseClient {
 }
 
 const REL_TABLE: Record<string, string> = {
-  user: 'User', entries: 'WorkoutEntry', entry: 'WorkoutTemplateEntry',
+  user: 'User', entry: 'WorkoutTemplateEntry',
   exercise: 'Exercise', variant: 'ExerciseVariant', sets: 'WorkoutSet',
   workout: 'Workout', template: 'WorkoutTemplate', category: 'Category',
   variants: 'ExerciseVariant', // Exercise.variants → ExerciseVariant
 }
 
-function resolveInclude(cfg: any): string {
-  if (cfg === true || cfg === undefined) return '*';
-  if (typeof cfg !== 'object') return '*';
-  return buildSelect(cfg.include, cfg.select);
+/** Context-specific relationship table names keyed by [parentTable][relKey]. */
+const REL_TABLE_CTX: Record<string, Record<string, string>> = {
+  Workout: { entries: 'WorkoutEntry' },
+  WorkoutTemplate: { entries: 'WorkoutTemplateEntry' },
 }
 
-function buildSelect(include?: any, select?: any): string {
+function resolveInclude(cfg: any, parentTable?: string): string {
+  if (cfg === true || cfg === undefined) return '*';
+  if (typeof cfg !== 'object') return '*';
+  return buildSelect(cfg.include, cfg.select, parentTable);
+}
+
+function buildSelect(include?: any, select?: any, parentTable?: string): string {
   const cols: string[] = [];
   if (select) {
     for (const [key, val] of Object.entries(select)) {
       if (!val) continue;
       if (typeof val === 'object' && (val.select || val.include)) {
-        const inner = resolveInclude(val);
-        const table = REL_TABLE[key];
+        const inner = resolveInclude(val, key);
+        const table = REL_TABLE_CTX[parentTable!]?.[key] ?? REL_TABLE[key];
         cols.push(`${key}:${table || key}(${inner})`);
       } else {
         cols.push(key);
@@ -41,9 +47,9 @@ function buildSelect(include?: any, select?: any): string {
   if (include) {
     if (cols.length === 0) cols.push('*');
     for (const [rel, cfg] of Object.entries(include)) {
-      const table = REL_TABLE[rel];
+      const table = REL_TABLE_CTX[parentTable!]?.[rel] ?? REL_TABLE[rel];
       if (!table) continue;
-      cols.push(`${rel}:${table}(${resolveInclude(cfg)})`);
+      cols.push(`${rel}:${table}(${resolveInclude(cfg, table)})`);
     }
   }
   return cols.length ? cols.join(',') : '*';
@@ -118,7 +124,7 @@ function applyOrder(q: any, orderBy: any): any {
 function buildModel(table: string) {
   return {
     findUnique: async (args: { where?: any; include?: any; select?: any }) => {
-      const sel = buildSelect(args.include, args.select);
+      const sel = buildSelect(args.include, args.select, table);
       let q = getSupabase().from(table).select(sel);
       q = applyFilters(q, args.where);
       const { data, error } = await q.maybeSingle();
@@ -127,7 +133,7 @@ function buildModel(table: string) {
     },
 
     findMany: async (args: { where?: any; include?: any; select?: any; orderBy?: any; take?: number }) => {
-      const sel = buildSelect(args.include, args.select);
+      const sel = buildSelect(args.include, args.select, table);
       let q = getSupabase().from(table).select(sel);
       q = applyFilters(q, args.where);
       q = applyOrder(q, args.orderBy);
@@ -138,7 +144,7 @@ function buildModel(table: string) {
     },
 
     findFirst: async (args: { where?: any; include?: any; select?: any; orderBy?: any }) => {
-      const sel = buildSelect(args.include, args.select);
+      const sel = buildSelect(args.include, args.select, table);
       let q = getSupabase().from(table).select(sel);
       q = applyFilters(q, args.where);
       q = applyOrder(q, args.orderBy);
@@ -149,7 +155,7 @@ function buildModel(table: string) {
     },
 
     create: async (args: { data: any; include?: any; select?: any }) => {
-      const sel = buildSelect(args.include, args.select) || '*';
+      const sel = buildSelect(args.include, args.select, table) || '*';
       const { data, error } = await getSupabase().from(table).insert(args.data).select(sel).single();
       if (error) throw new Error(error.message);
       return data;
@@ -162,7 +168,7 @@ function buildModel(table: string) {
     },
 
     update: async (args: { where: any; data: any; include?: any }) => {
-      const sel = buildSelect(args.include) || '*';
+      const sel = buildSelect(args.include, undefined, table) || '*';
       let q = getSupabase().from(table).update(args.data).select(sel).single();
       q = applyFilters(q, args.where);
       const { data, error } = await q;

@@ -1188,7 +1188,7 @@ function EntryCard({
           : undefined
       }
     >
-       <CardHeader className="pb-1 pt-2">
+       <CardHeader className="pb-0.5 pt-1.5">
          <div className="flex flex-wrap items-center justify-between gap-2">
            <div className="flex min-w-0 flex-wrap items-center gap-2">
              <span aria-hidden className="text-sm leading-none">
@@ -1223,12 +1223,7 @@ function EntryCard({
                  </Badge>
                );
              })}
-             {isStatic && (
-               <Badge variant="secondary" className="text-[10px]">
-                 Maintien (s)
-               </Badge>
-             )}
-             {inSuperset && ssColor && ssLabel && (
+              {inSuperset && ssColor && ssLabel && (
                <Badge
                  variant="outline"
                  className="gap-1 border-transparent text-[10px] font-bold"

@@ -47,7 +47,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -635,22 +634,6 @@ function ExerciseCard({
               </Badge>
             );
           })}
-          <Badge
-            variant="outline"
-            className="gap-1 text-[10px] font-medium text-muted-foreground"
-          >
-            {exercise.isStatic ? (
-              <>
-                <Clock className="h-3 w-3" />
-                Maintien
-              </>
-            ) : (
-              <>
-                <Repeat className="h-3 w-3" />
-                Reps
-              </>
-            )}
-          </Badge>
         </div>
       </div>
 
@@ -933,22 +916,6 @@ function ExerciseFormDialog({
                 placeholder="ex. Pectoraux, Dos, Corps complet"
               />
             </div>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-muted/20 px-3 py-3">
-            <div className="min-w-0">
-              <Label htmlFor="ex-static" className="cursor-pointer">
-                Maintien isométrique
-              </Label>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Compter des secondes au lieu de reps.
-              </p>
-            </div>
-            <Switch
-              id="ex-static"
-              checked={form.isStatic}
-              onCheckedChange={(v) => update("isStatic", v)}
-            />
           </div>
 
           <div className="flex flex-col gap-2">
