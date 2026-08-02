@@ -1188,7 +1188,7 @@ function EntryCard({
           : undefined
       }
     >
-       <CardHeader className="pb-2 pt-3">
+       <CardHeader className="pb-1 pt-2">
          <div className="flex flex-wrap items-center justify-between gap-2">
            <div className="flex min-w-0 flex-wrap items-center gap-2">
              <span aria-hidden className="text-sm leading-none">
@@ -1441,7 +1441,7 @@ function EntryCard({
                   onValidate={(v) => onValidateSet(set.id, v)}
                   onVariantChange={(vid) => handleVariantChange(set.id, vid)}
                   onDuplicate={() => {
-                    draft.addSet(entry.id, {
+                    onAddSet({
                       variantId: set.variantId,
                       mode: set.mode,
                       reps: set.reps,

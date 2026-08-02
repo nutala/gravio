@@ -356,7 +356,7 @@ export function TemplateEditorView() {
             const entryId = e.id;
             return (
                <Card key={entryId}>
-                 <CardHeader className="pb-2 pt-2">
+                  <CardHeader className="pb-1 pt-2">
                    <div className="flex items-center justify-between gap-2">
                      <div className="flex min-w-0 flex-wrap items-center gap-2">
                        <span aria-hidden className="text-sm leading-none">
@@ -510,60 +510,79 @@ export function TemplateEditorView() {
                         return (
                           <div
                             key={s.id}
-                            className="grid grid-cols-[20px_1fr_24px_64px_32px] items-center gap-0.5 rounded-md bg-muted/30 px-1 py-1"
+                            className="space-y-1"
                           >
-                            <span className="text-center text-xs font-semibold tabular-nums text-muted-foreground">
-                              {sIdx + 1}
-                            </span>
-                            <Input
-                              type="text"
-                              inputMode="decimal"
-                              placeholder={mode === "hold" ? "30" : "8"}
-                              value={metricValue ?? ""}
-                              onChange={(ev) => {
-                                const v =
-                                  ev.target.value === ""
-                                    ? undefined
-                                    : Number(ev.target.value) || undefined;
-                                updateSet(entryId, s.id, {
-                                  ...(mode === "reps"
-                                    ? { targetReps: v, targetHoldSeconds: undefined }
-                                    : { targetHoldSeconds: v, targetReps: undefined }),
-                                });
-                              }}
-                              onFocus={(e) => e.target.select()}
-                              className="h-8 w-full text-center text-sm tabular-nums"
-                            />
-                            <span className="text-[9px] font-bold uppercase text-muted-foreground/50 text-center leading-none">
-                              {mode === "hold" ? "sec" : "reps"}
-                            </span>
-                            <Input
-                              type="text"
-                              inputMode="decimal"
-                              step={0.5}
-                              placeholder="kg"
-                              value={s.targetWeightKg ?? ""}
-                              onChange={(ev) => {
-                                const v =
-                                  ev.target.value === ""
-                                    ? undefined
-                                    : Number(ev.target.value) || undefined;
-                                updateSet(entryId, s.id, {
-                                  targetWeightKg: v,
-                                });
-                              }}
-                              onFocus={(e) => e.target.select()}
-                              className="h-8 w-full text-center text-sm tabular-nums"
-                            />
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => removeSet(entryId, s.id)}
-                              aria-label={`Supprimer la série ${sIdx + 1}`}
-                              className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
+                            <div className="grid grid-cols-[20px_1fr_24px_64px_32px] items-center gap-0.5 rounded-md bg-muted/30 px-1 py-1">
+                              <span className="text-center text-xs font-semibold tabular-nums text-muted-foreground">
+                                {sIdx + 1}
+                              </span>
+                              <Input
+                                type="text"
+                                inputMode="decimal"
+                                placeholder={mode === "hold" ? "30" : "8"}
+                                value={metricValue ?? ""}
+                                onChange={(ev) => {
+                                  const v =
+                                    ev.target.value === ""
+                                      ? undefined
+                                      : Number(ev.target.value) || undefined;
+                                  updateSet(entryId, s.id, {
+                                    ...(mode === "reps"
+                                      ? { targetReps: v, targetHoldSeconds: undefined }
+                                      : { targetHoldSeconds: v, targetReps: undefined }),
+                                  });
+                                }}
+                                onFocus={(e) => e.target.select()}
+                                className="h-8 w-full text-center text-sm tabular-nums"
+                              />
+                              <span className="text-[9px] font-bold uppercase text-muted-foreground/50 text-center leading-none">
+                                {mode === "hold" ? "sec" : "reps"}
+                              </span>
+                              <Input
+                                type="text"
+                                inputMode="decimal"
+                                step={0.5}
+                                placeholder="kg"
+                                value={s.targetWeightKg ?? ""}
+                                onChange={(ev) => {
+                                  const v =
+                                    ev.target.value === ""
+                                      ? undefined
+                                      : Number(ev.target.value) || undefined;
+                                  updateSet(entryId, s.id, {
+                                    targetWeightKg: v,
+                                  });
+                                }}
+                                onFocus={(e) => e.target.select()}
+                                className="h-8 w-full text-center text-sm tabular-nums"
+                              />
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => removeSet(entryId, s.id)}
+                                aria-label={`Supprimer la série ${sIdx + 1}`}
+                                className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                            {sortedVariants && sortedVariants.length > 1 && (
+                              <select
+                                value={s.variantId ?? sortedVariants[0]?.id ?? ""}
+                                onChange={(ev) =>
+                                  updateSet(entryId, s.id, {
+                                    variantId: ev.target.value || null,
+                                  })
+                                }
+                                className="w-full h-7 rounded border border-border/60 bg-background px-2 text-xs tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring truncate"
+                              >
+                                {sortedVariants.map((v) => (
+                                  <option key={v.id} value={v.id}>
+                                    {v.name} {difficultyStars(v.difficultyLevel)}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
                           </div>
                         );
                       })}
