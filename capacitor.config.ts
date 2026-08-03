@@ -6,7 +6,6 @@ const config: CapacitorConfig = {
   webDir: 'native-assets',
   server: {
     url: process.env.CAP_SERVER_URL || "https://gravio.onrender.com",
-    cleartext: true,
     allowNavigation: [
       "accounts.google.com",
       "google.com",

@@ -4,13 +4,23 @@ import * as React from "react";
 import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Camera, Loader2, Save, Settings, LogOut, User } from "lucide-react";
-import { useUpdateProfile, useUploadAvatar } from "@/hooks/use-data";
+import { Camera, Loader2, Save, Settings, LogOut, User, Trash2 } from "lucide-react";
+import { useUpdateProfile, useUploadAvatar, useDeleteAccount } from "@/hooks/use-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useAppStore } from "@/lib/store";
 import { toast } from "sonner";
 
@@ -19,6 +29,7 @@ export function ProfileView() {
   const router = useRouter();
   const profileMutation = useUpdateProfile();
   const avatarMutation = useUploadAvatar();
+  const deleteAccount = useDeleteAccount();
   const user = session?.user;
 
   const fileRef = React.useRef<HTMLInputElement>(null);
@@ -26,6 +37,7 @@ export function ProfileView() {
   const [preview, setPreview] = React.useState("");
   const [newPassword, setNewPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (user) {
@@ -238,7 +250,48 @@ export function ProfileView() {
           <LogOut className="h-4 w-4" />
           Se déconnecter
         </Button>
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-3 text-destructive hover:text-destructive"
+          onClick={() => setDeleteOpen(true)}
+          disabled={deleteAccount.isPending}
+        >
+          <Trash2 className="h-4 w-4" />
+          {deleteAccount.isPending ? "Suppression…" : "Supprimer mon compte"}
+        </Button>
       </div>
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer définitivement ton compte ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Toutes tes données seront
+              supprimées : exercices, séances, statistiques et templates.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteAccount.isPending}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              disabled={deleteAccount.isPending}
+              onClick={async () => {
+                try {
+                  await deleteAccount.mutateAsync();
+                  await signOut({ callbackUrl: "/" });
+                } catch (err) {
+                  toast.error(
+                    (err as { message?: string })?.message ??
+                      "Impossible de supprimer le compte.",
+                  );
+                }
+              }}
+            >
+              {deleteAccount.isPending ? "Suppression…" : "Supprimer définitivement"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

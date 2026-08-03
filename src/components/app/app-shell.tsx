@@ -19,6 +19,7 @@ import { CustomRestTrigger } from "@/components/app/custom-rest-trigger";
 import { PWAInstallPrompt } from "@/components/app/PWAInstallPrompt";
 import { NetworkStatus } from "@/components/app/network-status";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 const NAV: { id: ViewId; label: string; icon: React.ComponentType<{ className?: string }>; short: string }[] = [
   { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard, short: "Accueil" },
@@ -123,8 +124,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <span className="opacity-60">·</span>
               <span>Suivi de performance calisthénie</span>
             </p>
-            <p className="opacity-70">
-              Chaque répétition compte.
+            <p className="flex items-center gap-3 opacity-70">
+              <Link href="/conditions" className="transition-colors hover:text-foreground">
+                Conditions
+              </Link>
+              <span aria-hidden>·</span>
+              <Link href="/privacy" className="transition-colors hover:text-foreground">
+                Confidentialité
+              </Link>
             </p>
           </div>
         </div>

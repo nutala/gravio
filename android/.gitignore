@@ -57,6 +57,11 @@ captures/
 #*.jks
 #*.keystore
 
+# Release upload keystore and credentials (never commit)
+*.jks
+*.keystore
+keystore.properties
+
 # External native build folder generated in Android Studio 2.2 and later
 .externalNativeBuild
 .cxx/

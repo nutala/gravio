@@ -1,4 +1,64 @@
 <!DOCTYPE html>
-<body style="margin:0;background:#09090b;display:flex;align-items:center;justify-content:center;min-height:100dvh;font-family:sans-serif;color:#a1a1aa;font-size:14px">
-  Chargement…
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<meta name="theme-color" content="#09090b" />
+<title>Gravio</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;overflow:hidden;}
+  body{
+    background:#09090b;
+    color:#f8f9fa;
+    font-family:system-ui,-apple-system,sans-serif;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    user-select:none;
+  }
+  .logo{font-size:2rem;font-weight:800;letter-spacing:-0.5px;color:#10b981;margin-bottom:0.5rem;}
+  .sub{font-size:0.875rem;color:#64748b;margin-bottom:2rem;}
+  .spinner{
+    width:2rem;height:2rem;border:3px solid #1e293b;
+    border-top-color:#10b981;border-radius:50%;
+    animation:spin .7s linear infinite;
+    margin-bottom:1.5rem;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .status{font-size:0.813rem;color:#94a3b8;margin-bottom:0.5rem;text-align:center;max-width:260px;}
+  .retry,.error{display:none;}
+  .error .retry{display:inline-block;background:transparent;color:#f87171;border:1px solid #f87171;border-radius:8px;padding:.4rem 1.2rem;font-size:0.75rem;margin-top:1rem;cursor:pointer;}
+  .err-msg{color:#f87171;font-size:0.813rem;margin-top:0.5rem;max-width:260px;text-align:center;}
+</style>
+</head>
+<body>
+  <div class="logo">Gravio</div>
+  <div class="sub">Suivi de performance calisthénie</div>
+  <div class="spinner" id="spinner"></div>
+  <div class="status" id="status">Connexion au serveur…</div>
+  <div class="error" id="error">
+    <div class="err-msg">Le serveur ne répond pas. Vérifie ta connexion.</div>
+    <button class="retry" onclick="load()">Réessayer</button>
+  </div>
+<script>
+var start=Date.now(),interval=setTimeout(reload,18000),attempts=0;
+function reload(){attempts++; window.location.reload();}
+function load(){
+  attempts=0;clearTimeout(interval);
+  document.getElementById('spinner').style.display='block';
+  document.getElementById('status').style.display='block';
+  document.getElementById('error').style.display='none';
+  document.getElementById('status').textContent='Connexion…';
+  var img=new Image();
+  img.onload=function(){window.location.reload();};
+  img.onerror=function(){
+    document.getElementById('spinner').style.display='none';
+    document.getElementById('status').style.display='none';
+    document.getElementById('error').style.display='block';
+    interval=setTimeout(reload,15000);
+  };
+  img.src='https://gravio.onrender.com/favicon.png?'+Date.now();
+}
+window.onerror=load;
+</script>
 </body>
+</html>

@@ -337,6 +337,12 @@ export function useUpdateProfile() {
   });
 }
 
+export function useDeleteAccount() {
+  return useMutation({
+    mutationFn: () => api.delete<{ ok: boolean }>("/api/user/delete"),
+  });
+}
+
 export function useUploadAvatar() {
   const qc = useQueryClient();
   return useMutation({
