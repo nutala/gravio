@@ -21,7 +21,7 @@ import {
   type ExerciseWithVariants,
   type ExerciseVariant,
 } from "@/lib/types";
-import { metricUnit, difficultyStars } from "@/lib/calc";
+import { difficultyStars } from "@/lib/calc";
 import {
   useExercises,
   useCreateExercise,
@@ -571,7 +571,6 @@ function ExerciseCard({
       ),
     [exercise.variants],
   );
-  const unit = metricUnit(exercise.isStatic);
 
   // Find the current variant (hardest variant used in the most recent workout)
   const currentVariantId = React.useMemo(() => {
@@ -723,7 +722,9 @@ function ExerciseCard({
                       <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground tabular-nums">
                         <Target className="h-3 w-3" />
                         {v.targetValue}
-                        <span className="opacity-70">{unit}</span>
+                        <span className="opacity-70">
+                          {v.mode === "hold" ? "s" : "reps"}
+                        </span>
                       </span>
                     ) : null}
                     <div className="flex items-center opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">

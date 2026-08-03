@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useWorkout } from "@/hooks/use-data";
 import { useAppStore } from "@/lib/store";
 import { useCategoryMeta } from "@/hooks/use-data";
-import { metricUnit, setMetric, supersetLabel, supersetColor, fmtCompact } from "@/lib/calc";
+import { entryUnit, setMetric, supersetLabel, supersetColor, fmtCompact } from "@/lib/calc";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -125,8 +125,7 @@ export function WorkoutDetailDialog({ workoutId, onClose }: WorkoutDetailDialogP
 function DialogEntryDetail({ entry }: { entry: WorkoutEntryFull }) {
   const getCatMeta = useCategoryMeta();
   const meta = getCatMeta(entry.exercise.category as ExerciseCategory);
-  const isStatic = entry.exercise.isStatic;
-  const unit = metricUnit(isStatic);
+  const unit = entryUnit(entry);
   const totalSets = entry.sets.length;
   const totalVol = entry.sets.reduce((a, s) => a + setMetric(s), 0);
   const best = entry.sets.reduce((m, s) => Math.max(m, setMetric(s)), 0);

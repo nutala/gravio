@@ -17,7 +17,7 @@ import {
 import {
   fmtCompact,
   fmtDate,
-  metricUnit,
+  entryUnit,
   relativeFromNow,
   setMetric,
   variantLabel,
@@ -643,8 +643,7 @@ function EntryDetail({ entry }: { entry: WorkoutEntryFull }) {
   const getCatMeta = useCategoryMeta();
   const cat = (entry.exercise.category as ExerciseCategory) || "Push";
   const meta = getCatMeta(cat);
-  const isStatic = entry.exercise.isStatic;
-  const unit = metricUnit(isStatic);
+  const unit = entryUnit(entry);
   const totalSets = entry.sets.length;
   const totalVol = entry.sets.reduce((a, s) => a + setMetric(s), 0);
   const best = entry.sets.reduce((m, s) => Math.max(m, setMetric(s)), 0);

@@ -72,6 +72,12 @@ export function metricUnit(isStatic: boolean): string {
   return isStatic ? "s" : "reps";
 }
 
+/** Unit for an entry, derived from its sets (falls back to the exercise flag). */
+export function entryUnit(entry: WorkoutEntryFull): string {
+  if (entry.sets.length === 0) return metricUnit(entry.exercise.isStatic);
+  return entry.sets.some((s) => s.holdSeconds != null) ? "s" : "reps";
+}
+
 /** Pretty label for a variant, including its difficulty rank. */
 export function variantLabel(variant: ExerciseVariant | null): string {
   if (!variant) return "—";
