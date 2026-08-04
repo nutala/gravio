@@ -17,7 +17,7 @@ import {
 import {
   fmtCompact,
   fmtDate,
-  entryUnit,
+  entryBestLabel,
   relativeFromNow,
   setMetric,
   variantLabel,
@@ -643,10 +643,9 @@ function EntryDetail({ entry }: { entry: WorkoutEntryFull }) {
   const getCatMeta = useCategoryMeta();
   const cat = (entry.exercise.category as ExerciseCategory) || "Push";
   const meta = getCatMeta(cat);
-  const unit = entryUnit(entry);
+  const bestLabel = entryBestLabel(entry);
   const totalSets = entry.sets.length;
   const totalVol = entry.sets.reduce((a, s) => a + setMetric(s), 0);
-  const best = entry.sets.reduce((m, s) => Math.max(m, setMetric(s)), 0);
   const ssLabel = supersetLabel(entry.supersetGroup);
   const ssColor = supersetColor(entry.supersetGroup);
   const inSuperset = entry.supersetGroup != null;
@@ -800,7 +799,7 @@ function EntryDetail({ entry }: { entry: WorkoutEntryFull }) {
             <span>{fmtCompact(totalVol)} vol</span>
             <span aria-hidden>·</span>
             <span>
-              meilleure {best} {unit}
+              {bestLabel}
             </span>
           </div>
         </>

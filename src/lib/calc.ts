@@ -78,6 +78,36 @@ export function entryUnit(entry: WorkoutEntryFull): string {
   return entry.sets.some((s) => s.holdSeconds != null) ? "s" : "reps";
 }
 
+export interface EntryBests {
+  reps: number;
+  hold: number;
+}
+
+/** Best value per mode across an entry's sets (handles mixed reps/hold). */
+export function entryBests(entry: WorkoutEntryFull): EntryBests {
+  let reps = 0;
+  let hold = 0;
+  for (const s of entry.sets) {
+    if (s.holdSeconds != null && s.holdSeconds > 0) {
+      hold = Math.max(hold, s.holdSeconds);
+    }
+    if (s.reps != null && s.reps > 0) {
+      reps = Math.max(reps, s.reps);
+    }
+  }
+  return { reps, hold };
+}
+
+/** "meilleure 7 reps" / "meilleure 30 s" / "meilleure 7 reps · 30 s" for mixed. */
+export function entryBestLabel(entry: WorkoutEntryFull): string {
+  const { reps, hold } = entryBests(entry);
+  const parts: string[] = [];
+  if (reps > 0) parts.push(`${reps} reps`);
+  if (hold > 0) parts.push(`${hold} s`);
+  if (parts.length === 0) return "meilleure —";
+  return `meilleure ${parts.join(" · ")}`;
+}
+
 /** Pretty label for a variant, including its difficulty rank. */
 export function variantLabel(variant: ExerciseVariant | null): string {
   if (!variant) return "—";

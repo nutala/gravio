@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useWorkout } from "@/hooks/use-data";
 import { useAppStore } from "@/lib/store";
 import { useCategoryMeta } from "@/hooks/use-data";
-import { entryUnit, setMetric, supersetLabel, supersetColor, fmtCompact } from "@/lib/calc";
+import { entryBestLabel, entryBests, setMetric, supersetLabel, supersetColor, fmtCompact } from "@/lib/calc";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
@@ -125,10 +125,10 @@ export function WorkoutDetailDialog({ workoutId, onClose }: WorkoutDetailDialogP
 function DialogEntryDetail({ entry }: { entry: WorkoutEntryFull }) {
   const getCatMeta = useCategoryMeta();
   const meta = getCatMeta(entry.exercise.category as ExerciseCategory);
-  const unit = entryUnit(entry);
+  const bests = entryBests(entry);
+  const bestLabel = entryBestLabel(entry);
   const totalSets = entry.sets.length;
   const totalVol = entry.sets.reduce((a, s) => a + setMetric(s), 0);
-  const best = entry.sets.reduce((m, s) => Math.max(m, setMetric(s)), 0);
   const ssLabel = supersetLabel(entry.supersetGroup);
   const ssColor = supersetColor(entry.supersetGroup);
   const inSuperset = entry.supersetGroup != null;
@@ -225,10 +225,10 @@ function DialogEntryDetail({ entry }: { entry: WorkoutEntryFull }) {
             <span>{fmtCompact(totalVol)} vol</span>
           </>
         )}
-        {best > 0 && (
+        {(bests.reps > 0 || bests.hold > 0) && (
           <>
             <span aria-hidden>·</span>
-            <span>meilleure {best} {unit}</span>
+            <span>{bestLabel}</span>
           </>
         )}
       </div>
