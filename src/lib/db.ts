@@ -156,13 +156,17 @@ function buildModel(table: string) {
 
     create: async (args: { data: any; include?: any; select?: any }) => {
       const sel = buildSelect(args.include, args.select, table) || '*';
-      const { data, error } = await getSupabase().from(table).insert(args.data).select(sel).single();
+      const row = { ...args.data };
+      // Supabase columns lack DB defaults for cuid() ids, so generate client-side
+      if (!row.id) row.id = crypto.randomUUID();
+      const { data, error } = await getSupabase().from(table).insert(row).select(sel).single();
       if (error) throw new Error(error.message);
       return data;
     },
 
     createMany: async (args: { data: any[] }) => {
-      const { data, error } = await getSupabase().from(table).insert(args.data).select();
+      const rows = args.data.map((r) => ({ ...r, id: r.id || crypto.randomUUID() }));
+      const { data, error } = await getSupabase().from(table).insert(rows).select();
       if (error) throw new Error(error.message);
       return data;
     },
