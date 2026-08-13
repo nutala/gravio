@@ -24,6 +24,16 @@ const REL_TABLE_CTX: Record<string, Record<string, string>> = {
   WorkoutTemplate: { entries: 'WorkoutTemplateEntry' },
 }
 
+/** Which Supabase tables carry Prisma-side timestamp columns (no DB defaults). */
+const HAS_CREATED_AT: Record<string, boolean> = {
+  User: true, Category: true, Exercise: true, ExerciseVariant: true,
+  Workout: true, WorkoutEntry: true, WorkoutSet: true, WorkoutTemplate: true,
+}
+const HAS_UPDATED_AT: Record<string, boolean> = {
+  User: true, Category: true, Exercise: true, ExerciseVariant: true,
+  Workout: true, WorkoutTemplate: true,
+}
+
 function resolveInclude(cfg: any, parentTable?: string): string {
   if (cfg === true || cfg === undefined) return '*';
   if (typeof cfg !== 'object') return '*';
@@ -157,15 +167,25 @@ function buildModel(table: string) {
     create: async (args: { data: any; include?: any; select?: any }) => {
       const sel = buildSelect(args.include, args.select, table) || '*';
       const row = { ...args.data };
-      // Supabase columns lack DB defaults for cuid() ids, so generate client-side
+      // Supabase columns lack DB defaults for cuid() ids and Prisma-side
+      // @default(now())/@updatedAt timestamps, so supply them client-side.
       if (!row.id) row.id = crypto.randomUUID();
+      const now = new Date().toISOString();
+      if (HAS_CREATED_AT[table] && !row.createdAt) row.createdAt = now;
+      if (HAS_UPDATED_AT[table] && !row.updatedAt) row.updatedAt = now;
       const { data, error } = await getSupabase().from(table).insert(row).select(sel).single();
       if (error) throw new Error(error.message);
       return data;
     },
 
     createMany: async (args: { data: any[] }) => {
-      const rows = args.data.map((r) => ({ ...r, id: r.id || crypto.randomUUID() }));
+      const now = new Date().toISOString();
+      const rows = args.data.map((r) => ({
+        ...r,
+        id: r.id || crypto.randomUUID(),
+        ...(HAS_CREATED_AT[table] ? { createdAt: r.createdAt || now } : {}),
+        ...(HAS_UPDATED_AT[table] ? { updatedAt: r.updatedAt || now } : {}),
+      }));
       const { data, error } = await getSupabase().from(table).insert(rows).select();
       if (error) throw new Error(error.message);
       return data;
@@ -173,20 +193,29 @@ function buildModel(table: string) {
 
     update: async (args: { where: any; data: any; include?: any }) => {
       const sel = buildSelect(args.include, undefined, table) || '*';
-      let q = getSupabase().from(table).update(args.data).select(sel).single();
+      const data = { ...args.data };
+      // Prisma's @updatedAt is applied client-side; Supabase has no DB default.
+      if (HAS_UPDATED_AT[table] && !data.updatedAt) {
+        data.updatedAt = new Date().toISOString();
+      }
+      let q = getSupabase().from(table).update(data).select(sel).single();
       q = applyFilters(q, args.where);
-      const { data, error } = await q;
+      const { data: result, error } = await q;
       if (error && error.code === 'PGRST116') return null;
       if (error) throw new Error(error.message);
-      return data;
+      return result;
     },
 
     updateMany: async (args: { where: any; data: any }) => {
-      let q = getSupabase().from(table).update(args.data).select();
+      const data = { ...args.data };
+      if (HAS_UPDATED_AT[table] && !data.updatedAt) {
+        data.updatedAt = new Date().toISOString();
+      }
+      let q = getSupabase().from(table).update(data).select();
       q = applyFilters(q, args.where);
-      const { data, error } = await q;
+      const { data: result, error } = await q;
       if (error) throw new Error(error.message);
-      return data || [];
+      return result || [];
     },
 
     delete: async (args: { where: any }) => {
