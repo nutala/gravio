@@ -436,6 +436,9 @@ export const useDraftStore = create<WorkoutDraftStore>()(
     }
     set((s) => ({
       entries: [...s.entries, ...newEntries],
+      // If the session has no title yet, use the template name so the
+      // resulting workout is identifiable by its source template.
+      title: s.title.trim() ? s.title : template.name,
       sessionStartedAt: s.sessionStartedAt ?? Date.now(),
     }));
   },
