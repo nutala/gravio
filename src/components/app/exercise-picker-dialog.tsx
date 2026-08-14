@@ -95,11 +95,6 @@ export function ExercisePickerDialog({
                         </Badge>
                       );
                     })}
-                    {ex.isStatic && (
-                      <Badge variant="secondary" className="text-[10px]">
-                        Maintien
-                      </Badge>
-                    )}
                   </CommandItem>
                 ))}
               </CommandGroup>

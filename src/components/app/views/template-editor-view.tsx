@@ -84,11 +84,13 @@ function makeDefaultSet(
   exercise: ExerciseWithVariants,
   prev?: EditorSet,
 ): EditorSet {
-  const firstVariant = exercise.variants
+  const sortedVariants = exercise.variants
     ?.slice()
-    .sort((a, b) => a.difficultyLevel - b.difficultyLevel)[0];
+    .sort((a, b) => a.difficultyLevel - b.difficultyLevel);
+  const firstVariant = sortedVariants?.[0];
   const firstVariantId = prev?.variantId ?? firstVariant?.id ?? null;
-  const variantMode = (firstVariant as unknown as { mode?: string })?.mode;
+  const matchedVariant = sortedVariants?.find((v) => v.id === firstVariantId);
+  const variantMode = (matchedVariant as unknown as { mode?: string })?.mode;
   return {
     id: uid(),
     isHold: variantMode === "hold" ? true : variantMode === "reps" ? false : exercise.isStatic,
