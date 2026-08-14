@@ -827,6 +827,16 @@ export function TemplateEditorView() {
                           );
                         })}
                       </div>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addSet(entryId)}
+                        className="gap-1.5"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Ajouter une série
+                      </Button>
                     </>
                   )}
                 </CardContent>
