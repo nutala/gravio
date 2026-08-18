@@ -620,7 +620,7 @@ function TopExercises() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:flex sm:gap-3 sm:overflow-x-auto sm:pb-1">
+        <div className="flex gap-3 overflow-x-auto pb-1">
             {data.map((te) => {
               const cat = getCatMeta(te.category);
               const ex = exercisesMap.get(te.exerciseId);
@@ -631,7 +631,7 @@ function TopExercises() {
               return (
                 <Card
                   key={te.exerciseId}
-                  className="min-w-0 sm:min-w-[240px] flex-1 gap-0 p-4"
+                  className="min-w-[240px] flex-1 gap-0 p-4"
                 >
                   <CardContent className="space-y-3 p-0">
                     <div className="flex items-start justify-between gap-2">
@@ -744,50 +744,96 @@ function RecentWorkouts() {
               />
             </div>
           ) : (
-            <ul className="divide-y divide-border/60">
-              {recent.map((w) => {
-                const totalSets = w.entries.reduce(
-                  (acc, e) => acc + e.sets.length,
-                  0,
-                );
-                return (
-                  <li key={w.id}>
-                    <button
-                      type="button"
-                      onClick={() => useAppStore.getState().setView("history")}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40"
-                    >
-                      <div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-lg bg-muted/60 text-foreground">
-                        <span className="text-[10px] uppercase leading-none text-muted-foreground">
-                          {fmtDate(w.date, "MMM")}
-                        </span>
-                        <span className="text-sm font-bold leading-none tabular-nums">
-                          {fmtDate(w.date, "dd")}
-                        </span>
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-medium text-foreground">
-                          {w.title || "Séance sans titre"}
-                        </div>
-                        <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                          <span>{fmtDate(w.date)}</span>
-                          <span aria-hidden>·</span>
-                          <span className="tabular-nums">
-                            {w.entries.length}{" "}
-                            {w.entries.length === 1 ? "entrée" : "entrées"}
+            <>
+              {/* Mobile: horizontally scrollable session cards */}
+              <ul className="flex gap-3 overflow-x-auto px-3 py-3 sm:hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {recent.map((w) => {
+                  const totalSets = w.entries.reduce(
+                    (acc, e) => acc + e.sets.length,
+                    0,
+                  );
+                  return (
+                    <li key={w.id} className="shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => useAppStore.getState().setView("history")}
+                        className="flex w-[250px] items-center gap-3 rounded-lg border border-border/60 bg-card p-3 text-left transition-colors hover:bg-muted/40"
+                      >
+                        <div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-lg bg-muted/60 text-foreground">
+                          <span className="text-[10px] uppercase leading-none text-muted-foreground">
+                            {fmtDate(w.date, "MMM")}
                           </span>
-                          <span aria-hidden>·</span>
-                          <span className="tabular-nums">{totalSets} séries</span>
+                          <span className="text-sm font-bold leading-none tabular-nums">
+                            {fmtDate(w.date, "dd")}
+                          </span>
                         </div>
-                      </div>
 
-                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium text-foreground">
+                            {w.title || "Séance sans titre"}
+                          </div>
+                          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <span>{fmtDate(w.date)}</span>
+                            <span aria-hidden>·</span>
+                            <span className="tabular-nums">
+                              {totalSets} {totalSets === 1 ? "série" : "séries"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              {/* Desktop: vertical list */}
+              <ul className="hidden divide-y divide-border/60 sm:block">
+                {recent.map((w) => {
+                  const totalSets = w.entries.reduce(
+                    (acc, e) => acc + e.sets.length,
+                    0,
+                  );
+                  return (
+                    <li key={w.id}>
+                      <button
+                        type="button"
+                        onClick={() => useAppStore.getState().setView("history")}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40"
+                      >
+                        <div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-lg bg-muted/60 text-foreground">
+                          <span className="text-[10px] uppercase leading-none text-muted-foreground">
+                            {fmtDate(w.date, "MMM")}
+                          </span>
+                          <span className="text-sm font-bold leading-none tabular-nums">
+                            {fmtDate(w.date, "dd")}
+                          </span>
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium text-foreground">
+                            {w.title || "Séance sans titre"}
+                          </div>
+                          <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                            <span>{fmtDate(w.date)}</span>
+                            <span aria-hidden>·</span>
+                            <span className="tabular-nums">
+                              {w.entries.length}{" "}
+                              {w.entries.length === 1 ? "entrée" : "entrées"}
+                            </span>
+                            <span aria-hidden>·</span>
+                            <span className="tabular-nums">{totalSets} séries</span>
+                          </div>
+                        </div>
+
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
           )}
         </CardContent>
       </Card>
