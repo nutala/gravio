@@ -331,20 +331,8 @@ export function NewWorkoutView() {
       .sort((a, b) => a.difficultyLevel - b.difficultyLevel)[0];
     if (!firstVariant) return;
 
-    fetchLastSession(exercise.id, firstVariant.id).then((historySets) => {
-      const historySet = historySets[0];
-      draft.updateSet(newEntry.id, newEntry.sets[0].id, {
-        variantId: firstVariant.id,
-        ...(historySet
-          ? {
-              mode: historySet.reps != null ? "reps" : historySet.holdSeconds != null ? "hold" : undefined,
-              reps: historySet.reps ?? undefined,
-              holdSeconds: historySet.holdSeconds ?? undefined,
-              weightKg: historySet.weightKg ?? undefined,
-              rpe: historySet.rpe ?? undefined,
-            }
-          : {}),
-      });
+    draft.updateSet(newEntry.id, newEntry.sets[0].id, {
+      variantId: firstVariant.id,
     });
   }
 
@@ -1193,51 +1181,22 @@ function EntryCard({
     // when handleVariantChange (async) hasn't resolved yet.
     const latest = useDraftStore.getState().entries.find((e) => e.id === entry.id);
     const latestSets = latest?.sets ?? sets;
-    const setIndex = latestSets.length;
     const lastSet = latestSets[latestSets.length - 1];
     const defaults: Partial<DraftSet> = {};
     const variantId = lastSet?.variantId ?? (sortedVariants.length > 0 ? sortedVariants[0].id : undefined);
     if (variantId) defaults.variantId = variantId;
     if (lastSet?.mode) defaults.mode = lastSet.mode;
-    if (variantId) {
-      const historySets = await fetchLastSession(exercise.id, variantId);
-      const historySet = historySets[setIndex];
-      if (historySet) {
-        defaults.reps = historySet.reps ?? undefined;
-        defaults.holdSeconds = historySet.holdSeconds ?? undefined;
-        defaults.weightKg = historySet.weightKg ?? undefined;
-        defaults.rpe = historySet.rpe ?? undefined;
-      }
-    }
     onAddSet(defaults);
   }
 
   async function handleVariantChange(setId: string, newVariantId: string) {
-    const setIndex = sets.findIndex((s) => s.id === setId);
     const newVariant = sortedVariants.find((v) => v.id === newVariantId);
     const newMode: "reps" | "hold" = (newVariant as unknown as { mode?: string })?.mode === "hold" ? "hold" : "reps";
     await loadHistory(newVariantId);
-    const historySets = historyRef.current[newVariantId] ?? [];
-    const historySet = historySets[setIndex];
-    if (historySet) {
-      onUpdateSet(setId, {
-        variantId: newVariantId,
-        mode: newMode,
-        reps: newMode === "reps" ? (historySet.reps ?? undefined) : undefined,
-        holdSeconds: newMode === "hold" ? (historySet.holdSeconds ?? undefined) : undefined,
-        weightKg: historySet.weightKg ?? undefined,
-        rpe: historySet.rpe ?? undefined,
-      });
-    } else {
-      onUpdateSet(setId, {
-        variantId: newVariantId,
-        mode: newMode,
-        reps: undefined,
-        holdSeconds: undefined,
-        weightKg: undefined,
-        rpe: undefined,
-      });
-    }
+    onUpdateSet(setId, {
+      variantId: newVariantId,
+      mode: newMode,
+    });
   }
 
   return (
@@ -1434,8 +1393,8 @@ function EntryCard({
                 <thead>
                   <tr className="text-xs uppercase text-muted-foreground">
                     <th className="w-10 pb-2 text-left font-medium">Série</th>
-                    <th className="pb-2 text-left font-medium">Valeur</th>
                     <th className="pb-2 text-left font-medium">Précédent</th>
+                    <th className="pb-2 text-left font-medium">Valeur</th>
                     {sortedVariants.length > 0 && (
                       <th className="w-20 pb-2 text-left font-medium">Var.</th>
                     )}
@@ -1458,6 +1417,17 @@ function EntryCard({
                         historyByVariant[set.variantId ?? sortedVariants[0]?.id ?? ""]?.[idx],
                         set.mode ?? (isStatic ? "hold" : "reps"),
                       )}
+                      onApplyPrevious={() => {
+                        const prevSet = historyByVariant[set.variantId ?? sortedVariants[0]?.id ?? ""]?.[idx];
+                        if (!prevSet) return;
+                        const m = set.mode ?? (isStatic ? "hold" : "reps");
+                        onUpdateSet(set.id, {
+                          mode: m,
+                          reps: m === "reps" ? (prevSet.reps ?? undefined) : undefined,
+                          holdSeconds: m === "hold" ? (prevSet.holdSeconds ?? undefined) : undefined,
+                          weightKg: prevSet.weightKg ?? undefined,
+                        });
+                      }}
                       onUpdate={(patch) => onUpdateSet(set.id, patch)}
                       onRemove={() => requestDeleteSet(set.id)}
                       onValidate={(v) => onValidateSet(set.id, v)}
@@ -1482,12 +1452,12 @@ function EntryCard({
             <div className="sm:hidden space-y-1.5">
               {/* Column headers */}
               {sets.length > 0 && (
-                <div className="grid grid-cols-[20px_1.5fr_24px_1fr_1.2fr_32px] items-center gap-0.5 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <div className="grid grid-cols-[20px_1.2fr_1.5fr_24px_1fr_32px] items-center gap-0.5 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
                   <span className="text-center">#</span>
+                  <span className="text-center">Préc.</span>
                   <span className="text-center">Valeur</span>
                   <span />
                   <span className="text-center">KG</span>
-                  <span className="text-center">Préc.</span>
                   <span />
                 </div>
               )}
@@ -1505,6 +1475,17 @@ function EntryCard({
                     historyByVariant[set.variantId ?? sortedVariants[0]?.id ?? ""]?.[idx],
                     set.mode ?? (isStatic ? "hold" : "reps"),
                   )}
+                  onApplyPrevious={() => {
+                    const prevSet = historyByVariant[set.variantId ?? sortedVariants[0]?.id ?? ""]?.[idx];
+                    if (!prevSet) return;
+                    const m = set.mode ?? (isStatic ? "hold" : "reps");
+                    onUpdateSet(set.id, {
+                      mode: m,
+                      reps: m === "reps" ? (prevSet.reps ?? undefined) : undefined,
+                      holdSeconds: m === "hold" ? (prevSet.holdSeconds ?? undefined) : undefined,
+                      weightKg: prevSet.weightKg ?? undefined,
+                    });
+                  }}
                   onUpdate={(patch) => onUpdateSet(set.id, patch)}
                   onRemove={() => requestDeleteSet(set.id)}
                   onValidate={(v) => onValidateSet(set.id, v)}
@@ -1607,6 +1588,7 @@ function SetRowDesktop({
    onRemove,
    onValidate,
    onVariantChange,
+   onApplyPrevious,
  }: {
    set: DraftSet;
    idx: number;
@@ -1619,6 +1601,7 @@ function SetRowDesktop({
    onRemove: () => void;
    onValidate: (validated: boolean) => void;
    onVariantChange: (variantId: string) => void;
+   onApplyPrevious: () => void;
  }) {
    const validated = set.validated;
     const mode = set.mode ?? (isStatic ? "hold" : "reps");
@@ -1638,32 +1621,38 @@ function SetRowDesktop({
          validated && "bg-emerald-500/6",
        )}
      >
-       <td className="py-1.5 text-muted-foreground tabular-nums w-6">{idx + 1}</td>
-        <td className="py-1.5 pr-2">
-          <div className="flex items-center gap-1">
-            <NumberInput
-              value={mode === "reps" ? set.reps : set.holdSeconds}
-              placeholder={mode === "hold" ? "30" : "8"}
-              aria-label={`${mode === "hold" ? "Maintien" : "Reps"} pour la série ${idx + 1}`}
-              onChange={(n) =>
-                onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n })
-              }
-            />
-            <span className="text-[9px] font-bold uppercase text-muted-foreground/50 tabular-nums shrink-0">
-              {mode === "hold" ? "sec" : "reps"}
-            </span>
-          </div>
-        </td>
-       <td className="py-1.5 pr-2">
-         {previous ? (
-           <span className="text-xs tabular-nums text-muted-foreground whitespace-nowrap">
-             {previous}
-           </span>
-         ) : (
-           <span className="text-xs text-muted-foreground/40">—</span>
-         )}
-       </td>
-       {variants.length > 0 && (
+<td className="py-1.5 text-muted-foreground tabular-nums w-6">{idx + 1}</td>
+         <td className="py-1.5 pr-2">
+           {previous ? (
+             <button
+               type="button"
+               onClick={onApplyPrevious}
+               className="text-xs tabular-nums text-muted-foreground whitespace-nowrap rounded border border-transparent px-1.5 py-1 -mx-1.5 transition-colors hover:border-border/60 hover:bg-muted hover:text-foreground"
+               aria-label={`Appliquer la valeur précédente de la série ${idx + 1}`}
+               title="Appliquer la valeur précédente"
+             >
+               {previous}
+             </button>
+           ) : (
+             <span className="text-xs text-muted-foreground/40">—</span>
+           )}
+         </td>
+         <td className="py-1.5 pr-2">
+           <div className="flex items-center gap-1">
+             <NumberInput
+               value={mode === "reps" ? set.reps : set.holdSeconds}
+               placeholder={mode === "hold" ? "30" : "8"}
+               aria-label={`${mode === "hold" ? "Maintien" : "Reps"} pour la série ${idx + 1}`}
+               onChange={(n) =>
+                 onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n })
+               }
+             />
+             <span className="text-[9px] font-bold uppercase text-muted-foreground/50 tabular-nums shrink-0">
+               {mode === "hold" ? "sec" : "reps"}
+             </span>
+           </div>
+         </td>
+        {variants.length > 0 && (
          <td className="py-1.5 pr-2">
            <select
              value={set.variantId ?? variants[0]?.id}
@@ -1734,6 +1723,7 @@ function SetRowMobile({
     onValidate,
     onVariantChange,
     onDuplicate,
+    onApplyPrevious,
   }: {
     set: DraftSet;
     idx: number;
@@ -1748,6 +1738,7 @@ function SetRowMobile({
     onValidate: (validated: boolean) => void;
     onVariantChange: (variantId: string) => void;
     onDuplicate: () => void;
+    onApplyPrevious: () => void;
   }) {
    const validated = set.validated;
    const mode = set.mode ?? (isStatic ? "hold" : "reps");
@@ -1841,10 +1832,24 @@ const startX = React.useRef(0);
            validated ? "bg-emerald-500/8" : "bg-muted/30",
          )}
        >
-{/* Line 1: #, value, mode label, kg, previous, validate */}
-          <div className="grid grid-cols-[20px_1.5fr_24px_1fr_1.2fr_32px] items-center gap-0.5 px-1 py-1.5">
+{/* Line 1: #, previous, value, mode label, kg, validate */}
+          <div className="grid grid-cols-[20px_1.2fr_1.5fr_24px_1fr_32px] items-center gap-0.5 px-1 py-1.5">
             <span className="text-center text-xs font-semibold tabular-nums text-muted-foreground">
               {idx + 1}
+            </span>
+            <span className="text-center">
+              {previous ? (
+                <button
+                  type="button"
+                  onClick={onApplyPrevious}
+                  className="inline-block text-xs tabular-nums text-muted-foreground rounded border border-transparent px-1 py-0.5 w-full transition-colors hover:border-border/60 hover:bg-muted hover:text-foreground"
+                  aria-label={`Appliquer la valeur précédente de la série ${idx + 1}`}
+                >
+                  {previous}
+                </button>
+              ) : (
+                <span className="text-xs text-muted-foreground/40">—</span>
+              )}
             </span>
             <input
               type="text"
@@ -1886,9 +1891,6 @@ const startX = React.useRef(0);
                 ±
               </button>
             </div>
-            <span className="text-xs tabular-nums text-muted-foreground text-center truncate">
-              {previous ? previous : "—"}
-            </span>
             <ValidateButton
               validated={validated}
               onClick={handleValidate}
