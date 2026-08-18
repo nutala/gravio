@@ -1029,31 +1029,40 @@ function SessionTimer({ startedAt }: { startedAt: number }) {
    );
  }
 
-/** Fetch all sets from the most recent session for a given exercise+variant. */
-async function fetchLastSession(
-  exerciseId: string,
-  variantId?: string,
-): Promise<Array<{
+type HistorySet = {
   reps: number | null;
   holdSeconds: number | null;
   weightKg: number | null;
   rpe: number | null;
-}>> {
+};
+
+/** Fetch all sets from the most recent session for a given exercise+variant. */
+async function fetchLastSession(
+  exerciseId: string,
+  variantId?: string,
+): Promise<HistorySet[]> {
   try {
     const params = new URLSearchParams({ exerciseId });
     if (variantId) params.set("variantId", variantId);
-    const data = await api.get<{
-      sets: Array<{
-        reps: number | null;
-        holdSeconds: number | null;
-        weightKg: number | null;
-        rpe: number | null;
-      }>;
-    }>(`/api/sets/last-session?${params}`);
+    const data = await api.get<{ sets: HistorySet[] }>(
+      `/api/sets/last-session?${params}`,
+    );
     return data?.sets ?? [];
   } catch {
     return [];
   }
+}
+
+/** Format a previous-session set, e.g. "+10kg × 12", "-15kg × 10" or "12". */
+function formatPrevious(s: HistorySet | undefined, mode: "reps" | "hold"): string | null {
+  if (!s) return null;
+  const value = mode === "reps" ? s.reps : s.holdSeconds;
+  if (value == null) return null;
+  if (s.weightKg != null && s.weightKg !== 0) {
+    const sign = s.weightKg > 0 ? "+" : "";
+    return `${sign}${s.weightKg}kg × ${value}`;
+  }
+  return String(value);
 }
 
 // ---------------------------------------------------------------------------
@@ -1145,6 +1154,25 @@ function EntryCard({
     ? exercise.variants.slice().sort((a, b) => a.difficultyLevel - b.difficultyLevel)
     : [];
 
+  // Cache of previous-session sets per variant, used for the "Précédent" column.
+  const [historyByVariant, setHistoryByVariant] = React.useState<
+    Record<string, HistorySet[]>
+  >({});
+  const historyRef = React.useRef<Record<string, HistorySet[]>>({});
+  const loadHistory = React.useCallback(
+    async (variantId?: string) => {
+      if (!variantId || historyRef.current[variantId]) return;
+      const sets = await fetchLastSession(exercise.id, variantId);
+      historyRef.current = { ...historyRef.current, [variantId]: sets };
+      setHistoryByVariant(historyRef.current);
+    },
+    [exercise.id],
+  );
+  React.useEffect(() => {
+    loadHistory(sortedVariants[0]?.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exercise.id]);
+
   const ssColor = supersetColor(supersetGroup);
   const ssLabel = supersetLabel(supersetGroup);
   const inSuperset = supersetGroup != null;
@@ -1188,7 +1216,8 @@ function EntryCard({
     const setIndex = sets.findIndex((s) => s.id === setId);
     const newVariant = sortedVariants.find((v) => v.id === newVariantId);
     const newMode: "reps" | "hold" = (newVariant as unknown as { mode?: string })?.mode === "hold" ? "hold" : "reps";
-    const historySets = await fetchLastSession(exercise.id, newVariantId);
+    await loadHistory(newVariantId);
+    const historySets = historyRef.current[newVariantId] ?? [];
     const historySet = historySets[setIndex];
     if (historySet) {
       onUpdateSet(setId, {
@@ -1406,11 +1435,11 @@ function EntryCard({
                   <tr className="text-xs uppercase text-muted-foreground">
                     <th className="w-10 pb-2 text-left font-medium">Série</th>
                     <th className="pb-2 text-left font-medium">Valeur</th>
+                    <th className="pb-2 text-left font-medium">Précédent</th>
                     {sortedVariants.length > 0 && (
                       <th className="w-20 pb-2 text-left font-medium">Var.</th>
                     )}
                     <th className="pb-2 text-left font-medium">Poids (kg)</th>
-                    <th className="pb-2 text-left font-medium">RPE</th>
                     <th className="w-20 pb-2 text-center font-medium">Fait</th>
                     <th className="w-10 pb-2" />
                   </tr>
@@ -1425,6 +1454,10 @@ function EntryCard({
                       metricLabel={metricLabel}
                       defaultRestSec={defaultRestSec}
                       variants={sortedVariants}
+                      previous={formatPrevious(
+                        historyByVariant[set.variantId ?? sortedVariants[0]?.id ?? ""]?.[idx],
+                        set.mode ?? (isStatic ? "hold" : "reps"),
+                      )}
                       onUpdate={(patch) => onUpdateSet(set.id, patch)}
                       onRemove={() => requestDeleteSet(set.id)}
                       onValidate={(v) => onValidateSet(set.id, v)}
@@ -1449,12 +1482,12 @@ function EntryCard({
             <div className="sm:hidden space-y-1.5">
               {/* Column headers */}
               {sets.length > 0 && (
-                <div className="grid grid-cols-[20px_1.5fr_24px_1fr_0.9fr_32px] items-center gap-0.5 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <div className="grid grid-cols-[20px_1.5fr_24px_1fr_1.2fr_32px] items-center gap-0.5 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
                   <span className="text-center">#</span>
                   <span className="text-center">Valeur</span>
                   <span />
                   <span className="text-center">KG</span>
-                  <span className="text-center">RPE</span>
+                  <span className="text-center">Préc.</span>
                   <span />
                 </div>
               )}
@@ -1468,6 +1501,10 @@ function EntryCard({
                   defaultRestSec={defaultRestSec}
                   variants={sortedVariants}
                   pendingDelete={pendingDelete}
+                  previous={formatPrevious(
+                    historyByVariant[set.variantId ?? sortedVariants[0]?.id ?? ""]?.[idx],
+                    set.mode ?? (isStatic ? "hold" : "reps"),
+                  )}
                   onUpdate={(patch) => onUpdateSet(set.id, patch)}
                   onRemove={() => requestDeleteSet(set.id)}
                   onValidate={(v) => onValidateSet(set.id, v)}
@@ -1565,6 +1602,7 @@ function SetRowDesktop({
    metricLabel,
    defaultRestSec,
    variants,
+   previous,
    onUpdate,
    onRemove,
    onValidate,
@@ -1576,6 +1614,7 @@ function SetRowDesktop({
    metricLabel: string;
    defaultRestSec: number;
    variants: { id: string; name: string; difficultyLevel: number }[];
+   previous: string | null;
    onUpdate: (patch: Partial<DraftSet>) => void;
    onRemove: () => void;
    onValidate: (validated: boolean) => void;
@@ -1615,6 +1654,15 @@ function SetRowDesktop({
             </span>
           </div>
         </td>
+       <td className="py-1.5 pr-2">
+         {previous ? (
+           <span className="text-xs tabular-nums text-muted-foreground whitespace-nowrap">
+             {previous}
+           </span>
+         ) : (
+           <span className="text-xs text-muted-foreground/40">—</span>
+         )}
+       </td>
        {variants.length > 0 && (
          <td className="py-1.5 pr-2">
            <select
@@ -1650,16 +1698,6 @@ function SetRowDesktop({
             </button>
           </div>
         </td>
-        <td className="py-1.5 pr-2">
-          <NumberInput
-            value={set.rpe}
-            placeholder="7"
-            min={1}
-            max={10}
-            aria-label={`RPE pour la série ${idx + 1}`}
-            onChange={(n) => onUpdate({ rpe: n })}
-          />
-        </td>
        <td className="py-1.5 text-center">
          <ValidateButton
            validated={validated}
@@ -1690,6 +1728,7 @@ function SetRowMobile({
     defaultRestSec,
     variants,
     pendingDelete,
+    previous,
     onUpdate,
     onRemove,
     onValidate,
@@ -1703,6 +1742,7 @@ function SetRowMobile({
     defaultRestSec: number;
     variants: { id: string; name: string; difficultyLevel: number }[];
     pendingDelete: string | null;
+    previous: string | null;
     onUpdate: (patch: Partial<DraftSet>) => void;
     onRemove: () => void;
     onValidate: (validated: boolean) => void;
@@ -1801,72 +1841,60 @@ const startX = React.useRef(0);
            validated ? "bg-emerald-500/8" : "bg-muted/30",
          )}
        >
-         {/* Line 1: #, value, mode label, kg, rpe, validate */}
-         <div className="grid grid-cols-[20px_1.5fr_24px_1fr_0.9fr_32px] items-center gap-0.5 px-1 py-1.5">
-           <span className="text-center text-xs font-semibold tabular-nums text-muted-foreground">
-             {idx + 1}
-           </span>
-           <input
-             type="text"
-             inputMode="decimal"
-             placeholder={mode === "hold" ? "30" : "8"}
-             value={mode === "reps" ? (set.reps ?? "") : (set.holdSeconds ?? "")}
-             onChange={(e) => {
-               const v = e.target.value;
-               const n = v === "" ? undefined : Number(v);
-               onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n });
-             }}
-             onFocus={(e) => e.target.select()}
-             className="h-8 w-full rounded border border-border/60 bg-background px-1 text-center text-sm tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
-             aria-label={`Valeur série ${idx + 1}`}
-           />
-           <span className="text-[9px] font-bold uppercase text-muted-foreground/50 text-center leading-none">
-             {mode === "hold" ? "sec" : "reps"}
-           </span>
-           <div className="flex items-center">
-             <input
-               type="text"
-               inputMode="decimal"
-               step={0.5}
-               placeholder="0"
-               value={set.weightKg ?? ""}
-               onChange={(e) => {
-                 const v = e.target.value;
-                 onUpdate({ weightKg: v === "" ? undefined : Number(v) || undefined });
-               }}
-               onFocus={(e) => e.target.select()}
-               className="h-8 w-full min-w-0 rounded-l border border-border/60 bg-background px-1 text-center text-sm tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
-               aria-label={`Poids série ${idx + 1}`}
-             />
-             <button
-               type="button"
-               onClick={() => onUpdate({ weightKg: -(set.weightKg ?? 0) })}
-               className="h-8 w-4 shrink-0 flex items-center justify-center rounded-r border border-l-0 border-border/60 bg-muted/40 text-[9px] text-muted-foreground hover:bg-muted transition-colors"
-             >
-               ±
-             </button>
-           </div>
-           <input
-             type="text"
-             inputMode="decimal"
-             min={1}
-             max={10}
-             placeholder="—"
-             value={set.rpe ?? ""}
-             onChange={(e) => {
-               const v = e.target.value;
-               onUpdate({ rpe: v === "" ? undefined : Number(v) || undefined });
-             }}
-             onFocus={(e) => e.target.select()}
-             className="h-8 w-full rounded border border-border/60 bg-background px-1 text-center text-sm tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
-             aria-label={`RPE série ${idx + 1}`}
-           />
-           <ValidateButton
-             validated={validated}
-             onClick={handleValidate}
-             label={`Série ${idx + 1}`}
-           />
-         </div>
+{/* Line 1: #, value, mode label, kg, previous, validate */}
+          <div className="grid grid-cols-[20px_1.5fr_24px_1fr_1.2fr_32px] items-center gap-0.5 px-1 py-1.5">
+            <span className="text-center text-xs font-semibold tabular-nums text-muted-foreground">
+              {idx + 1}
+            </span>
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder={mode === "hold" ? "30" : "8"}
+              value={mode === "reps" ? (set.reps ?? "") : (set.holdSeconds ?? "")}
+              onChange={(e) => {
+                const v = e.target.value;
+                const n = v === "" ? undefined : Number(v);
+                onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n });
+              }}
+              onFocus={(e) => e.target.select()}
+              className="h-8 w-full rounded border border-border/60 bg-background px-1 text-center text-sm tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
+              aria-label={`Valeur série ${idx + 1}`}
+            />
+            <span className="text-[9px] font-bold uppercase text-muted-foreground/50 text-center leading-none">
+              {mode === "hold" ? "sec" : "reps"}
+            </span>
+            <div className="flex items-center">
+              <input
+                type="text"
+                inputMode="decimal"
+                step={0.5}
+                placeholder="0"
+                value={set.weightKg ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  onUpdate({ weightKg: v === "" ? undefined : Number(v) || undefined });
+                }}
+                onFocus={(e) => e.target.select()}
+                className="h-8 w-full min-w-0 rounded-l border border-border/60 bg-background px-1 text-center text-sm tabular-nums text-foreground outline-none focus:ring-1 focus:ring-ring"
+                aria-label={`Poids série ${idx + 1}`}
+              />
+              <button
+                type="button"
+                onClick={() => onUpdate({ weightKg: -(set.weightKg ?? 0) })}
+                className="h-8 w-4 shrink-0 flex items-center justify-center rounded-r border border-l-0 border-border/60 bg-muted/40 text-[9px] text-muted-foreground hover:bg-muted transition-colors"
+              >
+                ±
+              </button>
+            </div>
+            <span className="text-xs tabular-nums text-muted-foreground text-center truncate">
+              {previous ? previous : "—"}
+            </span>
+            <ValidateButton
+              validated={validated}
+              onClick={handleValidate}
+              label={`Série ${idx + 1}`}
+            />
+          </div>
 
          {/* Line 2: variant */}
          {variants.length > 1 && (
