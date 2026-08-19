@@ -91,10 +91,10 @@ export function DashboardView() {
 
       <FadeIn delay={0.1}>
         <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 min-w-0">
             <TopExercises />
           </div>
-          <div>
+          <div className="min-w-0">
             <RecentWorkouts />
           </div>
         </div>
