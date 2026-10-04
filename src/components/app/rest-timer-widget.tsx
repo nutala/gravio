@@ -44,6 +44,7 @@ function releaseWakeLock() {
 
 export function RestTimerWidget() {
   const timer = useTimerStore();
+  const view = useAppStore((s) => s.view);
   const [now, setNow] = React.useState(Date.now());
   const doneHandled = React.useRef(false);
   const endsAtRef = React.useRef(timer.endsAt);
@@ -351,7 +352,16 @@ export function RestTimerWidget() {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 24, scale: 0.95 }}
         transition={{ type: "spring", stiffness: 320, damping: 26 }}
-        className="fixed bottom-4 right-4 z-50 sm:bottom-6 sm:right-6"
+        data-rest-timer
+        className={cn(
+          "fixed z-40",
+          // During a workout the bottom of the screen is taken by the session
+          // action bar + the tab bar, so the pill docks under the header
+          // instead (Strong shows the rest countdown at the top too).
+          view === "new-workout"
+            ? "right-3 top-[70px] sm:right-6 sm:top-[78px]"
+            : "bottom-4 right-4 z-50 sm:bottom-6 sm:right-6",
+        )}
       >
         <div
           className={cn(
