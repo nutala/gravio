@@ -33,9 +33,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const view = useAppStore((s) => s.view);
   const setView = useAppStore((s) => s.setView);
 
-  // The active-workout view owns its own bottom action bar — hide the tab bar
-  // there so the two never compete for the thumb zone (Strong behaves the same).
-  const showTabs = view !== "new-workout";
+  // The bottom tab bar stays available during a workout so an exercise can be
+  // created (Exos tab) without losing the session — the draft persists. The
+  // session action bar sits just above it.
+  const showTabs = true;
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -124,7 +125,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
           aria-label="Navigation mobile"
         >
-          <div className="flex items-stretch">
+          <div className="flex h-14 items-stretch">
             {NAV.map((item) => {
               const active = view === item.id;
               const Icon = item.icon;
@@ -133,7 +134,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   key={item.id}
                   onClick={() => setView(item.id)}
                   className={cn(
-                    "relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium transition-colors",
+                    "relative flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors",
                     active ? "text-primary" : "text-muted-foreground hover:text-foreground",
                   )}
                   aria-current={active ? "page" : undefined}

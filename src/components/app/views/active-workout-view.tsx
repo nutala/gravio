@@ -471,7 +471,7 @@ export function ActiveWorkoutView() {
   const saving = createWorkout.isPending || updateWorkoutEntries.isPending;
 
   return (
-    <div className="pb-32">
+    <div className="pb-44 md:pb-28">
       {/* ------------------- Sticky workout header ------------------- */}
       <div className="sticky top-0 z-30 -mx-3 mb-4 border-b border-border/60 bg-background/90 px-3 py-2 backdrop-blur sm:-mx-6 sm:px-6">
         <div className="flex items-center gap-2">
@@ -607,8 +607,8 @@ export function ActiveWorkoutView() {
         </div>
       )}
 
-      {/* ------------------- Sticky bottom bar ------------------- */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border/60 bg-background/95 backdrop-blur">
+      {/* ------------------- Sticky bottom bar (sits above the tab bar on mobile) ------------------- */}
+      <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-30 border-t border-border/60 bg-background/95 backdrop-blur md:bottom-0">
         <div className="mx-auto flex w-full max-w-7xl items-center gap-2 px-3 py-2.5 sm:px-6">
           <Button variant="ghost" size="sm" onClick={() => setCancelOpen(true)} className="text-muted-foreground">
             <X className="h-4 w-4" />
@@ -945,10 +945,7 @@ function EntryCard({
     [exercise.variants],
   );
 
-  const activeVariantId = React.useMemo(
-    () => sets.find((s) => s.variantId)?.variantId ?? sortedVariants[0]?.id ?? undefined,
-    [sets, sortedVariants],
-  );
+  const defaultVariantId = sortedVariants[0]?.id;
 
   const loadHistory = React.useCallback(
     async (vid?: string, prefillFirst = false) => {
@@ -977,10 +974,19 @@ function EntryCard({
     [exercise.id, entry.id],
   );
 
+  // Load "previous session" data for EVERY variant used by this entry (the
+  // variant is chosen per set), and prefill the first set once from that set's
+  // variant history — Strong: the numbers are already there when you open.
+  const usedVariantIds = sets
+    .map((s) => s.variantId ?? defaultVariantId)
+    .filter((v): v is string => Boolean(v));
+  const usedVariantKey = Array.from(new Set(usedVariantIds)).join(",");
   React.useEffect(() => {
-    loadHistory(activeVariantId ?? sortedVariants[0]?.id, true);
+    if (!usedVariantKey) return;
+    const prefillId = sets[0]?.variantId ?? defaultVariantId;
+    usedVariantKey.split(",").forEach((id) => loadHistory(id, id === prefillId));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeVariantId, sortedVariants[0]?.id]);
+  }, [usedVariantKey, defaultVariantId]);
 
   const ssColor = supersetColor(supersetGroup);
   const ssLabel = supersetLabel(supersetGroup);
@@ -1000,16 +1006,17 @@ function EntryCard({
     onAddSet(defaults);
   }
 
-  async function handleVariantChange(newVariantId: string) {
+  function handleVariantChange(setId: string, newVariantId: string) {
     const newVariant = sortedVariants.find((v) => v.id === newVariantId);
-    const newMode: "reps" | "hold" = (newVariant as unknown as { mode?: string })?.mode === "hold" ? "hold" : "reps";
-    await loadHistory(newVariantId, true);
-    // Apply the variant to every set of the entry (Strong keeps one variant per exercise).
-    for (const s of sets) onUpdateSet(s.id, { variantId: newVariantId, mode: newMode });
+    const newMode: "reps" | "hold" =
+      (newVariant as unknown as { mode?: string })?.mode === "hold" ? "hold" : "reps";
+    loadHistory(newVariantId);
+    // The variant is per set: only this row changes.
+    onUpdateSet(setId, { variantId: newVariantId, mode: newMode });
   }
 
-  function applyPrevious(setId: string, idx: number) {
-    const hist = historyByVariant[activeVariantId ?? sortedVariants[0]?.id ?? ""] ?? [];
+  function applyPrevious(setId: string, idx: number, variantId?: string) {
+    const hist = historyByVariant[variantId ?? defaultVariantId ?? ""] ?? [];
     const prev = hist[idx];
     if (!prev) return;
     const current = sets.find((s) => s.id === setId);
@@ -1128,47 +1135,37 @@ function EntryCard({
           />
         ) : (
           <>
-            {sortedVariants.length > 1 && (
-              <select
-                value={activeVariantId ?? ""}
-                onChange={(e) => handleVariantChange(e.target.value)}
-                className="h-9 w-full rounded-lg border border-border/60 bg-background px-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
-                aria-label={`Variante pour ${exercise.name}`}
-              >
-                {sortedVariants.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.name} {difficultyStars(v.difficultyLevel)}
-                  </option>
-                ))}
-              </select>
-            )}
-
             {/* Column header */}
             <div className="grid grid-cols-[26px_58px_minmax(0,1fr)_minmax(0,1fr)_56px] items-center gap-1.5 px-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               <span className="text-center">#</span>
               <span>Préc.</span>
               <span className="text-center">KG</span>
-              <span className="text-center">{exercise.isStatic ? "Sec" : "Reps"}</span>
+              <span className="text-center">Valeur</span>
               <span />
             </div>
 
-            {sets.map((set, idx) => (
-              <SetRow
-                key={set.id}
-                set={set}
-                idx={idx}
-                isStatic={exercise.isStatic}
-                defaultRestSec={defaultRestSec}
-                previous={previousLabel(
-                  historyByVariant[set.variantId ?? activeVariantId ?? ""]?.[idx],
-                  set.mode ?? (exercise.isStatic ? "hold" : "reps"),
-                )}
-                onUpdate={(patch) => onUpdateSet(set.id, patch)}
-                onValidate={(v) => onValidateSet(set.id, v)}
-                onApplyPrevious={() => applyPrevious(set.id, idx)}
-                onRequestDelete={() => setPendingDelete(set.id)}
-              />
-            ))}
+            {sets.map((set, idx) => {
+              const variantId = set.variantId ?? defaultVariantId;
+              return (
+                <SetRow
+                  key={set.id}
+                  set={set}
+                  idx={idx}
+                  isStatic={exercise.isStatic}
+                  defaultRestSec={defaultRestSec}
+                  variants={sortedVariants}
+                  previous={previousLabel(
+                    historyByVariant[variantId ?? ""]?.[idx],
+                    set.mode ?? (exercise.isStatic ? "hold" : "reps"),
+                  )}
+                  onUpdate={(patch) => onUpdateSet(set.id, patch)}
+                  onValidate={(v) => onValidateSet(set.id, v)}
+                  onVariantChange={(vid) => handleVariantChange(set.id, vid)}
+                  onApplyPrevious={() => applyPrevious(set.id, idx, variantId)}
+                  onRequestDelete={() => setPendingDelete(set.id)}
+                />
+              );
+            })}
 
             <Button variant="outline" size="sm" className="mt-1 h-10 w-full gap-2" onClick={handleAddSet}>
               <Plus className="h-4 w-4" />
@@ -1210,9 +1207,11 @@ function SetRow({
   idx,
   isStatic,
   defaultRestSec,
+  variants,
   previous,
   onUpdate,
   onValidate,
+  onVariantChange,
   onApplyPrevious,
   onRequestDelete,
 }: {
@@ -1220,14 +1219,41 @@ function SetRow({
   idx: number;
   isStatic: boolean;
   defaultRestSec: number;
+  variants: { id: string; name: string; difficultyLevel: number }[];
   previous: string | null;
   onUpdate: (patch: Partial<DraftSet>) => void;
   onValidate: (validated: boolean) => void;
+  onVariantChange: (variantId: string) => void;
   onApplyPrevious: () => void;
   onRequestDelete: () => void;
 }) {
   const validated = set.validated;
   const mode = set.mode ?? (isStatic ? "hold" : "reps");
+
+  // Swipe-left to delete (touch devices). Vertical scrolling is untouched: we
+  // only translate on a horizontal drag and never preventDefault.
+  const startX = React.useRef(0);
+  const currentX = React.useRef(0);
+  const [dx, setDx] = React.useState(0);
+  const [animating, setAnimating] = React.useState(false);
+
+  function handleTouchStart(e: React.TouchEvent) {
+    startX.current = e.touches[0].clientX;
+    currentX.current = 0;
+    setAnimating(false);
+  }
+  function handleTouchMove(e: React.TouchEvent) {
+    const d = e.touches[0].clientX - startX.current;
+    const clamped = Math.max(-140, Math.min(0, d));
+    currentX.current = clamped;
+    setDx(clamped);
+  }
+  function handleTouchEnd() {
+    if (currentX.current < -80) onRequestDelete();
+    setAnimating(true);
+    setDx(0);
+    window.setTimeout(() => setAnimating(false), 200);
+  }
 
   function handleValidate() {
     const next = !validated;
@@ -1237,61 +1263,99 @@ function SetRow({
   }
 
   return (
-    <div
-      className={cn(
-        "grid grid-cols-[26px_58px_minmax(0,1fr)_minmax(0,1fr)_56px] items-center gap-1.5 rounded-lg border px-0.5 py-1 transition-colors",
-        validated ? "border-emerald-500/40 bg-emerald-500/10" : "border-transparent bg-muted/30",
-      )}
-    >
-      <span className="text-center text-sm font-semibold tabular-nums text-muted-foreground">{idx + 1}</span>
-
-      {previous ? (
-        <button
-          type="button"
-          onClick={onApplyPrevious}
-          className="truncate rounded border border-transparent px-1 py-1 text-xs tabular-nums text-muted-foreground transition-colors hover:border-border/60 hover:bg-muted hover:text-foreground"
-          title="Reprendre la valeur précédente"
-          aria-label={`Reprendre la valeur précédente de la série ${idx + 1}`}
-        >
-          {previous}
-        </button>
-      ) : (
-        <span className="text-center text-xs text-muted-foreground/40">—</span>
-      )}
-
-      <ValueInput
-        value={set.weightKg}
-        placeholder="0"
-        step={0.5}
-        ariaLabel={`Poids série ${idx + 1}`}
-        onChange={(n) => onUpdate({ weightKg: n })}
-      />
-
-      <ValueInput
-        value={mode === "reps" ? set.reps : set.holdSeconds}
-        placeholder={mode === "hold" ? "30" : "8"}
-        ariaLabel={`${mode === "hold" ? "Maintien" : "Reps"} série ${idx + 1}`}
-        onChange={(n) => onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n })}
-      />
-
-      <button
-        type="button"
-        onClick={handleValidate}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          onRequestDelete();
-        }}
-        aria-label={validated ? `Série ${idx + 1} faite` : `Marquer la série ${idx + 1} comme faite`}
-        aria-pressed={validated}
+    <div className="relative select-none overflow-hidden rounded-lg">
+      {/* Delete background revealed by the swipe */}
+      <div
         className={cn(
-          "flex h-11 w-11 items-center justify-center justify-self-end rounded-full border-2 transition-all active:scale-95",
-          validated
-            ? "border-emerald-500 bg-emerald-500 text-white shadow-sm"
-            : "border-border bg-background text-muted-foreground hover:border-emerald-500/60 hover:text-emerald-500",
+          "pointer-events-none absolute inset-0 flex items-center justify-end rounded-lg bg-destructive px-4 transition-opacity",
+          dx < -40 ? "opacity-100" : "opacity-0",
+        )}
+        aria-hidden
+      >
+        <Trash2 className="h-4 w-4 text-destructive-foreground" />
+        <span className="ml-1.5 text-xs font-medium text-destructive-foreground">Supprimer</span>
+      </div>
+
+      <div
+        style={{ transform: `translateX(${dx}px)`, transition: animating ? "transform 0.2s ease" : "none" }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className={cn(
+          "relative rounded-lg border px-0.5 py-1",
+          validated ? "border-emerald-500/40 bg-emerald-500/10" : "border-transparent bg-muted/30",
         )}
       >
-        <Check className={cn("h-5 w-5", validated && "scale-110")} />
-      </button>
+        <div className="grid grid-cols-[26px_58px_minmax(0,1fr)_minmax(0,1fr)_56px] items-center gap-1.5">
+          <span className="text-center text-sm font-semibold tabular-nums text-muted-foreground">{idx + 1}</span>
+
+          {previous ? (
+            <button
+              type="button"
+              onClick={onApplyPrevious}
+              className="truncate rounded border border-transparent px-1 py-1 text-xs tabular-nums text-muted-foreground transition-colors hover:border-border/60 hover:bg-muted hover:text-foreground"
+              title="Reprendre la valeur précédente"
+              aria-label={`Reprendre la valeur précédente de la série ${idx + 1}`}
+            >
+              {previous}
+            </button>
+          ) : (
+            <span className="text-center text-xs text-muted-foreground/40">—</span>
+          )}
+
+          <ValueInput
+            value={set.weightKg}
+            placeholder="0"
+            step={0.5}
+            ariaLabel={`Poids série ${idx + 1}`}
+            onChange={(n) => onUpdate({ weightKg: n })}
+          />
+
+          <ValueInput
+            value={mode === "reps" ? set.reps : set.holdSeconds}
+            placeholder={mode === "hold" ? "30" : "8"}
+            ariaLabel={`${mode === "hold" ? "Maintien" : "Reps"} série ${idx + 1}`}
+            onChange={(n) => onUpdate(mode === "reps" ? { reps: n } : { holdSeconds: n })}
+          />
+
+          <button
+            type="button"
+            onClick={handleValidate}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              onRequestDelete();
+            }}
+            aria-label={validated ? `Série ${idx + 1} faite` : `Marquer la série ${idx + 1} comme faite`}
+            aria-pressed={validated}
+            className={cn(
+              "flex h-11 w-11 items-center justify-center justify-self-end rounded-full border-2 transition-all active:scale-95",
+              validated
+                ? "border-emerald-500 bg-emerald-500 text-white shadow-sm"
+                : "border-border bg-background text-muted-foreground hover:border-emerald-500/60 hover:text-emerald-500",
+            )}
+          >
+            <Check className={cn("h-5 w-5", validated && "scale-110")} />
+          </button>
+        </div>
+
+        {/* Variant — chosen per set */}
+        {variants.length > 1 && (
+          <div className="px-1 pt-1.5">
+            <select
+              value={set.variantId ?? variants[0]?.id ?? ""}
+              onChange={(e) => onVariantChange(e.target.value)}
+              className="h-8 w-full rounded-md border border-border/60 bg-background px-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-ring"
+              aria-label={`Variante série ${idx + 1}`}
+            >
+              {variants.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name} {difficultyStars(v.difficultyLevel)}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
