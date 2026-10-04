@@ -68,6 +68,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { WeeklyTutCard } from "@/components/app/weekly-tut-card";
+import { QuickStartCard } from "@/components/app/quick-start-card";
 import { cn } from "@/lib/utils";
 
 // =====================================================
@@ -79,6 +80,10 @@ export function DashboardView() {
     <div className="space-y-8">
       <FadeIn>
         <WelcomeCard />
+      </FadeIn>
+
+      <FadeIn>
+        <QuickStartCard />
       </FadeIn>
 
       <FadeIn>

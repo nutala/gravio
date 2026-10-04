@@ -8,7 +8,7 @@ import { useAppStore } from "@/lib/store";
 import { DashboardView } from "@/components/app/views/dashboard-view";
 import { ExercisesView } from "@/components/app/views/exercises-view";
 import { ExerciseDetailView } from "@/components/app/views/exercise-detail-view";
-import { NewWorkoutView } from "@/components/app/views/new-workout-view";
+import { NewWorkoutView } from "@/components/app/views/active-workout-view";
 import { HistoryView } from "@/components/app/views/history-view";
 import { StatsView } from "@/components/app/views/stats-view";
 import { ProfileView } from "@/components/app/views/profile-view";

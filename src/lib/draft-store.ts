@@ -119,6 +119,9 @@ interface WorkoutDraftStore extends WorkoutDraft {
   /// Cancel the session: clear the draft + stop the timer.
   cancelSession: () => void;
 
+  /// Reset the `validated` flag on every set (used when repeating a workout).
+  resetAllValidations: () => void;
+
   resetDraft: () => void;
 
   /// Load draft from a past workout. `keepDate` keeps the original session

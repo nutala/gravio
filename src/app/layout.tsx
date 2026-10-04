@@ -49,6 +49,9 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  // Let the layout extend under the system bars so the mobile bottom tab bar
+  // clears the Android/iOS navigation bar (env(safe-area-inset-bottom)).
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

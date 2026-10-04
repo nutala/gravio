@@ -33,23 +33,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const view = useAppStore((s) => s.view);
   const setView = useAppStore((s) => s.setView);
 
+  // The active-workout view owns its own bottom action bar — hide the tab bar
+  // there so the two never compete for the thumb zone (Strong behaves the same).
+  const showTabs = view !== "new-workout";
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
+        <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between gap-4 px-4 sm:h-16 sm:px-6">
           <button
             onClick={() => setView("dashboard")}
-            className="flex items-center gap-2.5 group"
+            className="group flex items-center gap-2.5"
             aria-label="Aller au tableau de bord"
           >
-            <GravioLogo
-              className="h-20 w-auto object-contain transition-transform group-hover:scale-105"
-            />
+            <GravioLogo className="h-16 w-auto object-contain transition-transform group-hover:scale-105 sm:h-20" />
           </button>
 
           {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-1" aria-label="Navigation principale">
+          <nav className="hidden items-center gap-1 md:flex" aria-label="Navigation principale">
             {NAV.map((item) => {
               const active = view === item.id;
               const Icon = item.icon;
@@ -78,44 +80,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <UserMenu />
           </div>
         </div>
-
-        {/* Mobile nav (scrollable pill bar) */}
-        <nav
-          className="md:hidden flex items-center gap-1 overflow-x-auto px-3 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          aria-label="Navigation mobile"
-        >
-          {NAV.map((item) => {
-            const active = view === item.id;
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setView(item.id)}
-                className={cn(
-                  "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
-                  active
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "bg-muted/60 text-muted-foreground hover:bg-muted",
-                )}
-                aria-current={active ? "page" : undefined}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {item.label}
-              </button>
-            );
-          })}
-        </nav>
       </header>
 
       {/* Main content */}
       <main className="flex-1 overflow-x-hidden">
-        <div className="mx-auto w-full max-w-7xl px-3 py-6 sm:px-6 sm:py-8">
+        <div
+          className={cn(
+            "mx-auto w-full max-w-7xl px-3 py-5 sm:px-6 sm:py-8",
+            showTabs && "pb-28 md:pb-8",
+          )}
+        >
           {children}
         </div>
       </main>
 
-      {/* Sticky footer */}
-      <footer className="mt-auto border-t border-border/60 bg-background">
+      {/* Footer (desktop only — mobile has the tab bar) */}
+      <footer className="mt-auto hidden border-t border-border/60 bg-background sm:block">
         <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6">
           <div className="flex flex-col items-center justify-between gap-2 text-xs text-muted-foreground sm:flex-row">
             <p className="flex items-center gap-1.5">
@@ -136,6 +116,37 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </footer>
+
+      {/* Mobile bottom tab bar (thumb-reachable, app-like) */}
+      {showTabs && (
+        <nav
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/95 backdrop-blur md:hidden"
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+          aria-label="Navigation mobile"
+        >
+          <div className="flex items-stretch">
+            {NAV.map((item) => {
+              const active = view === item.id;
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setView(item.id)}
+                  className={cn(
+                    "relative flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium transition-colors",
+                    active ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                  )}
+                  aria-current={active ? "page" : undefined}
+                >
+                  {active && <span className="absolute top-0 h-0.5 w-8 rounded-full bg-primary" />}
+                  <Icon className={cn("h-5 w-5", active && "stroke-[2.4]")} />
+                  <span>{item.short}</span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      )}
 
       {/* Floating rest timer (persists across views) */}
       <RestTimerWidget />

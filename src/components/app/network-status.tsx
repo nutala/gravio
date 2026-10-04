@@ -6,11 +6,14 @@ import { processQueue, getQueue } from "@/lib/offline-queue";
 import { toast } from "sonner";
 
 export function NetworkStatus() {
-  const [offline, setOffline] = React.useState(
-    typeof navigator !== "undefined" ? !navigator.onLine : false,
-  );
+  // Always start "online" and let the mount effect read the real state.
+  // (Node ≥21 exposes a global `navigator` whose `onLine` is undefined, so
+  // reading it during SSR used to render the offline banner on the server only
+  // → hydration mismatch + a spurious "Mode hors ligne" flash.)
+  const [offline, setOffline] = React.useState(false);
 
   React.useEffect(() => {
+    setOffline(!navigator.onLine);
     const goOffline = () => setOffline(true);
     const goOnline = () => {
       setOffline(false);
